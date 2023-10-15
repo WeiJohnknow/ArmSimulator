@@ -6,7 +6,7 @@ from OpenGL.GLU import *
 from OpenGL.GLUT import *
 import cv2 
 from Matrix import *
-
+import matplotlib.pyplot as plt
 
 
 
@@ -148,6 +148,17 @@ def draw_Link(BasePoint, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6):
             glVertex3fv(vertices[vertex])
     glEnd()
 
+def Arm1link_FK(World_Point, θ1):
+    # Please Input Radine
+    BasePoint = World_Point 
+
+    BaseToJ1 = Mat.TransXYZ(0,0,3) @ Mat.RotaZ(θ1)
+    Joint1 = BasePoint @ BaseToJ1  
+    
+    
+    End_Effector = Joint1
+    
+    return Joint1, End_Effector
     
 def Arm_FK(World_Point,θ1,θ2,θ3,θ4,θ5,θ6):
     # Please Input Radine
@@ -184,7 +195,11 @@ def draw_Arm(BasePoint, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6):
     draw_axes(Joint5)
     draw_axes(Joint6)
 
-    draw_Link(BasePoint, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6)
+    # draw_Link(BasePoint, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6)
+
+def draw1link_Arm(BasePoint, Joint1):
+
+    draw_axes(Joint1)
 
 
 def Jacobian(Joint1, Joint2, Joint3, Joint4, Joint5, Joint6):
@@ -533,45 +548,155 @@ def main():
         # 繪製世界坐標系原點
         draw_axes(World_coordinate)
 
-        # # 434TrajectoryPlan test(Once Motor)
-        # θinit = 0
-        # Vinit = 0
-        # Ainit = 0
-        # # 馬達目標角度(弳度)
-        # θfinal = pi
-        # Vfinal = 0
-        # Afinal = 0
-        
-        # rate = 0.25
-        # θlift_off = θfinal*rate
-        # θset_down = θfinal*(1-rate)
-        # t = [0.1, 0.1, 0.1]
+        # 繪製測試點
+        TestPoint = World_coordinate @ Mat.TransXYZ(0,0,5) 
+        draw_axes(TestPoint)
 
-        # TimeList, PosList , VelList, AccList, samplePoint = TrajectoryPlanning_434(θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t[0], t[1], t[2],nowTime=0)
-        # if MotorPosIteration == (len(PosList)-1):
-        #     print("Motor已達目標位置")
-        # else:
-        #     MotorPosIteration += 1
-        #     NextPos = PosList[MotorPosIteration] - PosList[MotorPosIteration-1]
-        # World_coordinate = World_coordinate @ Mat.RotaZ(NextPos)
+        # 434TrajectoryPlan test(Once Motor)
+        θinit = 0
+        Vinit = 0
+        Ainit = 0
+        # 馬達目標角度(弳度)
+        θfinal = d2r(180)
+        Vfinal = 0
+        Afinal = 0
         
+        rate = 0.25
+        θlift_off = θfinal*rate
+        θset_down = θfinal*(1-rate)
+        t = [2, 2, 2]
+
+        TimeList, PosList , VelList, AccList, samplePoint = TrajectoryPlanning_434(θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t[0], t[1], t[2],nowTime=0)
+        if MotorPosIteration == (len(PosList)-1):
+            print("Motor已達目標位置")
+        else:
+            MotorPosIteration += 1
+            NextPos = PosList[MotorPosIteration] - PosList[MotorPosIteration-1]
+        World_coordinate = World_coordinate @ Mat.RotaX(NextPos)
+        TestPoint = TestPoint @ Mat.RotaX(NextPos)
+        draw_axes(TestPoint)
+        # Joint1, End_Effector = Arm1link_FK(World_coordinate,NextPos)
+        # draw1link_Arm(World_coordinate, Joint1)
+
         # # Arm test
         # Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, End_Effector = Arm_FK(World_coordinate,θ1,θ2,θ3,θ4,θ5,θ6)
         # draw_Arm(World_coordinate, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6)
         # print(End_Effector)
 
-        # IK test
-        # NowEnd = np.array([[3, 3, 3, 0, 0, 0]]).reshape(6,1)
-        Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, End_Effector = Arm_FK(World_coordinate,θ1,θ2,θ3,θ4,θ5,θ6)
-        NowEnd = End_Effector
-        GoalEnd =np.array([[1, 1, 3, d2r(0), 0, 0]]).reshape(6,1)
-        θ = IK(GoalEnd, NowEnd)
-        print('θ', θ)
-        if θ is not None:
-            Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, End_Effector = Arm_FK(World_coordinate,θ[0,0],θ[1,0],θ[2,0],θ[3,0],θ[4,0],θ[5,0])
-            print("End: ",End_Effector)
-            draw_Arm(World_coordinate, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6)
+        # # IK test
+        # # NowEnd = np.array([[3, 3, 3, 0, 0, 0]]).reshape(6,1)
+        # Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, End_Effector = Arm_FK(World_coordinate,θ1,θ2,θ3,θ4,θ5,θ6)
+        # NowEnd = End_Effector
+        # GoalEnd =np.array([[1, 1, 3, d2r(0), 0, 0]]).reshape(6,1)
+        # θ = IK(GoalEnd, NowEnd)
+        # print('θ', θ)
+        # if θ is not None:
+        #     Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, End_Effector = Arm_FK(World_coordinate,θ[0,0],θ[1,0],θ[2,0],θ[3,0],θ[4,0],θ[5,0])
+        #     print("End: ",End_Effector)
+        #     draw_Arm(World_coordinate, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6)
 
+
+        # # IK + TrajectoryPlanning
+        # # Arm 現在姿態與位置
+        # Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, End_Effector = Arm_FK(World_coordinate,θ1,θ2,θ3,θ4,θ5,θ6)
+        # NowEnd = End_Effector
+
+        # # 目標位置與姿態
+        # GoalEnd =np.array([[1, 1, 3, d2r(0), 0, 0]]).reshape(6,1)
+
+        # # Jacbian IK
+        # θ = IK(GoalEnd, NowEnd)
+        # print('θ', θ)
+        
+        # # TP parameter
+        # θinit = 0
+        # Vinit = 0
+        # Ainit = 0
+        # Vfinal = 0
+        # Afinal = 0
+
+        # t = [0.5, 0.5, 0.5]
+        # rate = 0.25
+
+        # # Joint1 motor parameter
+        # J1θfinal = θ[0, 0]
+        # J1θlift_off = J1θfinal*rate
+        # J1θset_down = J1θfinal*(1-rate)
+        # # Joint2 motor parameter
+        # J2θfinal = θ[1, 0]
+        # J2θlift_off = J2θfinal*rate
+        # J2θset_down = J2θfinal*(1-rate)
+        # # Joint3 motor parameter
+        # J3θfinal = θ[2, 0]
+        # J3θlift_off = J3θfinal*rate
+        # J3θset_down = J3θfinal*(1-rate)
+        # # Joint4 motor parameter
+        # J4θfinal = θ[3, 0]
+        # J4θlift_off = J4θfinal*rate
+        # J4θset_down = J4θfinal*(1-rate)
+        # # Joint5 motor parameter
+        # J5θfinal = θ[4, 0]
+        # J5θlift_off = J5θfinal*rate
+        # J5θset_down = J5θfinal*(1-rate)
+        # # Joint6 motor parameter
+        # J6θfinal = θ[5, 0]
+        # J6θlift_off = J6θfinal*rate
+        # J6θset_down = J6θfinal*(1-rate)
+
+        
+        # # 規劃軌跡
+        # TimeList, PosList1 , VelList1, AccList1, samplePoint1 = TrajectoryPlanning_434(θinit, Vinit, Ainit, J1θlift_off, J1θset_down, J1θfinal, Vfinal, Afinal, t[0], t[1], t[2],nowTime=0)
+        # TimeList, PosList2 , VelList2, AccList2, samplePoint2 = TrajectoryPlanning_434(θinit, Vinit, Ainit, J2θlift_off, J2θset_down, J2θfinal, Vfinal, Afinal, t[0], t[1], t[2],nowTime=0)
+        # TimeList, PosList3 , VelList3, AccList3, samplePoint3 = TrajectoryPlanning_434(θinit, Vinit, Ainit, J3θlift_off, J3θset_down, J3θfinal, Vfinal, Afinal, t[0], t[1], t[2],nowTime=0)
+        # TimeList, PosList4 , VelList4, AccList4, samplePoint4 = TrajectoryPlanning_434(θinit, Vinit, Ainit, J4θlift_off, J4θset_down, J4θfinal, Vfinal, Afinal, t[0], t[1], t[2],nowTime=0)
+        # TimeList, PosList5 , VelList5, AccList5, samplePoint5 = TrajectoryPlanning_434(θinit, Vinit, Ainit, J5θlift_off, J5θset_down, J5θfinal, Vfinal, Afinal, t[0], t[1], t[2],nowTime=0)
+        # TimeList, PosList6 , VelList6, AccList6, samplePoint6 = TrajectoryPlanning_434(θinit, Vinit, Ainit, J6θlift_off, J6θset_down, J6θfinal, Vfinal, Afinal, t[0], t[1], t[2],nowTime=0)
+
+        # # 軌跡 iteration
+        # if MotorPosIteration == (len(PosList1)-1):
+        #     print("Motor已達目標位置")
+        # else:
+        #     MotorPosIteration += 1
+        #     J1NextPos = PosList1[MotorPosIteration] - PosList1[MotorPosIteration-1]
+        #     J2NextPos = PosList2[MotorPosIteration] - PosList2[MotorPosIteration-1]
+        #     J3NextPos = PosList3[MotorPosIteration] - PosList3[MotorPosIteration-1]
+        #     J4NextPos = PosList4[MotorPosIteration] - PosList4[MotorPosIteration-1]
+        #     J5NextPos = PosList5[MotorPosIteration] - PosList5[MotorPosIteration-1]
+        #     J6NextPos = PosList6[MotorPosIteration] - PosList6[MotorPosIteration-1]
+        #     Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, End_Effector = Arm_FK(World_coordinate,J1NextPos,J2NextPos,J3NextPos,J4NextPos,J5NextPos,J6NextPos)
+        #     print("End: ",End_Effector)
+        #     draw_Arm(World_coordinate, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6)
+
+        # Position curve
+        # plt.plot(TimeList,PosList1, label='Pos', color='red')
+        # plt.plot(TimeList,PosList2, label='Pos', color='orange')
+        # plt.plot(TimeList,PosList3, label='Pos', color='yellow')
+        # plt.plot(TimeList,PosList4, label='Pos', color='green')
+        # plt.plot(TimeList,PosList5, label='Pos', color='blue')
+        # plt.plot(TimeList,PosList6, label='Pos', color='black')
+
+        # Veloicty curve
+        # plt.plot(TimeList,VelList1, label='Vel', color='red')
+        # plt.plot(TimeList,VelList2, label='Vel', color='orange')
+        # plt.plot(TimeList,VelList3, label='Vel', color='yellow')
+        # plt.plot(TimeList,VelList4, label='Vel', color='green')
+        # plt.plot(TimeList,VelList5, label='Vel', color='blue')
+        # plt.plot(TimeList,VelList6, label='Vel', color='black')
+
+        # Acc curve
+        # plt.plot(TimeList,AccList1, label='Acc', color='red')
+        # plt.plot(TimeList,AccList2, label='Acc', color='orange')
+        # plt.plot(TimeList,AccList3, label='Acc', color='yellow')
+        # plt.plot(TimeList,AccList4, label='Acc', color='green')
+        # plt.plot(TimeList,AccList5, label='Acc', color='blue')
+        # plt.plot(TimeList,AccList6, label='Acc', color='black')
+
+        plt.show()
+
+        # # Arm test
+        # Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, End_Effector = Arm_FK(World_coordinate,θ1,θ2,θ3,θ4,θ5,θ6)
+        # draw_Arm(World_coordinate, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6)
+        # print(End_Effector)
 
         # Eular test
         # testBase = np.eye(4) @ Mat.TransXYZ(0,2,0)

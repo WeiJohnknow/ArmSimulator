@@ -408,7 +408,7 @@ def TrajectoryPlanning_434(θinit, Vinit, Ainit, θlift_off, θset_down, θfinal
         AccList.append(A)
 
     del TimeList[0]
-    return TimeList,PosList , VelList, AccList, samplePoint
+    return TimeList, PosList , VelList, AccList, samplePoint
 
 def main():
     init()
@@ -452,6 +452,7 @@ def main():
     θ5 = 0
     θ6 = 0
 
+    MotorPosIteration = 0
 
     while True:
         for event in pygame.event.get():
@@ -532,37 +533,45 @@ def main():
         # 繪製世界坐標系原點
         draw_axes(World_coordinate)
 
-        # 434TrajectoryPlan test
-        θinit = 0
-        Vinit = 0
-        Ainit = 0
-        θfinal = 100
-        Vfinal = 0
-        Afinal = 0
+        # # 434TrajectoryPlan test(Once Motor)
+        # θinit = 0
+        # Vinit = 0
+        # Ainit = 0
+        # # 馬達目標角度(弳度)
+        # θfinal = pi
+        # Vfinal = 0
+        # Afinal = 0
         
-        rate = 0.25
-        θlift_off = θfinal*rate
-        θset_down = θfinal*(1-rate)
-        t = [1,1,1]
+        # rate = 0.25
+        # θlift_off = θfinal*rate
+        # θset_down = θfinal*(1-rate)
+        # t = [0.1, 0.1, 0.1]
 
-        TrajectoryPlanning_434(θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t[0], t[1], t[2],nowTime=0)
-
+        # TimeList, PosList , VelList, AccList, samplePoint = TrajectoryPlanning_434(θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t[0], t[1], t[2],nowTime=0)
+        # if MotorPosIteration == (len(PosList)-1):
+        #     print("Motor已達目標位置")
+        # else:
+        #     MotorPosIteration += 1
+        #     NextPos = PosList[MotorPosIteration] - PosList[MotorPosIteration-1]
+        # World_coordinate = World_coordinate @ Mat.RotaZ(NextPos)
+        
         # # Arm test
         # Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, End_Effector = Arm_FK(World_coordinate,θ1,θ2,θ3,θ4,θ5,θ6)
         # draw_Arm(World_coordinate, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6)
         # print(End_Effector)
 
-        # # IK test
-        # # NowEnd = np.array([[3, 3, 3, 0, 0, 0]]).reshape(6,1)
-        # Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, End_Effector = Arm_FK(World_coordinate,θ1,θ2,θ3,θ4,θ5,θ6)
-        # NowEnd = End_Effector
-        # GoalEnd =np.array([[1, 1, 3, d2r(0), 0, 0]]).reshape(6,1)
-        # θ = IK(GoalEnd, NowEnd)
-        # print('θ', θ)
-        # if θ is not None:
-        #     Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, End_Effector = Arm_FK(World_coordinate,θ[0,0],θ[1,0],θ[2,0],θ[3,0],θ[4,0],θ[5,0])
-        #     print("End: ",End_Effector)
-        #     draw_Arm(World_coordinate, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6)
+        # IK test
+        # NowEnd = np.array([[3, 3, 3, 0, 0, 0]]).reshape(6,1)
+        Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, End_Effector = Arm_FK(World_coordinate,θ1,θ2,θ3,θ4,θ5,θ6)
+        NowEnd = End_Effector
+        GoalEnd =np.array([[1, 1, 3, d2r(0), 0, 0]]).reshape(6,1)
+        θ = IK(GoalEnd, NowEnd)
+        print('θ', θ)
+        if θ is not None:
+            Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, End_Effector = Arm_FK(World_coordinate,θ[0,0],θ[1,0],θ[2,0],θ[3,0],θ[4,0],θ[5,0])
+            print("End: ",End_Effector)
+            draw_Arm(World_coordinate, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6)
+
 
         # Eular test
         # testBase = np.eye(4) @ Mat.TransXYZ(0,2,0)

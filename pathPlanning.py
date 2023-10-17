@@ -387,61 +387,57 @@ def main():
     θinit = 0
     Vinit = 0 
     Ainit = 0
-    θfinal = np.pi/2 
+    θfinal = 90 
     Vfinal = 0
     Afinal = 0
 
     rate = 0.25
     θlift_off = θfinal*rate
     θset_down = θfinal*(1.0-rate)
-    t = [0.5, 0.5, 0.5]
+    t = [1, 1.5, 1]
 
     
     # TimeList, PosList , VelList, AccList, samplePoint = TP_434( θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t[0], t[1], t[2])
     TimeList, PosList , VelList, AccList, samplePoint = TrajectoryPlanning_434(θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t[0], t[1], t[2])
-    # plt.subplot(3, 1, 1)  
+
+    # 三條曲線以行增加的形式排列
+    plt.subplot(3, 1, 1)  
     plt.plot(TimeList,PosList, label='Pos')
-    plt.show()
+    plt.xlabel('Time')
+    plt.ylabel('Position')
+    # plt.yticks([0, 0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.4, 1.6])  # 自定义 Y 轴刻度
+    # plt.xticks([0, 0.2, 0.4, 0.5, 0.6, 0.8, 1, 1.2, 1.4, 1.5, 1.6])  # 自定义 X 轴刻度
+    # 添加最大值和最小值标签
+    plt.text(TimeList[np.argmax(PosList)], max(PosList), f'Max: {max(PosList):.2f}', va='bottom', ha='center', color='red', fontsize=16)
+    # plt.text(TimeList[np.argmin(PosList)], min(PosList), f'Min: {min(PosList):.2f}', va='top', ha='center', color='blue')
+    
+    plt.subplot(3, 1, 2)
     plt.plot(TimeList,VelList, label='Vel')
-    plt.show()
+    plt.xlabel('Time')
+    plt.ylabel('Velocity')
+    # plt.yticks([0, 0.2, 0.4, 0.6, 0.8])  # 自定义 Y 轴刻度
+    # plt.xticks([0, 0.2, 0.4, 0.5, 0.6, 0.8, 1, 1.2, 1.4, 1.5, 1.6])  # 自定义 X 轴刻度
+    plt.text(TimeList[np.argmax(VelList)], max(VelList), f'Max: {max(VelList):.2f}', va='bottom', ha='center', color='red', fontsize=16)
+
+    plt.subplot(3, 1, 3)
     plt.plot(TimeList,AccList, label='Acc')
+    plt.xlabel('Time')
+    plt.ylabel('Acceleration')
+    # plt.yticks([-1.2, -1, -0.8, -0.6,-0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1, 1.2])  # 自定义 Y 轴刻度
+    # plt.xticks([0, 0.2, 0.4, 0.5, 0.6, 0.8, 1, 1.2, 1.4, 1.5, 1.6])  # 自定义 X 轴刻度
+    plt.text(TimeList[np.argmax(AccList)], max(AccList), f'Max: {max(AccList):.2f}', va='bottom', ha='center', color='red', fontsize=16)
+    plt.text(TimeList[np.argmin(AccList)], min(AccList), f'Min: {min(AccList):.2f}', va='top', ha='center', color='blue', fontsize=16)
+
+    # 手動調配間距
+    # plt.subplots_adjust(wspace=0.3)  # 调整水平间距
+    plt.subplots_adjust(hspace=0.3)  # 调整垂直间距
+
+    # 自動調配間距
+    # plt.tight_layout() 
     plt.show()
     
-    # # 一次輸出三條曲線
-    # # 設定Y軸刻度
-    # # yTicks = [0, 10, 20, 30, 40]
-    # # plt.yticks(yTicks)
-    # plt.autoscale(enable=True, axis='y')
+    
 
-    # plt.xlabel('Time')
-    # plt.ylabel('Position')
-    # plt.title('Position Curve')
-
-    # plt.subplot(3, 1, 2)
-    # plt.plot(TimeList,VelList, label='Vel')
-
-    # # 設定Y軸刻度
-    # # yTicks = [0, 10, 20, 30, 40]
-    # # plt.yticks(yTicks)
-    # plt.autoscale(enable=True, axis='y')
-
-    # plt.xlabel('Time')
-    # plt.ylabel('velocity')
-    # plt.title('Velocity Curve')
-
-    # plt.subplot(3, 1, 3)
-    # plt.plot(TimeList,AccList, label='Acc')
-
-    # # 設定Y軸刻度
-    # # yTicks = [-40, -30, -20 -10, 0, 10, 20, 30, 40]
-    # # plt.yticks(yTicks)
-    # plt.autoscale(enable=True, axis='y')
-
-    # plt.xlabel('Time')
-    # plt.ylabel('Acceleration')
-    # plt.title('Acceleration Curve')
-    # plt.tight_layout()
-    # plt.show()
 
     # # 第二段曲線
     # θinit = θfinal

@@ -6,7 +6,9 @@ from OpenGL.GLU import *
 from OpenGL.GLUT import *
 import cv2 
 from Matrix import *
+import matplotlib
 import matplotlib.pyplot as plt
+import datetime
 
 
 
@@ -54,9 +56,11 @@ def draw_cube():
             glVertex3fv(vertices[vertex])
     glEnd()
 
-def draw_axes(Mats):
+def draw_axis(Mats, Axislength):
+    '''
+    Axislenth 單位: OpenGL Unit
+    '''
     glPushMatrix()
-
     glTranslatef(Mats[0,3], Mats[1,3], Mats[2,3])
     EularAngle = Mat.MatToAngle(Mats)
 
@@ -71,39 +75,26 @@ def draw_axes(Mats):
     # X轴红色
     glColor3f(1, 0, 0)
     glVertex3f(0, 0, 0)
-    glVertex3f(0.5, 0, 0)
+    glVertex3f(Axislength, 0, 0)
     # Y轴绿色
     glColor3f(0, 1, 0)
     glVertex3f(0, 0, 0)
-    glVertex3f(0, 0.5, 0)
+    glVertex3f(0, Axislength, 0)
     # Z轴蓝色
     glColor3f(0, 0, 1)
     glVertex3f(0, 0, 0)
-    glVertex3f(0, 0, 0.5)
+    glVertex3f(0, 0, Axislength)
 
     # 結束指令
     glEnd()
     glPopMatrix()
 
 def draw_chessboard():
-    size = 20
-    step = 1
+    size = 40
+    step = 2
     is_gray = True 
 
     glPushMatrix()
-
-    # # 畫出棋盤格(邊線)
-    # glLineWidth(1)
-    # glColor3f(1, 1, 1)  # 设置线条颜色为白色
-    # glBegin(GL_LINES)
-
-    # for i in range(-size, size + 1, step):
-    #     glVertex3f(i, -size, 0)
-    #     glVertex3f(i, size, 0)
-    #     glVertex3f(-size, i, 0)
-    #     glVertex3f(size, i, 0)
-
-    # 畫棋盤格(有著色)
     glBegin(GL_QUADS)
     for i in range(-size, size, step):
         is_gray = not is_gray
@@ -120,9 +111,8 @@ def draw_chessboard():
     glEnd()
     glPopMatrix()
 
+def draw_Link(BasePoint, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, EndEffector):
 
-
-def draw_Link(BasePoint, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6):
     vertices = (
         (BasePoint[0, 3], BasePoint[1, 3], BasePoint[2, 3]),
         (Joint1[0, 3], Joint1[1, 3], Joint1[2, 3]),
@@ -131,6 +121,7 @@ def draw_Link(BasePoint, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6):
         (Joint4[0, 3], Joint4[1, 3], Joint4[2, 3]),
         (Joint5[0, 3], Joint5[1, 3], Joint5[2, 3]),
         (Joint6[0, 3], Joint6[1, 3], Joint6[2, 3]),
+        (EndEffector[0, 3], EndEffector[1, 3], EndEffector[2, 3])
     )
 
     edges = (
@@ -138,69 +129,102 @@ def draw_Link(BasePoint, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6):
         (1,2),
         (2,3),
         (3,4),
-        (4,5)
+        (4,5),
+        (5,6),
+        (6,7)
     )
     glLineWidth(5)
     glBegin(GL_LINES)
-    glColor3f(1.0, 1.0, 0)
+    glColor3f(1, 1, 0)
     for edge in edges:
         for vertex in edge:
             glVertex3fv(vertices[vertex])
     glEnd()
 
-def Arm1link_FK(World_Point, θ1):
-    # Please Input Radine
-    BasePoint = World_Point 
+def YASKAWA_MA1440_ArmFK(Base, Saxisθ, Laxisθ, Uaxisθ, Raxisθ, Baxisθ, Taxisθ):
+    '''
+    輸入請注意角度單位: 度、mm
+    OpenGL Unit = 0.01(10cm)
+    注意各轉軸角度限制(單位:度):
+    S軸 : ±170
+    L軸 : -90 / +155
+    U軸 : -175 / +240
+    R軸 : ±150
+    B軸 : -135 / +90
+    T軸 : ±210
+    Payload : 6 kg
+    '''
+    Unit = 0.01
+    
 
-    BaseToJ1 = Mat.TransXYZ(0,0,3) @ Mat.RotaZ(θ1)
-    Joint1 = BasePoint @ BaseToJ1  
-    
-    
-    End_Effector = Joint1
-    
-    return Joint1, End_Effector
-    
-def Arm_FK(World_Point,θ1,θ2,θ3,θ4,θ5,θ6):
-    # Please Input Radine
-    BasePoint = World_Point 
+    BtoS = Mat.RotaX(d2r(-180)) @ Mat.TransXYZ(0,0,-299*Unit) @ Mat.RotaZ(Saxisθ) 
+    Saxis = Base @ BtoS
 
-    BaseToJ1 = Mat.TransXYZ(0,0,3) @ Mat.RotaZ(θ1)
+    StoL = Mat.RotaY(d2r(90)) @ Mat.RotaX(d2r(-90)) @ Mat.TransXYZ(151*Unit,-155*Unit,0) @ Mat.RotaZ(Laxisθ)
+    Laxis = Saxis @ StoL
+
+    LtoU = Mat.TransXYZ(614*Unit,0,0) @ Mat.RotaZ(Uaxisθ)
+    Uaxis = Laxis @ LtoU
+
+    UtoR = Mat.RotaX(d2r(90)) @ Mat.TransXYZ(200*Unit,0,z=255*Unit) @ Mat.RotaZ(Raxisθ)
+    Raxis = Uaxis @ UtoR
+
+    RtoB = Mat.TransXYZ(0,0,385*Unit) @ Mat.RotaX(d2r(90)) @   Mat.RotaZ(Baxisθ)
+    Baxis = Raxis @ RtoB
+
+    BtoT = Mat.TransXYZ(0,100*Unit,0) @ Mat.RotaX(d2r(-90))  @ Mat.RotaZ(Taxisθ)
+    Taxis = Baxis @ BtoT
+
+    # 末端法蘭面 to 銲槍末端
+    # TtoWeldingGun = Mat.TransXYZ(-15.461*Unit, 0, 323.762*Unit) @ Mat.RotaX(d2r(-90))
+    # EndEffector = Taxis @ TtoWeldingGun
+    EndEffector = Taxis
+    return Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector
+    
+def PUMA_Arm_FK(Base,θ1,θ2,θ3,θ4,θ5,θ6):
+    '''
+    輸入單位: rad
+    手臂實際單位(inch)
+    '''
+    
+    Unit = 0.1
+    BasePoint = Base 
+
+    BaseToJ1 = Mat.TransXYZ(0,0,44*Unit) @ Mat.RotaZ(θ1)
     Joint1 = BasePoint @ BaseToJ1  
     
     J1ToJ2 =  Mat.RotaX(d2r(-90)) @ Mat.RotaZ(θ2)
     Joint2 = Joint1 @ J1ToJ2
 
-    J2ToJ3 = Mat.TransXYZ(2,0,0) @ Mat.RotaZ(θ3)
+    J2ToJ3 = Mat.TransXYZ(25.6*Unit,0,0) @ Mat.RotaZ(θ3)
     Joint3 = Joint2 @ J2ToJ3
 
-    J3ToJ4 = Mat.TransXYZ(0,1,0) @ Mat.RotaX(d2r(-90))  @ Mat.RotaZ(θ4)
+    J3ToJ4 = Mat.TransXYZ(0,23.6*Unit,0) @ Mat.RotaX(d2r(-90))  @ Mat.RotaZ(θ4)
     Joint4 = Joint3 @ J3ToJ4
 
-    J4ToJ5 = Mat.TransXYZ(0,0,0) @ Mat.RotaX(d2r(90)) @ Mat.RotaZ(θ5)
+    J4ToJ5 = Mat.RotaY(d2r(90)) @ Mat.RotaZ(θ5)
     Joint5 = Joint4 @ J4ToJ5
 
-    J5ToJ6 = Mat.TransXYZ(0,0,0) @ Mat.RotaX(d2r(-90))  @ Mat.RotaZ(θ6)
+    J5ToJ6 = Mat.RotaX(d2r(-90))  @ Mat.RotaZ(θ6)
     Joint6 = Joint5 @ J5ToJ6
 
     End_Effector = Joint6
     
     return Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, End_Effector
 
-def draw_Arm(BasePoint, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6):
+def draw_Arm(BasePoint, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, EndEffector):
+    length = 1
+    draw_axis(BasePoint, length)
+    draw_axis(Joint1, length)
+    draw_axis(Joint2, length)
+    draw_axis(Joint3, length)
+    draw_axis(Joint4, length)
+    draw_axis(Joint5, length)
+    draw_axis(Joint6, length)
+    draw_axis(EndEffector, length)
 
-    draw_axes(Joint1)
-    draw_axes(Joint2)
-    draw_axes(Joint3)
-    draw_axes(Joint4)
-    draw_axes(Joint5)
-    draw_axes(Joint6)
-
-    draw_Link(BasePoint, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6)
-
-def draw1link_Arm(BasePoint, Joint1):
-
-    draw_axes(Joint1)
-
+    draw_Link(BasePoint, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, EndEffector)
+    
 
 def Jacobian(Joint1, Joint2, Joint3, Joint4, Joint5, Joint6):
     JacMat = np.eye(6)
@@ -246,8 +270,12 @@ def Jacobian(Joint1, Joint2, Joint3, Joint4, Joint5, Joint6):
 
 
 def IK(GoalEnd, NowEnd):
-
+    '''
+    姿態請輸入角度
+    使用此IK，請確認function內部的FK參數!!!
+    '''
     World_Point = np.eye(4)
+
     # 初始疊代角度
     θ = np.array([
         [10],
@@ -275,9 +303,13 @@ def IK(GoalEnd, NowEnd):
     while iter > 0 :
         iter -= 1
 
-        # FK
-        Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, End_Effector = \
-            Arm_FK(World_Point,θ[0,0],θ[1,0],θ[2,0],θ[3,0],θ[4,0],θ[5,0])
+        # PumaFK
+        # Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, End_Effector = \
+        #     PUMA_Arm_FK(World_Point,θ[0,0],θ[1,0],θ[2,0],θ[3,0],θ[4,0],θ[5,0])
+        
+        # Yaskawa MA1440 FK
+        Base, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, End_Effector = \
+            YASKAWA_MA1440_ArmFK(World_Point,θ[0,0],θ[1,0],θ[2,0],θ[3,0],θ[4,0],θ[5,0])
         
         # 現在q 回傳的是角度 須改 可參考家欣的IKHead
         q = Mat.MatToAngle(End_Effector)
@@ -306,8 +338,11 @@ def IK(GoalEnd, NowEnd):
 
         # 更新角度
         θ += w * alpha
+
     print("iter :", iter)
-    normθ = norm_deg(θ)
+    # normθ = norm_deg(θ)
+    # print(θ)
+    normθ = Normdeg(θ)
 
     return normθ
 
@@ -315,6 +350,7 @@ def norm_deg(rads:np.array,mode = 1):
     # [0,2pi]
     # [-pi,pi]
     # 3* pi mode 1 4*pi
+
     if mode == 1:
         rads = (rads + np.pi)  - rads // (2 * np.pi) * 2 * np.pi - np.pi
         # [-pi,pi]
@@ -324,17 +360,21 @@ def norm_deg(rads:np.array,mode = 1):
     
     return rads
 
-def TrajectoryPlanning_434(θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t1, t2, t3,nowTime=0):
-    # Inital
-    # Lift-off
-    # Set_down
-    # Final
-    # y = C*x   =>   x = inv(c)*y
+def Normdeg(Mat):
+    for i in range(6):
+        while(Mat[i,0]>pi or Mat[i,0]<-pi):
+            if Mat[i,0] >= pi:
+                Mat[i,0] -= pi
+                # print(Mat[i,0])
+            elif Mat[i,0] <= -pi:
+                Mat[i,0] += pi
+                # print(Mat[i,0])
+            else:
+                pass
+                # print(Mat[i,0])
+    return Mat
 
-    sampleIntervals = 0.01
-    samplePoint = [int(t1/sampleIntervals), int(t2/sampleIntervals), int(t3/sampleIntervals)]
-    
-    # X = [a13, a14, a21, a22, a23, a33, a34]
+def TrajectoryPlanning_434(θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t1, t2, t3, StartTime=0):
     P1 = θlift_off - θinit
     P2 = θset_down - θlift_off
     P3 = θfinal - θset_down
@@ -357,31 +397,7 @@ def TrajectoryPlanning_434(θinit, Vinit, Ainit, θlift_off, θset_down, θfinal
                     P3-Vfinal*t3-(Afinal*t3**2)/2])
     
     c_1 = np.linalg.inv(C)
-
-    
-    # X = np.array([[Afinal*t1**2*t2**2*t3**2/(6*t1**2*t3**2 + 24*t1*t2**3 + 36*t2**4 - 18*t2**2*t3**2) - Ainit*(-2*t1**2*t2*t3**2 - 6*t1*t2**4 + 3*t1*t2**2*t3**2)/(t1*(6*t1**2*t3**2 + 24*t1*t2**3 + 36*t2**4 - 18*t2**2*t3**2)) + P2*(-t1**2*t3**2 - 6*t1*t2**3 + 3*t1*t2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Afinal*t3 + Vfinal)*(2*t1**2*t2**3 - t1**2*t2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Ainit*t1 - Vinit)*(-t1**3*t3**2 - 4*t1**2*t2**3 + 2*t1**2*t2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (6*t1**2*t2**2 - 4*t1**2*t3**2)*(-Afinal*t3**2/2 + P3 - Vfinal*t3)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Ainit*t1**2/2 + P1 - Vinit*t1**2)*(4*t1**2*t3**2 + 16*t1*t2**3 - 4*t1*t2*t3**2 + 12*t2**4 - 6*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2)], 
-    #         [-Afinal*t1**2*t2**2*t3**2/(6*t1**2*t3**2 + 24*t1*t2**3 + 36*t2**4 - 18*t2**2*t3**2) - Ainit*(2*t1**2*t2*t3**2 + 6*t1*t2**4 - 3*t1*t2**2*t3**2)/(t1*(6*t1**2*t3**2 + 24*t1*t2**3 + 36*t2**4 - 18*t2**2*t3**2)) + P2*(t1**2*t3**2 + 6*t1*t2**3 - 3*t1*t2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Afinal*t3 + Vfinal)*(-2*t1**2*t2**3 + t1**2*t2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Ainit*t1 - Vinit)*(t1**3*t3**2 + 4*t1**2*t2**3 - 2*t1**2*t2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-6*t1**2*t2**2 + 4*t1**2*t3**2)*(-Afinal*t3**2/2 + P3 - Vfinal*t3)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Ainit*t1**2/2 + P1 - Vinit*t1**2)*(-3*t1**2*t3**2 - 12*t1*t2**3 + 4*t1*t2*t3**2 - 6*t2**4 + 3*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2)], 
-    #         [-Afinal*t1**2*t2**2*t3**2/(6*t1**2*t3**2 + 24*t1*t2**3 + 36*t2**4 - 18*t2**2*t3**2) - Ainit*(2*t1**2*t2*t3**2 + 6*t1*t2**4 - 3*t1*t2**2*t3**2)/(t1*(6*t1**2*t3**2 + 24*t1*t2**3 + 36*t2**4 - 18*t2**2*t3**2)) + P2*(t1**2*t3**2 + 6*t1*t2**3 - 3*t1*t2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Afinal*t3 + Vfinal)*(-2*t1**2*t2**3 + t1**2*t2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Ainit*t1 - Vinit)*(-2*t1**2*t2*t3**2 - 6*t1*t2**4 + 3*t1*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-6*t1**2*t2**2 + 4*t1**2*t3**2)*(-Afinal*t3**2/2 + P3 - Vfinal*t3)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Ainit*t1**2/2 + P1 - Vinit*t1**2)*(4*t1*t2*t3**2 + 12*t2**4 - 6*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2)], 
-    #         [-Afinal*t1*t2**3*t3**2/(2*t1**2*t3**2 + 8*t1*t2**3 + 12*t2**4 - 6*t2**2*t3**2) - Ainit*(-t1**2*t2*t3**2 - 4*t1*t2**4 + 2*t1*t2**2*t3**2)/(t1*(2*t1**2*t3**2 + 8*t1*t2**3 + 12*t2**4 - 6*t2**2*t3**2)) + P2*(3*t1*t2*t3**2 + 18*t2**4 - 9*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Afinal*t3 + Vfinal)*(-6*t1*t2**4 + 3*t1*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Ainit*t1 - Vinit)*(3*t1**2*t2*t3**2 + 12*t1*t2**4 - 6*t1*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-18*t1*t2**3 + 12*t1*t2*t3**2)*(-Afinal*t3**2/2 + P3 - Vfinal*t3)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Ainit*t1**2/2 + P1 - Vinit*t1**2)*(-6*t1*t2*t3**2 - 24*t2**4 + 12*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2)], 
-    #         [Afinal*(t1**2*t2**2*t3**2 + 3*t1*t2**3*t3**2)/(6*t1**2*t3**2 + 24*t1*t2**3 + 36*t2**4 - 18*t2**2*t3**2) - Ainit*(t1**2*t2*t3**2 + 6*t1*t2**4 - 3*t1*t2**2*t3**2)/(t1*(6*t1**2*t3**2 + 24*t1*t2**3 + 36*t2**4 - 18*t2**2*t3**2)) + P2*(-2*t1*t2**3 - 12*t2**4 + 6*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Afinal*t3 + Vfinal)*(2*t1**2*t2**3 - t1**2*t2*t3**2 + 6*t1*t2**4 - 3*t1*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Ainit*t1 - Vinit)*(-t1**2*t2*t3**2 - 6*t1*t2**4 + 3*t1*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Afinal*t3**2/2 + P3 - Vfinal*t3)*(6*t1**2*t2**2 - 4*t1**2*t3**2 + 18*t1*t2**3 - 12*t1*t2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Ainit*t1**2/2 + P1 - Vinit*t1**2)*(2*t1*t2*t3**2 + 12*t2**4 - 6*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2)], 
-    #         [Afinal*(-2*t1*t2**3*t3**2 - 3*t2**4*t3**2)/(6*t1**2*t3**2 + 24*t1*t2**3 + 36*t2**4 - 18*t2**2*t3**2) - Ainit*t2**2*t3**2/(6*t1**2*t3**2 + 24*t1*t2**3 + 36*t2**4 - 18*t2**2*t3**2) + P2*(-t1*t2*t3**2 - 3*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) - t1*t2**2*t3**2*(-Ainit*t1 - Vinit)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + 2*t2**2*t3**2*(-Ainit*t1**2/2 + P1 - Vinit*t1**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Afinal*t3 + Vfinal)*(t1**2*t2*t3**2 + 2*t1*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Afinal*t3**2/2 + P3 - Vfinal*t3)*(4*t1**2*t3**2 + 4*t1*t2**3 + 8*t1*t2*t3**2 + 6*t2**4)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2)], 
-    #         [Afinal*(-2*t1*t2**3*t3**2 - 3*t2**4*t3**2)/(6*t1**2*t3**2 + 24*t1*t2**3 + 36*t2**4 - 18*t2**2*t3**2) - Ainit*t2**2*t3**2/(6*t1**2*t3**2 + 24*t1*t2**3 + 36*t2**4 - 18*t2**2*t3**2) + P2*(-t1*t2*t3**2 - 3*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + t1*t2**2*t3**2*(-Ainit*t1 - Vinit)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + 2*t2**2*t3**2*(-Ainit*t1**2/2 + P1 - Vinit*t1**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Afinal*t3 + Vfinal)*(t1**2*t2*t3**2 + 2*t1*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Afinal*t3**2/2 + P3 - Vfinal*t3)*(3*t1**2*t3**2 + 8*t1*t2*t3**2 + 3*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2)]])
-    
-    # a10 = θinit
-    # a11 = Vinit*t1
-    # a12 = (Ainit*t1**2)/2
-    # a13 = X[0, 0]
-    # a14 = X[1, 0]
-    # a20 = θlift_off
-    # a21 = X[2, 0]
-    # a22 = X[3, 0]
-    # a23 = X[4, 0]
-    # a30 = θfinal
-    # a31 = Vfinal*t3
-    # a32 = (Afinal*t3**2)/2
-    # a33 = X[5, 0]
-    # a34 = X[6, 0]
-    X = c_1 @ Y
+    X = c_1 @ Y 
 
     a10 = θinit
     a11 = Vinit*t1
@@ -398,60 +414,144 @@ def TrajectoryPlanning_434(θinit, Vinit, Ainit, θlift_off, θset_down, θfinal
     a33 = X[5]
     a34 = X[6]
 
-    PosList = []
-    VelList = []
-    AccList = []
-    # 多項式
-    # h1 = a10 + a11*t1 + a12*t1**2 + a13*t1**3 + a14*t1**4
-    # h2 = a20 + a21*t2 + a22*t2**2 + a23*t2**3
-    # h3 = a30 + a31*t3 + a32*t3**2 + a33*t3**3 + a34*t3**4
-    TimeList=[nowTime]
-    for dt in range(100):
-        t = dt/100
-        TimeList.append(TimeList[-1]+0.01*t1)
-        P = a10 + a11*t + a12*t**2 + a13*t**3 + a14*t**4
-        V = a11 + 2*a12*t + 3*a13*t**2 + 4*a14*t**3
-        A = 2*a12 + 6*a13*t + 12*a14*t**2
-        PosList.append(P)
-        VelList.append(V)
-        AccList.append(A)
+    sampleIntervals = 0.01
+    samplePoint = [int(t1/sampleIntervals), int(t2/sampleIntervals), int(t3/sampleIntervals)]
+    reciprocal = 1/sampleIntervals
+    
+    DataSize = samplePoint[0]+samplePoint[1]+samplePoint[2]
+    TimeList = np.zeros((DataSize))
+    PosList = np.zeros((DataSize))
+    VelList = np.zeros((DataSize))
+    AccList = np.zeros((DataSize))
 
-    for dt in range(100):
-        t = dt/100
-        TimeList.append(TimeList[-1]+0.01*t2)
-        P = a20 + a21*t + a22*t**2 + a23*t**3
-        V = a21 + 2*a22*t + 3*a23*t**2
-        A = 2*a22 + 6*a23*t
-        PosList.append(P)
-        VelList.append(V)
-        AccList.append(A)
+    # 記憶前一段軌跡的時間節點
+    PreviousNode = 0
 
-    for dt in range(-100,1):
-        t = dt/100
-        TimeList.append(TimeList[-1]+0.01*t3)
-        P = a30 + a31*t + a32*t**2 + a33*t**3 + a34*t**4
-        V = a31 + 2*a32*t + 3*a33*t**2 + 4*a34*t**3
-        A = 2*a32 + 6*a33*t + 12*a34*t**2
-        PosList.append(P)
-        VelList.append(V)
-        AccList.append(A)
+    for _u in range(0,1*samplePoint[0]+1):
+        u = _u/samplePoint[0]
+        TimeList[_u] = StartTime + t1*u
 
-    del TimeList[0]
+        P = a10 + a11*u + a12*u**2 + a13*u**3 + a14*u**4
+        V = a11 + 2*a12*u + 3*a13*u**2 + 4*a14*u**3
+        A = 2*a12 + 6*a13*u + 12*a14*u**2
+
+        PosList[_u] = P
+        VelList[_u] = V
+        AccList[_u] = A
+    
+    PreviousNode += samplePoint[0]
+
+    for _u in range(0,1*samplePoint[1]):
+        u = _u/samplePoint[1]
+        TimeList[PreviousNode+_u] = TimeList[PreviousNode] + t2*u
+
+        P = a20 + a21*u + a22*u**2 + a23*u**3
+        V = a21 + 2*a22*u + 3*a23*u**2
+        A = 2*a22 + 6*a23*u
+
+        PosList[PreviousNode+_u] = P
+        VelList[PreviousNode+_u] = V
+        AccList[PreviousNode+_u] = A
+
+    PreviousNode += samplePoint[1]
+
+    # 第三段真實時間
+    ut = 0
+    counter = 0
+    for _u in range(-1*samplePoint[2],1):
+        u = _u/samplePoint[2]
+        ut += sampleIntervals
+        TimeList[PreviousNode+counter] = TimeList[PreviousNode-1] + ut
+
+
+        P = a30 + a31*u + a32*u**2 + a33*u**3 + a34*u**4
+        V = a31 + 2*a32*u + 3*a33*u**2 + 4*a34*u**3
+        A = 2*a32 + 6*a33*u + 12*a34*u**2
+
+        PosList[PreviousNode+counter] = P
+        VelList[PreviousNode+counter] = V
+        AccList[PreviousNode+counter] = A
+        if counter == samplePoint[1]-1:
+            counter = samplePoint[1]-1
+        else:
+            counter += 1
+    
+    # del TimeList[0]
+
     return TimeList, PosList , VelList, AccList, samplePoint
+
+def GetTime():
+    current_datetime = datetime.datetime.now()
+    seconds_str = int(current_datetime.strftime("%S"))
+
+    return seconds_str
+
+def draw_Point(coordinateMat):
+    # 設定點的大小，單位(Pixel)
+    glPointSize(3.0) 
+
+    glBegin(GL_POINTS)
+    glColor3f(1.0, 1.0, 1.0)  
+    glVertex3f(coordinateMat[0], coordinateMat[1], coordinateMat[2])  # 在(0,0,0)处绘制点
+    glEnd()
+
+def draw_WorkPlatform():
+    vertices = (
+    (4, -2, 0),
+    (4, 2, 0),
+    (8, 2, 0),
+    (8, -2, 0),
+    (4, -2, 4),
+    (4, 2, 4),
+    (8, 2, 4),
+    (8, -2, 4),
+    )
+
+    edges = (
+        (0,1),
+        (1,2),
+        (2,3),
+        (3,0),
+        (4,5),
+        (5,6),
+        (6,7),
+        (7,4),
+        (0,4),
+        (1,5),
+        (2,6),
+        (3,7)
+    )
+
+    glBegin(GL_LINES)
+    glColor3f(1.0, 1.0, 1.0)
+    for edge in edges:
+        for vertex in edge:
+            glVertex3fv(vertices[vertex])
+    glEnd()
+
+    # glBegin(GL_QUADS)
+    # glColor3fv((1, 1, 1))
+    # for surface in enumerate(edges):
+    #     for vertex in surface:
+    #         glVertex3fv(vertices[vertex])
+    # glEnd()
 
 def main():
     init()
     Mat = Matrix4x4()
     # 世界坐標系原點
     World_coordinate = np.eye(4)
-
+    TestPoint = np.array([[1, 0, 0, 0],
+                                [0 ,1 ,0, 0],
+                                [0, 0 ,1 ,5],
+                                [0, 0, 0, 1]])
     # 設定camera
     '''
     forward -> 相機Z軸，看向物體的方向。
     Right -> 相機x軸
     Top -> 相機上方，與右手坐標系Y軸反向
     ''' 
-    camera =  Mat.TransXYZ(10,0,10) @ Mat.RotaY(d2r(-135)) @ Mat.RotaZ(d2r(90))
+    camera =  Mat.TransXYZ(20,0,20) @ Mat.RotaY(d2r(-135)) @ Mat.RotaZ(d2r(90))
 
     # # 計算camera姿態與方向向量
     # cammat = World_coordinate
@@ -481,8 +581,72 @@ def main():
     θ5 = 0
     θ6 = 0
 
-    MotorPosIteration = 0
+    
+    # # IK + TrajectoryPlanning
+    # # Arm 現在姿態與位置
+    # MotorPosIteration = 0
+    # # Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, End_Effector = PUMA_Arm_FK(World_coordinate,θ1,θ2,θ3,θ4,θ5,θ6)
+    # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = YASKAWA_MA1440_ArmFK(World_coordinate,θ1,θ2,θ3,θ4,θ5,θ6)
+    # NowEnd = EndEffector
 
+    # # 目標位置與姿態
+    # GoalEnd =np.array([[10, 0, 4.5, 0, 0, 0]]).reshape(6,1)
+
+    # # Jacbian IK
+    # θ = IK(GoalEnd, NowEnd)
+    # print('θ', θ)
+    
+    # # TP parameter
+    # θinit = 0
+    # Vinit = 0
+    # Ainit = 0
+    # Vfinal = 0
+    # Afinal = 0
+
+    # t = [1, 1, 1]
+    # rate = 0.25
+    # # Joint1 motor parameter
+    # J1θfinal = θ[0, 0]
+    # J1θlift_off = J1θfinal*rate
+    # J1θset_down = J1θfinal*(1-rate)
+    # # Joint2 motor parameter
+    # J2θfinal = θ[1, 0]
+    # J2θlift_off = J2θfinal*rate
+    # J2θset_down = J2θfinal*(1-rate)
+    # # Joint3 motor parameter
+    # J3θfinal = θ[2, 0]
+    # J3θlift_off = J3θfinal*rate
+    # J3θset_down = J3θfinal*(1-rate)
+    # # Joint4 motor parameter
+    # J4θfinal = θ[3, 0]
+    # J4θlift_off = J4θfinal*rate
+    # J4θset_down = J4θfinal*(1-rate)
+    # # Joint5 motor parameter
+    # J5θfinal = θ[4, 0]
+    # J5θlift_off = J5θfinal*rate
+    # J5θset_down = J5θfinal*(1-rate)
+    # # Joint6 motor parameter
+    # J6θfinal = θ[5, 0]
+    # J6θlift_off = J6θfinal*rate
+    # J6θset_down = J6θfinal*(1-rate)
+
+    # # 加減速規劃
+    # TimeList, PosList1 , VelList1, AccList1, samplePoint1 = TrajectoryPlanning_434(θinit, Vinit, Ainit, J1θlift_off, J1θset_down, J1θfinal, Vfinal, Afinal, t[0], t[1], t[2],0)
+    # TimeList, PosList2 , VelList2, AccList2, samplePoint2 = TrajectoryPlanning_434(θinit, Vinit, Ainit, J2θlift_off, J2θset_down, J2θfinal, Vfinal, Afinal, t[0], t[1], t[2],0)
+    # TimeList, PosList3 , VelList3, AccList3, samplePoint3 = TrajectoryPlanning_434(θinit, Vinit, Ainit, J3θlift_off, J3θset_down, J3θfinal, Vfinal, Afinal, t[0], t[1], t[2],0)
+    # TimeList, PosList4 , VelList4, AccList4, samplePoint4 = TrajectoryPlanning_434(θinit, Vinit, Ainit, J4θlift_off, J4θset_down, J4θfinal, Vfinal, Afinal, t[0], t[1], t[2],0)
+    # TimeList, PosList5 , VelList5, AccList5, samplePoint5 = TrajectoryPlanning_434(θinit, Vinit, Ainit, J5θlift_off, J5θset_down, J5θfinal, Vfinal, Afinal, t[0], t[1], t[2],0)
+    # TimeList, PosList6 , VelList6, AccList6, samplePoint6 = TrajectoryPlanning_434(θinit, Vinit, Ainit, J6θlift_off, J6θset_down, J6θfinal, Vfinal, Afinal, t[0], t[1], t[2],0)
+    
+    # J1NextPos = 0
+    # J2NextPos = 0
+    # J3NextPos = 0
+    # J4NextPos = 0
+    # J5NextPos = 0
+    # J6NextPos = 0
+    # # 末端點座標資料庫
+    # EndEffectorList = np.zeros((10000, 3))
+    teachθ = [0, 0, 0, 0, 0, 0]
     while True:
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
@@ -498,6 +662,30 @@ def main():
                 elif event.key == pygame.K_RIGHT:
                     camera = camera @ Mat.TransXYZ(1,0,0)
                     # print(camera)
+                elif event.key == pygame.K_1:
+                    teachθ[0] += d2r(1)
+                elif event.key == pygame.K_KP1:
+                    teachθ[0] -= d2r(1)
+                elif event.key == pygame.K_2:
+                    teachθ[1] += d2r(1)
+                elif event.key == pygame.K_KP2:
+                    teachθ[1] -= d2r(1)
+                elif event.key == pygame.K_3:
+                    teachθ[2] += d2r(1)
+                elif event.key == pygame.K_KP3:
+                    teachθ[2] -= d2r(1)
+                elif event.key == pygame.K_4:
+                    teachθ[3] += d2r(1)
+                elif event.key == pygame.K_KP4:
+                    teachθ[3] -= d2r(1)
+                elif event.key == pygame.K_5:
+                    teachθ[4] += d2r(1)
+                elif event.key == pygame.K_KP5:
+                    teachθ[4] -= d2r(1)
+                elif event.key == pygame.K_6:
+                    teachθ[5] += d2r(1)
+                elif event.key == pygame.K_KP6:
+                    teachθ[5] -= d2r(1)
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 4:
                     camera = camera @ Mat.TransXYZ(0, 0, 0.25)
@@ -505,6 +693,8 @@ def main():
                 elif event.button == 5:
                     camera = camera @ Mat.TransXYZ(0, 0, -0.25)
                     # print(camera)
+            
+
             elif event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
@@ -558,130 +748,88 @@ def main():
         
         # 繪製地板
         draw_chessboard()
-
-        # 繪製世界坐標系原點
-        draw_axes(World_coordinate)
-
-        # # 繪製測試點
-        # TestPoint = World_coordinate @ Mat.TransXYZ(0,0,5) 
-        # draw_axes(TestPoint)
-
-        # # 434TrajectoryPlan test(Once Motor)
-        # θinit = 0
-        # Vinit = 0
-        # Ainit = 0
-        # # 馬達目標角度(弳度)
-        # θfinal = d2r(180)
-        # Vfinal = 0
-        # Afinal = 0
         
-        # rate = 0.25
-        # θlift_off = θfinal*rate
-        # θset_down = θfinal*(1-rate)
-        # t = [2, 2, 2]
-
-        # TimeList, PosList , VelList, AccList, samplePoint = TrajectoryPlanning_434(θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t[0], t[1], t[2],nowTime=0)
-        # if MotorPosIteration == (len(PosList)-1):
+        
+        # # 繪製世界坐標系原點
+        # draw_axis(World_coordinate, 1)
+        # draw_axis(TestPoint, 1)
+        
+        
+        # # 434TrajectoryPlanning 疊代test
+        # if MotorPosIteration == (len(PosList1)-1):
         #     print("Motor已達目標位置")
+
         # else:
         #     MotorPosIteration += 1
-        #     NextPos = PosList[MotorPosIteration] - PosList[MotorPosIteration-1]
-        # World_coordinate = World_coordinate @ Mat.RotaX(NextPos)
-        # TestPoint = TestPoint @ Mat.RotaX(NextPos)
-        # draw_axes(TestPoint)
-        # Joint1, End_Effector = Arm1link_FK(World_coordinate,NextPos)
-        # draw1link_Arm(World_coordinate, Joint1)
+        #     NextPos1 = PosList1[MotorPosIteration] - PosList1[MotorPosIteration-1]
+        #     NextPos2 = PosList2[MotorPosIteration] - PosList2[MotorPosIteration-1]
 
-        # # Arm test
-        # Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, End_Effector = Arm_FK(World_coordinate,θ1,θ2,θ3,θ4,θ5,θ6)
-        # draw_Arm(World_coordinate, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6)
-        # print(End_Effector)
+            
+        #     # WtoT = Mat.TransXYZ(0,0,2) @ Mat.RotaX(d2r(90)) @ Mat.RotaZ(NextPos2)
+        #     # TestPoint = World_coordinate @ WtoT
+        # World_coordinate = World_coordinate  @ Mat.RotaZ(NextPos1)
+        # TestPoint = TestPoint  @ Mat.RotaZ(NextPos2)
+
+        # # glPushMatrix()
+        # draw_axis(World_coordinate, 1)
+        # # glPopMatrix()
+        # # glPushMatrix()
+        # draw_axis(TestPoint, 1)
+        # # glPopMatrix()
+        
+
+        # Arm FK test
+        # Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, EndEffector = PUMA_Arm_FK(World_coordinate,d2r(90),d2r(45),θ3,θ4,θ5,θ6)
+        # draw_Arm(World_coordinate, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, EndEffector)
+        Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = YASKAWA_MA1440_ArmFK(World_coordinate,teachθ[0],teachθ[1],teachθ[2],teachθ[3],teachθ[4],teachθ[5])
+        draw_Arm(Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector)
+        print(EndEffector)
+
 
         # IK test
-        # NowEnd = np.array([[3, 3, 3, 0, 0, 0]]).reshape(6,1)
-        Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, End_Effector = Arm_FK(World_coordinate,θ1,θ2,θ3,θ4,θ5,θ6)
-        NowEnd = End_Effector
-        GoalEnd =np.array([[1, 1, 3, d2r(0), 0, 0]]).reshape(6,1)
-        θ = IK(GoalEnd, NowEnd)
-        print('θ', θ)
-        if θ is not None:
-            Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, End_Effector = Arm_FK(World_coordinate,θ[0,0],θ[1,0],θ[2,0],θ[3,0],θ[4,0],θ[5,0])
-            print("End: ",End_Effector)
-            draw_Arm(World_coordinate, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6)
-
-
-        # # IK + TrajectoryPlanning
-        # # Arm 現在姿態與位置
-        # Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, End_Effector = Arm_FK(World_coordinate,θ1,θ2,θ3,θ4,θ5,θ6)
-        # NowEnd = End_Effector
-
-        # # 目標位置與姿態
-        # GoalEnd =np.array([[1, 1, 3, d2r(0), 0, 0]]).reshape(6,1)
-
-        # # Jacbian IK
+        # NowEnd = np.array([[10, -6, 10, 0, 0, 0]]).reshape(6,1)
+        # Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, EndEffector = PUMA_Arm_FK(World_coordinate,θ1,θ2,θ3,θ4,θ5,θ6)
+        # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = YASKAWA_MA1440_ArmFK(World_coordinate,θ1,θ2,θ3,θ4,θ5,θ6)
+        # NowEnd = EndEffector
+        # GoalEnd =np.array([[4, 2, 4, d2r(0), 0, 0]]).reshape(6,1)
         # θ = IK(GoalEnd, NowEnd)
         # print('θ', θ)
-        
-        # # TP parameter
-        # θinit = 0
-        # Vinit = 0
-        # Ainit = 0
-        # Vfinal = 0
-        # Afinal = 0
+        # if θ is not None:
+        #     # Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, EndEffector = PUMA_Arm_FK(World_coordinate,θ[0,0],θ[1,0],θ[2,0],θ[3,0],θ[4,0],θ[5,0])
+        #     Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = YASKAWA_MA1440_ArmFK(World_coordinate,θ[0,0],θ[1,0],θ[2,0],θ[3,0],θ[4,0],θ[5,0])
+        #     print("End: ",EndEffector)
+        #     # draw_Arm(World_coordinate, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, EndEffector)
+        #     draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
 
-        # t = [0.5, 0.5, 0.5]
-        # rate = 0.25
-
-        # # Joint1 motor parameter
-        # J1θfinal = θ[0, 0]
-        # J1θlift_off = J1θfinal*rate
-        # J1θset_down = J1θfinal*(1-rate)
-        # # Joint2 motor parameter
-        # J2θfinal = θ[1, 0]
-        # J2θlift_off = J2θfinal*rate
-        # J2θset_down = J2θfinal*(1-rate)
-        # # Joint3 motor parameter
-        # J3θfinal = θ[2, 0]
-        # J3θlift_off = J3θfinal*rate
-        # J3θset_down = J3θfinal*(1-rate)
-        # # Joint4 motor parameter
-        # J4θfinal = θ[3, 0]
-        # J4θlift_off = J4θfinal*rate
-        # J4θset_down = J4θfinal*(1-rate)
-        # # Joint5 motor parameter
-        # J5θfinal = θ[4, 0]
-        # J5θlift_off = J5θfinal*rate
-        # J5θset_down = J5θfinal*(1-rate)
-        # # Joint6 motor parameter
-        # J6θfinal = θ[5, 0]
-        # J6θlift_off = J6θfinal*rate
-        # J6θset_down = J6θfinal*(1-rate)
-
-        
-        # # 規劃軌跡
-        # TimeList, PosList1 , VelList1, AccList1, samplePoint1 = TrajectoryPlanning_434(θinit, Vinit, Ainit, J1θlift_off, J1θset_down, J1θfinal, Vfinal, Afinal, t[0], t[1], t[2],nowTime=0)
-        # TimeList, PosList2 , VelList2, AccList2, samplePoint2 = TrajectoryPlanning_434(θinit, Vinit, Ainit, J2θlift_off, J2θset_down, J2θfinal, Vfinal, Afinal, t[0], t[1], t[2],nowTime=0)
-        # TimeList, PosList3 , VelList3, AccList3, samplePoint3 = TrajectoryPlanning_434(θinit, Vinit, Ainit, J3θlift_off, J3θset_down, J3θfinal, Vfinal, Afinal, t[0], t[1], t[2],nowTime=0)
-        # TimeList, PosList4 , VelList4, AccList4, samplePoint4 = TrajectoryPlanning_434(θinit, Vinit, Ainit, J4θlift_off, J4θset_down, J4θfinal, Vfinal, Afinal, t[0], t[1], t[2],nowTime=0)
-        # TimeList, PosList5 , VelList5, AccList5, samplePoint5 = TrajectoryPlanning_434(θinit, Vinit, Ainit, J5θlift_off, J5θset_down, J5θfinal, Vfinal, Afinal, t[0], t[1], t[2],nowTime=0)
-        # TimeList, PosList6 , VelList6, AccList6, samplePoint6 = TrajectoryPlanning_434(θinit, Vinit, Ainit, J6θlift_off, J6θset_down, J6θfinal, Vfinal, Afinal, t[0], t[1], t[2],nowTime=0)
 
         # # 軌跡 iteration
         # if MotorPosIteration == (len(PosList1)-1):
         #     print("Motor已達目標位置")
         # else:
+        #     J1NextPos = PosList1[MotorPosIteration] 
+        #     J2NextPos = PosList2[MotorPosIteration] 
+        #     J3NextPos = PosList3[MotorPosIteration] 
+        #     J4NextPos = PosList4[MotorPosIteration] 
+        #     J5NextPos = PosList5[MotorPosIteration] 
+        #     J6NextPos = PosList6[MotorPosIteration] 
         #     MotorPosIteration += 1
-        #     J1NextPos = PosList1[MotorPosIteration] - PosList1[MotorPosIteration-1]
-        #     J2NextPos = PosList2[MotorPosIteration] - PosList2[MotorPosIteration-1]
-        #     J3NextPos = PosList3[MotorPosIteration] - PosList3[MotorPosIteration-1]
-        #     J4NextPos = PosList4[MotorPosIteration] - PosList4[MotorPosIteration-1]
-        #     J5NextPos = PosList5[MotorPosIteration] - PosList5[MotorPosIteration-1]
-        #     J6NextPos = PosList6[MotorPosIteration] - PosList6[MotorPosIteration-1]
-        #     Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, End_Effector = Arm_FK(World_coordinate,J1NextPos,J2NextPos,J3NextPos,J4NextPos,J5NextPos,J6NextPos)
-        #     print("End: ",End_Effector)
-        #     draw_Arm(World_coordinate, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6)
 
-        # #　Position curve
+        # # Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, EndEffector = PUMA_Arm_FK(World_coordinate,J1NextPos,J2NextPos,J3NextPos,J4NextPos,J5NextPos,J6NextPos)
+        # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = YASKAWA_MA1440_ArmFK(World_coordinate,J1NextPos,J2NextPos,J3NextPos,J4NextPos,J5NextPos,J6NextPos)
+        
+        # # 畫軌跡
+        # EndEffectorList[MotorPosIteration,0] = EndEffector[0,3]
+        # EndEffectorList[MotorPosIteration,1] = EndEffector[1,3]
+        # EndEffectorList[MotorPosIteration,2] = EndEffector[2,3]
+        # for i in range(MotorPosIteration):
+        #     draw_Point(EndEffectorList[i])
+        # print("End: ", EndEffector)
+        # print("434疊代次數", MotorPosIteration)
+        # # draw_Arm(World_coordinate, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, EndEffector)
+        # draw_Arm(Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
+        draw_WorkPlatform()
+
+        # # Position curve
         # plt.subplot(6, 1, 1)
         # plt.plot(TimeList,PosList1, label='Pos', color='red')
         # plt.subplot(6, 1, 2)
@@ -716,9 +864,12 @@ def main():
         # plt.show()
 
         # # Arm test
-        # Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, End_Effector = Arm_FK(World_coordinate,θ1,θ2,θ3,θ4,θ5,θ6)
-        # draw_Arm(World_coordinate, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6)
-        # print(End_Effector)
+        # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = YASKAWA_MA1440_ArmFK(World_coordinate,θ1,θ2,θ3,θ4,θ5,θ6)
+        # # Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, EndEffector = PUMA_Arm_FK(World_coordinate,θ1,θ2,θ3,θ4,θ5,θ6)
+        # # draw_Arm(World_coordinate, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6)
+        # draw_Arm(Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
+        # print(EndEffector)
+        # draw_WorkPlatform()
 
         # Eular test
         # testBase = np.eye(4) @ Mat.TransXYZ(0,2,0)
@@ -736,27 +887,15 @@ def main():
         # print(qMat1[4])
         # print("test", qMat1test)
 
-        # draw_axes(testBase)
-        # draw_axes(test)
-        # draw_axes(test2)
+        # draw_axis(testBase, 1)
+        # draw_axis(test, 1)
+        # draw_axis(test2, 1)
 
-        # 線性插值test
-        # Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, End_Effector = Arm_FK(World_coordinate,θ1,θ2,θ3,θ4,θ5,θ6)
-        # NowEnd = np.array([[End_Effector[0,3], End_Effector[1,3], End_Effector[2,3], d2r(0), 0, 0]]).reshape(6,1)
-        # GoalEnd =np.array([[1, -1, 3, d2r(0), 0, 0]]).reshape(6,1)
-        # Point = linearInterpolation(NowEnd, GoalEnd, 0.01)
 
         pygame.display.flip()
         pygame.time.wait(10)
-        # θ1 += 1
-        # if θ2 >=45 or θ2>=125:
-        #     θ2 += 1
-        # else:
-        #     θ2 -= 1
-        # θ3 += 1
-        # θ4 += 1
-        # θ5 += 1
-        # θ6 += 1
+
+    
 
 
 

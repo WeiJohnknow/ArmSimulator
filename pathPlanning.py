@@ -112,7 +112,7 @@ def TrajectoryPlanning_434(θinit, Vinit, Ainit, θlift_off, θset_down, θfinal
                     P2,
                     Vfinal-Afinal*t3,
                     Afinal,
-                    P3-Vfinal*t3-(Afinal*t3**2)/2])
+                    P3-Vfinal*t3+(Afinal*t3**2)/2])
     
     c_1 = np.linalg.inv(C)
 
@@ -163,38 +163,91 @@ def TrajectoryPlanning_434(θinit, Vinit, Ainit, θlift_off, θset_down, θfinal
     # h1 = a10 + a11*t1 + a12*t1**2 + a13*t1**3 + a14*t1**4
     # h2 = a20 + a21*t2 + a22*t2**2 + a23*t2**3
     # h3 = a30 + a31*t3 + a32*t3**2 + a33*t3**3 + a34*t3**4
-    TimeList=[nowTime]
-    for dt in range(100):
-        t = dt/100
-        TimeList.append(TimeList[-1]+0.01*t1)
-        P = a10 + a11*t + a12*t**2 + a13*t**3 + a14*t**4
-        V = a11 + 2*a12*t + 3*a13*t**2 + 4*a14*t**3
-        A = 2*a12 + 6*a13*t + 12*a14*t**2
+
+    TimeList=[0]
+    sampleIntervals = 0.001
+    samplePoint = [int(t1/sampleIntervals), int(t2/sampleIntervals), int(t3/sampleIntervals)]
+    reciprocal = 1/sampleIntervals
+
+    # 記憶前一段軌跡的時間節點
+    PreviousNode = 0
+
+    for _u in range(0,1*samplePoint[0]):
+        u = _u/samplePoint[0]
+        TimeList.append(TimeList[0]+t1*u)
+
+        P = a10 + a11*u + a12*u**2 + a13*u**3 + a14*u**4
+        V = a11 + 2*a12*u + 3*a13*u**2 + 4*a14*u**3
+        A = 2*a12 + 6*a13*u + 12*a14*u**2
+        PosList.append(P)
+        VelList.append(V)
+        AccList.append(A)
+    
+    PreviousNode += samplePoint[0]
+
+    for _u in range(0,1*samplePoint[1]):
+        u = _u/samplePoint[1]
+        TimeList.append(TimeList[PreviousNode]+t2*u)
+
+        P = a20 + a21*u + a22*u**2 + a23*u**3
+        V = a21 + 2*a22*u + 3*a23*u**2
+        A = 2*a22 + 6*a23*u
+
         PosList.append(P)
         VelList.append(V)
         AccList.append(A)
 
-    for dt in range(100):
-        t = dt/100
-        TimeList.append(TimeList[-1]+0.01*t2)
-        P = a20 + a21*t + a22*t**2 + a23*t**3
-        V = a21 + 2*a22*t + 3*a23*t**2
-        A = 2*a22 + 6*a23*t
+    PreviousNode += samplePoint[1]
+
+    # 第三段真實時間
+    ut = 0
+    for _u in range(-1*samplePoint[2],1):
+        u = _u/samplePoint[2]
+        ut += sampleIntervals
+        TimeList.append(TimeList[PreviousNode] + ut)
+
+        P = a30 + a31*u + a32*u**2 + a33*u**3 + a34*u**4
+        V = a31 + 2*a32*u + 3*a33*u**2 + 4*a34*u**3
+        A = 2*a32 + 6*a33*u + 12*a34*u**2
+
         PosList.append(P)
         VelList.append(V)
         AccList.append(A)
-
-    for dt in range(-100,1):
-        t = dt/100
-        TimeList.append(TimeList[-1]+0.01*t3)
-        P = a30 + a31*t + a32*t**2 + a33*t**3 + a34*t**4
-        V = a31 + 2*a32*t + 3*a33*t**2 + 4*a34*t**3
-        A = 2*a32 + 6*a33*t + 12*a34*t**2
-        PosList.append(P)
-        VelList.append(V)
-        AccList.append(A)
-
+    
     del TimeList[0]
+
+    # TimeList=[nowTime]
+    # for dt in range(100):
+    #     t = dt/100
+    #     TimeList.append(TimeList[-1]+0.01*t1)
+    #     P = a10 + a11*t + a12*t**2 + a13*t**3 + a14*t**4
+    #     V = a11 + 2*a12*t + 3*a13*t**2 + 4*a14*t**3
+    #     A = 2*a12 + 6*a13*t + 12*a14*t**2
+    #     PosList.append(P)
+    #     VelList.append(V)
+    #     AccList.append(A)
+
+    # for dt in range(100):
+    #     t = dt/100
+    #     TimeList.append(TimeList[-1]+0.01*t2)
+    #     P = a20 + a21*t + a22*t**2 + a23*t**3
+    #     V = a21 + 2*a22*t + 3*a23*t**2
+    #     A = 2*a22 + 6*a23*t
+    #     PosList.append(P)
+    #     VelList.append(V)
+    #     AccList.append(A)
+
+    # for dt in range(-100,1):
+    #     t = dt/100
+    #     TimeList.append(TimeList[-1]+0.01*t3)
+    #     P = a30 + a31*t + a32*t**2 + a33*t**3 + a34*t**4
+    #     V = a31 + 2*a32*t + 3*a33*t**2 + 4*a34*t**3
+    #     A = 2*a32 + 6*a33*t + 12*a34*t**2
+    #     PosList.append(P)
+    #     VelList.append(V)
+    #     AccList.append(A)
+
+    # del TimeList[0]
     return TimeList,PosList , VelList, AccList, samplePoint
     
 def S_curve(Smax, Vmax, Amax, Aavg):
@@ -394,7 +447,7 @@ def main():
     rate = 0.25
     θlift_off = θfinal*rate
     θset_down = θfinal*(1.0-rate)
-    t = [1, 1.5, 1]
+    t = [3, 3, 3]
 
     
     # TimeList, PosList , VelList, AccList, samplePoint = TP_434( θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t[0], t[1], t[2])

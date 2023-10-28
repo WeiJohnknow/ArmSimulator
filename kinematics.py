@@ -169,7 +169,7 @@ def YASKAWA_MA1440_ArmFK(Base, Saxisθ, Laxisθ, Uaxisθ, Raxisθ, Baxisθ, Taxi
     UtoR = Mat.RotaX(d2r(90)) @ Mat.TransXYZ(200*Unit,0,z=255*Unit) @ Mat.RotaZ(Raxisθ)
     Raxis = Uaxis @ UtoR
 
-    RtoB = Mat.TransXYZ(0,0,385*Unit) @ Mat.RotaX(d2r(90)) @   Mat.RotaZ(Baxisθ)
+    RtoB = Mat.TransXYZ(0,0,385*Unit) @ Mat.RotaX(d2r(90)) @ Mat.RotaZ(Baxisθ)
     Baxis = Raxis @ RtoB
 
     BtoT = Mat.TransXYZ(0,100*Unit,0) @ Mat.RotaX(d2r(-90))  @ Mat.RotaZ(Taxisθ)
@@ -238,18 +238,28 @@ def Jacobian(Joint1, Joint2, Joint3, Joint4, Joint5, Joint6):
     v6 = np.cross(Joint6[:3,2],Joint6[:3,3]-Joint6[:3,3])
 
     # 角速度(轉軸多為Z軸，故取Z軸的x、y、z分量)
-    w1 = Joint1[:3,2] @ Joint6[:3,:3]
-    w2 = Joint2[:3,2] @ Joint6[:3,:3]
-    w3 = Joint3[:3,2] @ Joint6[:3,:3]
-    w4 = Joint4[:3,2] @ Joint6[:3,:3]
-    w5 = Joint5[:3,2] @ Joint6[:3,:3]
-    w6 = Joint6[:3,2] @ Joint6[:3,:3]
-    # w1 = Joint1[:3,2]
-    # w2 = Joint2[:3,2]
-    # w3 = Joint3[:3,2]
-    # w4 = Joint4[:3,2]
-    # w5 = Joint5[:3,2]
-    # w6 = Joint6[:3,2]
+    # w1 = Joint1[:3,2] @ Joint6[:3,:3]
+    # w2 = Joint2[:3,2] @ Joint6[:3,:3]
+    # w3 = Joint3[:3,2] @ Joint6[:3,:3]
+    # w4 = Joint4[:3,2] @ Joint6[:3,:3]
+    # w5 = Joint5[:3,2] @ Joint6[:3,:3]
+    # w6 = Joint6[:3,2] @ Joint6[:3,:3]
+
+    # w1 = Joint1[:3,2] @ Joint6[:3,:3].T
+    # w2 = Joint2[:3,2] @ Joint6[:3,:3].T
+    # w3 = Joint3[:3,2] @ Joint6[:3,:3].T
+    # w4 = Joint4[:3,2] @ Joint6[:3,:3].T
+    # w5 = Joint5[:3,2] @ Joint6[:3,:3].T
+    # w6 = Joint6[:3,2] @ Joint6[:3,:3].T
+
+
+
+    w1 = Joint1[:3,2]
+    w2 = Joint2[:3,2]
+    w3 = Joint3[:3,2]
+    w4 = Joint4[:3,2]
+    w5 = Joint5[:3,2]
+    w6 = Joint6[:3,2]
 
     # 將角速度、線速度放入Jacobian matrix中
     JacMat[:3,0] = v1
@@ -258,6 +268,11 @@ def Jacobian(Joint1, Joint2, Joint3, Joint4, Joint5, Joint6):
     JacMat[:3,3] = v4
     JacMat[:3,4] = v5
     JacMat[:3,5] = v6
+    # JacMat[:3,1] = 0
+    # JacMat[:3,2] = 0
+    # JacMat[:3,3] = 0
+    # JacMat[:3,4] = 0
+    # JacMat[:3,5] = 0
 
     JacMat[3:6,0] = w1
     JacMat[3:6,1] = w2
@@ -265,28 +280,106 @@ def Jacobian(Joint1, Joint2, Joint3, Joint4, Joint5, Joint6):
     JacMat[3:6,3] = w4
     JacMat[3:6,4] = w5
     JacMat[3:6,5] = w6
+    # JacMat[3:6,1] = 0
+    # JacMat[3:6,2] = 0
+    # JacMat[3:6,3] = 0
+    # JacMat[3:6,4] = 0
+    # JacMat[3:6,5] = 0
 
     return JacMat
 
 
-def IK(GoalEnd, NowEnd):
+def Jacobian4x4(θ_Buffer):
+    J = np.zeros((12,6))
+    dt = d2r(0.01)
+    World_Point = np.eye(4)
+
+    for i in range(len(θ_Buffer)):
+        # 查看當前FK末端(Endeffector)位置向量
+        Now_End = YASKAWA_MA1440_ArmFK(World_Point,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])[-1]
+
+        # 將θ_Buffer資料與格式複製
+        θ_cpy = np.copy(θ_Buffer)
+        θ_cpy[i,0] += dt
+
+        # 取經過一次dt的角度變化量，放入FK中查看末端的變化
+        dEnd = YASKAWA_MA1440_ArmFK(World_Point,θ_cpy[0,0],θ_cpy[1,0],θ_cpy[2,0],θ_cpy[3,0],θ_cpy[4,0],θ_cpy[5,0])[-1]
+
+        # 微分概念公式，目的為求變化量
+        Dmat = (dEnd - Now_End) / dt
+
+        # 把Dmat的raw:1~3,與其col取出來，並轉置，再進行攤平，最後放入J矩陣中每一個raw的第一個col中
+        J[:,i] = Dmat[:3,:].T.reshape(-1)
+        # print("test")
+
+    return J
+
+def IK_4x4(Goal_4x4,θ_Buffer):
+
+    World_Point = np.eye(4)
+    
+    iter = 10
+    # 學習率
+    test = 0.05
+
+    while iter > 0:
+        iter -= 1
+
+        Now_End = YASKAWA_MA1440_ArmFK(World_Point,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])[-1]
+
+        V_4x4 = Goal_4x4 - Now_End
+        error = np.sqrt(np.sum(V_4x4** 2))
+        print("error " , error) 
+
+        # 收斂條件
+        if error  < 0.001:
+            break
+
+        J = Jacobian4x4(θ_Buffer)
+        # Pseudo Inverse
+        J_1 = np.linalg.pinv(J)
+
+        # 利用Jacboian Inverse計算各軸角度，計算需要將V 4*4矩陣維度調整，並將計算後的答案矩陣調整為6*1的維度
+        w = np.reshape(J_1 @ V_4x4[:3,:].T.reshape(-1),(6,1))
+
+        # 更新角度
+        θ_Buffer += w * test
+        # θ_Buffer = Normdeg(θ_Buffer)
+        print(θ_Buffer)
+
+    print("iter :", iter)
+    # normθ = norm_deg(θ)
+    # print(θ)
+    normθ = Normdeg(θ_Buffer)
+
+    print("error " , error)
+
+    return normθ
+
+
+
+def IK(GoalEnd, NowEnd, θ_Buffer):
     '''
     姿態請輸入角度
     使用此IK，請確認function內部的FK參數!!!
     '''
+    # IK疊代迴圈內需要FK 疊代結構要改!
+
     World_Point = np.eye(4)
+    θ_Buffer = θ_Buffer.reshape(6,1)
 
+    Goal_4x4 = Mat.AngletoMat(GoalEnd)
     # 初始疊代角度
-    θ = np.array([
-        [10],
-        [0],
-        [10],
-        [0],
-        [10],
-        [0]
-    ])
+    # θ = np.array([
+    #     [10],
+    #     [0],
+    #     [10],
+    #     [0],
+    #     [10],
+    #     [0]
+    # ])
 
-    θ = d2r(θ)
+    # θ = d2r(θ)
 
     # Base_GoalEnd = [x,y,z,rx,ry,rz] 
     # Base_NowEnd = [x,y,z,rx,ry,rz]
@@ -299,6 +392,7 @@ def IK(GoalEnd, NowEnd):
     # 學習率
     alpha = 0.98
     beta = 0.01 
+    test = 0.008
 
     while iter > 0 :
         iter -= 1
@@ -308,21 +402,35 @@ def IK(GoalEnd, NowEnd):
         #     PUMA_Arm_FK(World_Point,θ[0,0],θ[1,0],θ[2,0],θ[3,0],θ[4,0],θ[5,0])
         
         # Yaskawa MA1440 FK
-        Base, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, End_Effector = \
-            YASKAWA_MA1440_ArmFK(World_Point,θ[0,0],θ[1,0],θ[2,0],θ[3,0],θ[4,0],θ[5,0])
+        Base, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, EndEffector = \
+            YASKAWA_MA1440_ArmFK(World_Point,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])
         
+
+
         # 現在q 回傳的是角度 須改 可參考家欣的IKHead
-        q = Mat.MatToAngle(End_Effector)
+        q = Mat.MatToAngle(EndEffector)
+        # q = Mat.MatToAngle(End_Effector)
         # q[3:6] = d2r(q[3:6])
 
         # 取現在位置
         NowEnd = np.array([q]).reshape(6,1)
 
+        V_4x4 = Goal_4x4 - EndEffector
+
         V = GoalEnd - NowEnd
 
+
+        error = np.sqrt(np.sum(V** 2))
+        print("error " , error) 
+
         # 收斂條件
-        if np.sum(np.sqrt(V ** 2))  < 0.01:
+        if error  < 0.001:
             break
+        # error = np.mean((Goal_4x4 - EndEffector)**2)
+        # print("error " , error)
+
+        # if error  < 0.001:
+        #     break
           
         # 計算角速度
         JacMat = Jacobian(Joint1, Joint2, Joint3, Joint4, Joint5, Joint6)
@@ -337,12 +445,16 @@ def IK(GoalEnd, NowEnd):
         w = J_1 @ V
 
         # 更新角度
-        θ += w * alpha
+        θ_Buffer += w * test
+        # θ_Buffer = Normdeg(θ_Buffer)
+        print(θ_Buffer)
 
     print("iter :", iter)
     # normθ = norm_deg(θ)
     # print(θ)
-    normθ = Normdeg(θ)
+    normθ = Normdeg(θ_Buffer)
+
+    print("error " , error)
 
     return normθ
 
@@ -541,9 +653,9 @@ def main():
     Mat = Matrix4x4()
     # 世界坐標系原點
     World_coordinate = np.eye(4)
-    TestPoint = np.array([[1, 0, 0, 0],
-                                [0 ,1 ,0, 0],
-                                [0, 0 ,1 ,5],
+    TestPoint = np.array([[1, 0, 0, 4],
+                                [0 ,1 ,0, 2],
+                                [0, 0 ,1 ,4],
                                 [0, 0, 0, 1]])
     # 設定camera
     '''
@@ -574,12 +686,9 @@ def main():
     # cammat[:3,2] = forward
 
     # Input Radian
-    θ1 = 0
-    θ2 = 0 
-    θ3 = 0
-    θ4 = 0
-    θ5 = 0
-    θ6 = 0
+    θ_Buffer = d2r(np.zeros((6,1)))
+    
+
 
     
     # # IK + TrajectoryPlanning
@@ -646,7 +755,24 @@ def main():
     # J6NextPos = 0
     # # 末端點座標資料庫
     # EndEffectorList = np.zeros((10000, 3))
+    Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = YASKAWA_MA1440_ArmFK(World_coordinate,θ_Buffer[0],θ_Buffer[1],θ_Buffer[2],θ_Buffer[3],θ_Buffer[4],θ_Buffer[5])
+    NowEnd = EndEffector
     teachθ = [0, 0, 0, 0, 0, 0]
+
+    # GoalEnd =np.array([[4, 2, 4, d2r(180), 0, d2r(-180)]]).reshape(6,1)
+    # GoalEnd_TransMat = Mat.AngletoMat(GoalEnd)
+    # # print(GoalEnd_TransMat)
+    # draw_axis(GoalEnd_TransMat, 1)
+    # θ_Buffer = IK(GoalEnd, NowEnd, θ_Buffer)
+    # print('θ', θ_Buffer)
+    # if θ_Buffer is not None:
+    #     # Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, EndEffector = PUMA_Arm_FK(World_coordinate,θ[0,0],θ[1,0],θ[2,0],θ[3,0],θ[4,0],θ[5,0])
+    #     Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = YASKAWA_MA1440_ArmFK(World_coordinate,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])
+    #     print("End: ", EndEffector)
+    #     # draw_Arm(World_coordinate, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, EndEffector)
+    #     draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
+    count = 0
+
     while True:
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
@@ -781,7 +907,8 @@ def main():
         # Arm FK test
         # Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, EndEffector = PUMA_Arm_FK(World_coordinate,d2r(90),d2r(45),θ3,θ4,θ5,θ6)
         # draw_Arm(World_coordinate, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, EndEffector)
-        Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = YASKAWA_MA1440_ArmFK(World_coordinate,teachθ[0],teachθ[1],teachθ[2],teachθ[3],teachθ[4],teachθ[5])
+        # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = YASKAWA_MA1440_ArmFK(World_coordinate,teachθ[0],teachθ[1],teachθ[2],teachθ[3],teachθ[4],teachθ[5])
+        Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = YASKAWA_MA1440_ArmFK(World_coordinate,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])
         draw_Arm(Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector)
         print(EndEffector)
 
@@ -789,17 +916,23 @@ def main():
         # IK test
         # NowEnd = np.array([[10, -6, 10, 0, 0, 0]]).reshape(6,1)
         # Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, EndEffector = PUMA_Arm_FK(World_coordinate,θ1,θ2,θ3,θ4,θ5,θ6)
-        # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = YASKAWA_MA1440_ArmFK(World_coordinate,θ1,θ2,θ3,θ4,θ5,θ6)
-        # NowEnd = EndEffector
-        # GoalEnd =np.array([[4, 2, 4, d2r(0), 0, 0]]).reshape(6,1)
-        # θ = IK(GoalEnd, NowEnd)
-        # print('θ', θ)
-        # if θ is not None:
-        #     # Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, EndEffector = PUMA_Arm_FK(World_coordinate,θ[0,0],θ[1,0],θ[2,0],θ[3,0],θ[4,0],θ[5,0])
-        #     Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = YASKAWA_MA1440_ArmFK(World_coordinate,θ[0,0],θ[1,0],θ[2,0],θ[3,0],θ[4,0],θ[5,0])
-        #     print("End: ",EndEffector)
-        #     # draw_Arm(World_coordinate, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, EndEffector)
-        #     draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
+        
+        if True :
+            GoalEnd =np.array([[6, -2, 4, d2r(-180), d2r(0), d2r(0)]]).reshape(6,1)
+            GoalEnd_TransMat = Mat.AngletoMat(GoalEnd)
+            # print(GoalEnd_TransMat)
+            draw_axis(GoalEnd_TransMat, 1)
+            # θ_Buffer = IK(GoalEnd, NowEnd, θ_Buffer)
+            θ_Buffer = IK_4x4(GoalEnd_TransMat, θ_Buffer)
+            print('θ', θ_Buffer)
+            if θ_Buffer is not None:
+                # Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, EndEffector = PUMA_Arm_FK(World_coordinate,θ[0,0],θ[1,0],θ[2,0],θ[3,0],θ[4,0],θ[5,0])
+                Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = YASKAWA_MA1440_ArmFK(World_coordinate,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])
+                print("End: ", EndEffector)
+                # draw_Arm(World_coordinate, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, EndEffector)
+                draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
+
+        count += 1
 
 
         # # 軌跡 iteration

@@ -147,6 +147,23 @@ class Matrix4x4:
         # alpha -> z axis angle
         q = [coord[0,3], coord[1,3], coord[2,3], gamma ,β  ,alpha ]
         return q
+    
+    def AngletoMat(self, inputMat):
+        coord = np.eye(4)
+        Buffer = np.eye(3)
+        coord[0,3] = inputMat[0,0] 
+        coord[1,3] = inputMat[1,0]
+        coord[2,3] = inputMat[2,0]
+        # Buffer = self.RotaX(inputMat[3,0]) @ self.RotaY(inputMat[4,0]) @ self.RotaZ(inputMat[5,0])
+        Buffer = self.RotaZ(inputMat[5,0]) @ self.RotaY(inputMat[4,0]) @ self.RotaX(inputMat[3,0])
+        coord[:3,0] = Buffer[:3,0]
+        coord[:3,1] = Buffer[:3,1]
+        coord[:3,2] = Buffer[:3,2]
+
+
+        return coord
+
+
 Mat = Matrix4x4()
 # test1 = Mat.RotaXYZ(pi/2,pi/4,pi/2)
 # print(test1)

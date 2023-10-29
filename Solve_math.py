@@ -1,4 +1,4 @@
-#%%
+#
 from IPython.display import display
 from sympy import *
 import sympy
@@ -38,7 +38,7 @@ Y = sympy.Matrix([P1-(Ainit*t1**2)/2-Vinit*t1**2,
                   Vfinal-Afinal*t3,
                   Afinal,
                   P3-Vfinal*t3-(Afinal*t3**2)/2])
-# c_1 = np.linalg.pinv(C)
+c_1 = np.linalg.pinv(C)
 display(c_1)
 # display('X :', X.shape, 'C :', C.shape, 'Y :', Y.shape)
 

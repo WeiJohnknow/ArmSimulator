@@ -87,17 +87,7 @@ class PathPlanning:
 
         return TimeList, PosList, VelList, AccList, samplePoint
 
-    def TrajectoryPlanning_434(self, θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t1, t2, t3,nowTime=0):
-        # Inital
-        # Lift-off
-        # Set_down
-        # Final
-        # y = C*x   =>   x = inv(c)*y
-
-        sampleIntervals = 0.01
-        samplePoint = [int(t1/sampleIntervals), int(t2/sampleIntervals), int(t3/sampleIntervals)]
-        
-        # X = [a13, a14, a21, a22, a23, a33, a34]
+    def TrajectoryPlanning_434(self, θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t1, t2, t3, StartTime=0):
         P1 = θlift_off - θinit
         P2 = θset_down - θlift_off
         P3 = θfinal - θset_down
@@ -117,34 +107,10 @@ class PathPlanning:
                         P2,
                         Vfinal-Afinal*t3,
                         Afinal,
-                        P3-Vfinal*t3+(Afinal*t3**2)/2])
+                        P3-Vfinal*t3-(Afinal*t3**2)/2])
         
         c_1 = np.linalg.inv(C)
-
-        
-        # X = np.array([[Afinal*t1**2*t2**2*t3**2/(6*t1**2*t3**2 + 24*t1*t2**3 + 36*t2**4 - 18*t2**2*t3**2) - Ainit*(-2*t1**2*t2*t3**2 - 6*t1*t2**4 + 3*t1*t2**2*t3**2)/(t1*(6*t1**2*t3**2 + 24*t1*t2**3 + 36*t2**4 - 18*t2**2*t3**2)) + P2*(-t1**2*t3**2 - 6*t1*t2**3 + 3*t1*t2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Afinal*t3 + Vfinal)*(2*t1**2*t2**3 - t1**2*t2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Ainit*t1 - Vinit)*(-t1**3*t3**2 - 4*t1**2*t2**3 + 2*t1**2*t2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (6*t1**2*t2**2 - 4*t1**2*t3**2)*(-Afinal*t3**2/2 + P3 - Vfinal*t3)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Ainit*t1**2/2 + P1 - Vinit*t1**2)*(4*t1**2*t3**2 + 16*t1*t2**3 - 4*t1*t2*t3**2 + 12*t2**4 - 6*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2)], 
-        #         [-Afinal*t1**2*t2**2*t3**2/(6*t1**2*t3**2 + 24*t1*t2**3 + 36*t2**4 - 18*t2**2*t3**2) - Ainit*(2*t1**2*t2*t3**2 + 6*t1*t2**4 - 3*t1*t2**2*t3**2)/(t1*(6*t1**2*t3**2 + 24*t1*t2**3 + 36*t2**4 - 18*t2**2*t3**2)) + P2*(t1**2*t3**2 + 6*t1*t2**3 - 3*t1*t2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Afinal*t3 + Vfinal)*(-2*t1**2*t2**3 + t1**2*t2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Ainit*t1 - Vinit)*(t1**3*t3**2 + 4*t1**2*t2**3 - 2*t1**2*t2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-6*t1**2*t2**2 + 4*t1**2*t3**2)*(-Afinal*t3**2/2 + P3 - Vfinal*t3)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Ainit*t1**2/2 + P1 - Vinit*t1**2)*(-3*t1**2*t3**2 - 12*t1*t2**3 + 4*t1*t2*t3**2 - 6*t2**4 + 3*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2)], 
-        #         [-Afinal*t1**2*t2**2*t3**2/(6*t1**2*t3**2 + 24*t1*t2**3 + 36*t2**4 - 18*t2**2*t3**2) - Ainit*(2*t1**2*t2*t3**2 + 6*t1*t2**4 - 3*t1*t2**2*t3**2)/(t1*(6*t1**2*t3**2 + 24*t1*t2**3 + 36*t2**4 - 18*t2**2*t3**2)) + P2*(t1**2*t3**2 + 6*t1*t2**3 - 3*t1*t2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Afinal*t3 + Vfinal)*(-2*t1**2*t2**3 + t1**2*t2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Ainit*t1 - Vinit)*(-2*t1**2*t2*t3**2 - 6*t1*t2**4 + 3*t1*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-6*t1**2*t2**2 + 4*t1**2*t3**2)*(-Afinal*t3**2/2 + P3 - Vfinal*t3)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Ainit*t1**2/2 + P1 - Vinit*t1**2)*(4*t1*t2*t3**2 + 12*t2**4 - 6*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2)], 
-        #         [-Afinal*t1*t2**3*t3**2/(2*t1**2*t3**2 + 8*t1*t2**3 + 12*t2**4 - 6*t2**2*t3**2) - Ainit*(-t1**2*t2*t3**2 - 4*t1*t2**4 + 2*t1*t2**2*t3**2)/(t1*(2*t1**2*t3**2 + 8*t1*t2**3 + 12*t2**4 - 6*t2**2*t3**2)) + P2*(3*t1*t2*t3**2 + 18*t2**4 - 9*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Afinal*t3 + Vfinal)*(-6*t1*t2**4 + 3*t1*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Ainit*t1 - Vinit)*(3*t1**2*t2*t3**2 + 12*t1*t2**4 - 6*t1*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-18*t1*t2**3 + 12*t1*t2*t3**2)*(-Afinal*t3**2/2 + P3 - Vfinal*t3)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Ainit*t1**2/2 + P1 - Vinit*t1**2)*(-6*t1*t2*t3**2 - 24*t2**4 + 12*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2)], 
-        #         [Afinal*(t1**2*t2**2*t3**2 + 3*t1*t2**3*t3**2)/(6*t1**2*t3**2 + 24*t1*t2**3 + 36*t2**4 - 18*t2**2*t3**2) - Ainit*(t1**2*t2*t3**2 + 6*t1*t2**4 - 3*t1*t2**2*t3**2)/(t1*(6*t1**2*t3**2 + 24*t1*t2**3 + 36*t2**4 - 18*t2**2*t3**2)) + P2*(-2*t1*t2**3 - 12*t2**4 + 6*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Afinal*t3 + Vfinal)*(2*t1**2*t2**3 - t1**2*t2*t3**2 + 6*t1*t2**4 - 3*t1*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Ainit*t1 - Vinit)*(-t1**2*t2*t3**2 - 6*t1*t2**4 + 3*t1*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Afinal*t3**2/2 + P3 - Vfinal*t3)*(6*t1**2*t2**2 - 4*t1**2*t3**2 + 18*t1*t2**3 - 12*t1*t2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Ainit*t1**2/2 + P1 - Vinit*t1**2)*(2*t1*t2*t3**2 + 12*t2**4 - 6*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2)], 
-        #         [Afinal*(-2*t1*t2**3*t3**2 - 3*t2**4*t3**2)/(6*t1**2*t3**2 + 24*t1*t2**3 + 36*t2**4 - 18*t2**2*t3**2) - Ainit*t2**2*t3**2/(6*t1**2*t3**2 + 24*t1*t2**3 + 36*t2**4 - 18*t2**2*t3**2) + P2*(-t1*t2*t3**2 - 3*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) - t1*t2**2*t3**2*(-Ainit*t1 - Vinit)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + 2*t2**2*t3**2*(-Ainit*t1**2/2 + P1 - Vinit*t1**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Afinal*t3 + Vfinal)*(t1**2*t2*t3**2 + 2*t1*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Afinal*t3**2/2 + P3 - Vfinal*t3)*(4*t1**2*t3**2 + 4*t1*t2**3 + 8*t1*t2*t3**2 + 6*t2**4)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2)], 
-        #         [Afinal*(-2*t1*t2**3*t3**2 - 3*t2**4*t3**2)/(6*t1**2*t3**2 + 24*t1*t2**3 + 36*t2**4 - 18*t2**2*t3**2) - Ainit*t2**2*t3**2/(6*t1**2*t3**2 + 24*t1*t2**3 + 36*t2**4 - 18*t2**2*t3**2) + P2*(-t1*t2*t3**2 - 3*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + t1*t2**2*t3**2*(-Ainit*t1 - Vinit)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + 2*t2**2*t3**2*(-Ainit*t1**2/2 + P1 - Vinit*t1**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Afinal*t3 + Vfinal)*(t1**2*t2*t3**2 + 2*t1*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2) + (-Afinal*t3**2/2 + P3 - Vfinal*t3)*(3*t1**2*t3**2 + 8*t1*t2*t3**2 + 3*t2**2*t3**2)/(t1**2*t3**2 + 4*t1*t2**3 + 6*t2**4 - 3*t2**2*t3**2)]])
-        
-        # a10 = θinit
-        # a11 = Vinit*t1
-        # a12 = (Ainit*t1**2)/2
-        # a13 = X[0, 0]
-        # a14 = X[1, 0]
-        # a20 = θlift_off
-        # a21 = X[2, 0]
-        # a22 = X[3, 0]
-        # a23 = X[4, 0]
-        # a30 = θfinal
-        # a31 = Vfinal*t3
-        # a32 = (Afinal*t3**2)/2
-        # a33 = X[5, 0]
-        # a34 = X[6, 0]
-        X = c_1 @ Y
+        X = c_1 @ Y 
 
         a10 = θinit
         a11 = Vinit*t1
@@ -161,99 +127,71 @@ class PathPlanning:
         a33 = X[5]
         a34 = X[6]
 
-        PosList = []
-        VelList = []
-        AccList = []
-        # 多項式
-        # h1 = a10 + a11*t1 + a12*t1**2 + a13*t1**3 + a14*t1**4
-        # h2 = a20 + a21*t2 + a22*t2**2 + a23*t2**3
-        # h3 = a30 + a31*t3 + a32*t3**2 + a33*t3**3 + a34*t3**4
-
-        TimeList=[0]
-        sampleIntervals = 0.001
+        sampleIntervals = 0.01
         samplePoint = [int(t1/sampleIntervals), int(t2/sampleIntervals), int(t3/sampleIntervals)]
         reciprocal = 1/sampleIntervals
+        
+        DataSize = samplePoint[0]+samplePoint[1]+samplePoint[2]
+        TimeList = np.zeros((DataSize))
+        PosList = np.zeros((DataSize))
+        VelList = np.zeros((DataSize))
+        AccList = np.zeros((DataSize))
 
         # 記憶前一段軌跡的時間節點
         PreviousNode = 0
 
-        for _u in range(0,1*samplePoint[0]):
+        for _u in range(0,1*samplePoint[0]+1):
             u = _u/samplePoint[0]
-            TimeList.append(TimeList[0]+t1*u)
+            TimeList[_u] = StartTime + t1*u
 
             P = a10 + a11*u + a12*u**2 + a13*u**3 + a14*u**4
             V = a11 + 2*a12*u + 3*a13*u**2 + 4*a14*u**3
             A = 2*a12 + 6*a13*u + 12*a14*u**2
-            PosList.append(P)
-            VelList.append(V)
-            AccList.append(A)
+
+            PosList[_u] = P
+            VelList[_u] = V
+            AccList[_u] = A
         
         PreviousNode += samplePoint[0]
 
         for _u in range(0,1*samplePoint[1]):
             u = _u/samplePoint[1]
-            TimeList.append(TimeList[PreviousNode]+t2*u)
+            TimeList[PreviousNode+_u] = TimeList[PreviousNode] + t2*u
 
             P = a20 + a21*u + a22*u**2 + a23*u**3
             V = a21 + 2*a22*u + 3*a23*u**2
             A = 2*a22 + 6*a23*u
 
-            PosList.append(P)
-            VelList.append(V)
-            AccList.append(A)
+            PosList[PreviousNode+_u] = P
+            VelList[PreviousNode+_u] = V
+            AccList[PreviousNode+_u] = A
 
         PreviousNode += samplePoint[1]
 
         # 第三段真實時間
         ut = 0
+        counter = 0
         for _u in range(-1*samplePoint[2],1):
             u = _u/samplePoint[2]
             ut += sampleIntervals
-            TimeList.append(TimeList[PreviousNode] + ut)
+            TimeList[PreviousNode+counter] = TimeList[PreviousNode-1] + ut
+
 
             P = a30 + a31*u + a32*u**2 + a33*u**3 + a34*u**4
             V = a31 + 2*a32*u + 3*a33*u**2 + 4*a34*u**3
             A = 2*a32 + 6*a33*u + 12*a34*u**2
 
-            PosList.append(P)
-            VelList.append(V)
-            AccList.append(A)
+            PosList[PreviousNode+counter] = P
+            VelList[PreviousNode+counter] = V
+            AccList[PreviousNode+counter] = A
+            if counter == samplePoint[1]-1:
+                counter = samplePoint[1]-1
+            else:
+                counter += 1
         
-        del TimeList[0]
-
-        # TimeList=[nowTime]
-        # for dt in range(100):
-        #     t = dt/100
-        #     TimeList.append(TimeList[-1]+0.01*t1)
-        #     P = a10 + a11*t + a12*t**2 + a13*t**3 + a14*t**4
-        #     V = a11 + 2*a12*t + 3*a13*t**2 + 4*a14*t**3
-        #     A = 2*a12 + 6*a13*t + 12*a14*t**2
-        #     PosList.append(P)
-        #     VelList.append(V)
-        #     AccList.append(A)
-
-        # for dt in range(100):
-        #     t = dt/100
-        #     TimeList.append(TimeList[-1]+0.01*t2)
-        #     P = a20 + a21*t + a22*t**2 + a23*t**3
-        #     V = a21 + 2*a22*t + 3*a23*t**2
-        #     A = 2*a22 + 6*a23*t
-        #     PosList.append(P)
-        #     VelList.append(V)
-        #     AccList.append(A)
-
-        # for dt in range(-100,1):
-        #     t = dt/100
-        #     TimeList.append(TimeList[-1]+0.01*t3)
-        #     P = a30 + a31*t + a32*t**2 + a33*t**3 + a34*t**4
-        #     V = a31 + 2*a32*t + 3*a33*t**2 + 4*a34*t**3
-        #     A = 2*a32 + 6*a33*t + 12*a34*t**2
-        #     PosList.append(P)
-        #     VelList.append(V)
-        #     AccList.append(A)
-
         # del TimeList[0]
-        return TimeList,PosList , VelList, AccList, samplePoint
+
+        return TimeList, PosList , VelList, AccList, samplePoint
     
     def S_curve(self, Smax, Vmax, Amax, Aavg):
         Sm = Smax
@@ -532,22 +470,23 @@ class PathPlanning:
         # # plt.tight_layout()
         # plt.show()
 
+# test
 
-Plan = PathPlanning()
-θinit = 0
-Vinit = 0
-Ainit = 0
+# Plan = PathPlanning()
+# θinit = 0
+# Vinit = 0
+# Ainit = 0
 
-Vfinal = 0
-Afinal = 0
-θfinal = 100
-rate = 0.25
-θlift_off = θfinal * rate
-θset_down = θfinal * (1-rate)
-t = [1,1,1]
+# Vfinal = 0
+# Afinal = 0
+# θfinal = 100
+# rate = 0.25
+# θlift_off = θfinal * rate
+# θset_down = θfinal * (1-rate)
+# t = [1,1,1]
 
-TimeList,PosList , VelList, AccList, samplePoint = Plan.TrajectoryPlanning_434(θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t[0], t[1], t[2],nowTime=0)
-plt.plot(TimeList,PosList, label='Pos')
-plt.xlabel('Time')
-plt.ylabel('Position')
-plt.show()
+# TimeList,PosList , VelList, AccList, samplePoint = Plan.TrajectoryPlanning_434(θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t[0], t[1], t[2],nowTime=0)
+# plt.plot(TimeList,PosList, label='Pos')
+# plt.xlabel('Time')
+# plt.ylabel('Position')
+# plt.show()

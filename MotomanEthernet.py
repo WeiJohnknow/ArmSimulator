@@ -18,11 +18,11 @@ import socket, time
 #T 90° 56462 -> 622 Pulse per °
 
 class MotomanConnector:
-    def __init__(self,IP = "192.168.255.200", PORT=80, S_pulse = 1341.4, L_pulse = 1341.4, U_pulse = 1341.4, R_pulse = 1000, B_pulse = 1000, T_pulse = 622):
+    def __init__(self,IP = "192.168.255.200", PORT=80, S_pulse = 1435.4, L_pulse = 1300.4, U_pulse = 1422.2, R_pulse = 969.9, B_pulse = 980.2, T_pulse = 454.7):
         """Interface for the Ethernet Server Function of various Yaskawa Motoman Controllers
 
         Args:
-            IP (str, optional): IP of the Controller. Defaults to "192.168.255.1".
+            IP (str, optional): IP of the Controller. Defaults to "192.168.255.200".
             PORT (int, optional): Port of the Controller. Defaults to 80.
             S_pulse (float, optional): S-Axis encoder pulses per degree. Defaults to 1341.4.
             L_pulse (float, optional): L-Axis encoder pulses per degree. Defaults to 1341.4.
@@ -59,7 +59,9 @@ class MotomanConnector:
 
         print(command,payload)
 
+        # 送數據 命令:HOSTCTRL_REQUEST 
         self.s.send(bytes(f"HOSTCTRL_REQUEST {command} {len(payload)}\r\n","utf-8"))
+        # 收數據
         data = self.s.recv(1024)
         print(f'Received: {repr(data)}')
 
@@ -105,7 +107,7 @@ class MotomanConnector:
 
         data2_str = d2.decode("utf-8").replace("\r","").split(",")
 
-        data2_arr = [int(data2_str[0])/self.S_pulse,int(data2_str[1])/self.L_pulse,int(data2_str[2])/self.U_pulse,int(data2_str[3])/self.R_pulse,int(data2_str[4])/self.B_pulse,int(data2_str[5])/self.T_pulse]
+        data2_arr = [-(int(data2_str[0])/self.S_pulse),-(int(data2_str[1])/self.L_pulse),int(data2_str[2])/self.U_pulse,-(int(data2_str[3])/self.R_pulse),-(int(data2_str[4])/self.B_pulse),-(int(data2_str[5])/self.T_pulse)]
         return data2_arr
 
     def getCoordinatesMH(self,coordinateSystem = 0): #Somehow our controller raises an internal error

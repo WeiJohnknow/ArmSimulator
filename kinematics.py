@@ -19,7 +19,8 @@ class Kinematics:
                     pass
                     # print(Mat[i,0])
         return Mat
-
+    
+    # 原始FK Parameter
     def YASKAWA_MA1440_ArmFK(self, Base, Saxisθ, Laxisθ, Uaxisθ, Raxisθ, Baxisθ, Taxisθ):
         '''
         輸入請注意角度單位: 度、mm
@@ -27,11 +28,12 @@ class Kinematics:
         注意各轉軸角度限制(單位:度):
         S軸 : ±170
         L軸 : -90 / +155
-        U軸 : -175 / +240
+        U軸 : -175 / +240(待確認)
         R軸 : ±150
         B軸 : -135 / +90
         T軸 : ±210
         Payload : 6 kg
+        ROBOT Base axis 距離工作臺 : 571.054(mm)
         '''
         Unit = 0.01
         
@@ -53,10 +55,55 @@ class Kinematics:
         BtoT = Mat.TransXYZ(0,100*Unit,0) @ Mat.RotaX(d2r(-90))  @ Mat.RotaZ(Taxisθ)
         Taxis = Baxis @ BtoT
 
-        # 末端法蘭面 to 銲槍末端
-        # TtoWeldingGun = Mat.TransXYZ(-15.461*Unit, 0, 323.762*Unit) @ Mat.RotaX(d2r(-90))
-        # EndEffector = Taxis @ TtoWeldingGun
-        EndEffector = Taxis
+        # 末端法蘭面 to 銲槍末端 (工具座標號:5)
+        TtoWeldingGun = Mat.TransXYZ(-15.461*Unit, 0.897*Unit, 323.762*Unit) @ Mat.RotaXYZ(d2r(0.3753), d2r(-31.4994), d2r(-0.7909))
+        EndEffector = Taxis @ TtoWeldingGun
+
+        # EndEffector = Taxis
+        return Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector
+    
+    # 依編碼器方向設定的FK Parameter
+    def YASKAWA_MA1440_ArmFK_Encoder(self, Base, Saxisθ, Laxisθ, Uaxisθ, Raxisθ, Baxisθ, Taxisθ):
+        '''
+        輸入請注意角度單位: 度、mm
+        OpenGL Unit = 0.01(10cm)
+        注意各轉軸角度限制(單位:度):
+        S軸 : ±170
+        L軸 : -90 / +155
+        U軸 : -175 / +240(待確認)
+        R軸 : ±150
+        B軸 : -135 / +90
+        T軸 : ±210
+        Payload : 6 kg
+        ROBOT Base axis 距離工作臺 : 571.054(mm)
+        '''
+        Unit = 0.01
+        
+        BtoS = Mat.TransXYZ(0,0,299*Unit)  @ Mat.RotaZ(Saxisθ)
+        Saxis = Base @ BtoS
+
+        StoL = Mat.RotaX(d2r(-90)) @ Mat.TransXYZ(151*Unit,-155*Unit,0) @ Mat.RotaZ(Laxisθ)
+        Laxis = Saxis @ StoL
+
+        LtoU = Mat.RotaX(d2r(180)) @ Mat.TransXYZ(0,614*Unit,0) @ Mat.RotaZ(Uaxisθ)
+        Uaxis = Laxis @ LtoU
+
+        UtoR = Mat.RotaY(d2r(-90)) @ Mat.TransXYZ(0,200*Unit,z=-255*Unit) @ Mat.RotaZ(Raxisθ)
+        Raxis = Uaxis @ UtoR
+
+        RtoB = Mat.RotaY(d2r(90)) @ Mat.TransXYZ(385*Unit,0,0) @ Mat.RotaZ(Baxisθ)
+        Baxis = Raxis @ RtoB
+
+        BtoT = Mat.RotaY(d2r(-90)) @ Mat.TransXYZ(0,0,-100*Unit)  @ Mat.RotaZ(Taxisθ)
+        Taxis = Baxis @ BtoT
+
+
+
+        # # 末端法蘭面 to 銲槍末端 (工具座標號:5)
+        TtoWeldingGun = Mat.RotaZ(d2r(90)) @ Mat.RotaX(d2r(180)) @  Mat.TransXYZ(-15.461*Unit, 0.897*Unit, 323.762*Unit) @ Mat.RotaXYZ(d2r(0.3753), d2r(-31.4994), d2r(-0.7909))
+        EndEffector = Taxis @ TtoWeldingGun
+
+        # EndEffector = Taxis
         return Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector
         
     def PUMA_Arm_FK(self, Base,θ1,θ2,θ3,θ4,θ5,θ6):

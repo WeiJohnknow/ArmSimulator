@@ -11,15 +11,18 @@ import matplotlib.pyplot as plt
 import datetime
 from PathPlanning import *
 from Kinematics import *
-
+from MotomanEthernet import *
 
 class Simulator:
     def __init__(self):
         self.display = (800, 600)
+        # 紀錄軌跡點(x,y,z)所用 
+        self.PosBuffer = np.zeros((100000,3))
         self.pi = np.pi
         self.Mat = Matrix4x4() 
         self.Plan = PathPlanning()
         self.Kin = Kinematics()
+        self.Con = MotomanConnector()
 
     def Pygameinit(self):
         # glutInit(sys.argv)
@@ -169,6 +172,9 @@ class Simulator:
         return seconds_str
 
     def draw_Point(self, coordinateMat):
+        '''
+        Please Ipnut 4*4 Array
+        '''
         # 設定點的大小，單位(Pixel)
         glPointSize(3.0) 
 
@@ -178,15 +184,29 @@ class Simulator:
         glEnd()
 
     def draw_WorkPlatform(self):
+        '''
+        工作臺檯面:60*80(cm) = 600*800 (mm)
+        檯面具地面:89.45(cm) = 894.5 (mm)
+        ROBOT Base axis 距離工作臺 : 571.054 (mm)
+        工作臺高於ROBOT Base axis : 260 (mm)
+        機器人Base離工作台高 : 208.097 (mm) 新數據(捲尺量) : 23.76(cm) = 237.6 (mm)
+        '''
+        Unit = 0.01
+        StartX = 571.204 * Unit
+        StartY = 0
+        lengh = 800 * Unit
+        Width = 600 * Unit
+        height = 208.097 * Unit
+
         vertices = (
-        (4, -2, 0),
-        (4, 2, 0),
-        (8, 2, 0),
-        (8, -2, 0),
-        (4, -2, 4),
-        (4, 2, 4),
-        (8, 2, 4),
-        (8, -2, 4),
+        (StartX, StartY-lengh/2, 0),
+        (StartX, StartY+lengh/2, 0),
+        (StartX+Width, StartY+lengh/2, 0),
+        (StartX+Width, StartY-lengh/2, 0),
+        (StartX, StartY-lengh/2, height),
+        (StartX, StartY+lengh/2, height),
+        (StartX+Width, StartY+lengh/2, height),
+        (StartX+Width, StartY-lengh/2, height),
         )
 
         edges = (
@@ -264,36 +284,70 @@ class Simulator:
     
     def drawText(self, x, y, text:str): 
 
-        # variable = np.round(variable,3)
-
         font = pygame.font.SysFont('Time New Roman', 24)
-        
-        # text =  f"EndEffector:{variable[0,:]}"
-
-        # text =  f"EndEffector:\n" 
-        # for rows in variable:
-        #     for val in rows:
-        #         text += f"{val:.3f}\t"
-        #     text += "\n"
-
-        # text = "EndEffector:\n"
-        # for row in variable:
-        #     text += text.join([f"{value:.3f}" for value in row])
-        #     text += "\n"
-
-        # print(text)
-
         textSurface = font.render(text, True, (255, 255, 66, 255), (0, 66, 0, 255))
         textData = pygame.image.tostring(textSurface, "RGBA", True)
         glWindowPos2d(x, y)
         glDrawPixels(textSurface.get_width(), textSurface.get_height(), GL_RGBA, GL_UNSIGNED_BYTE, textData)
-       
 
+    def draw_Matrix4X4(self, coord, x=550, y= 140):
+        '''
+        X, Y座標原點為螢幕左上角
+        '''
+        text = "Endeffector : "
+        self.drawText(x, y, text)
+        self.drawMatrixText(x,y-20,coord,20)
+
+    def draw_Trajectory(self, EndEffector, iter):
+        '''
+        此函式需搭配PosBuffer(全域變數)使用
+        EndEffector : 4*4大小
+        iter : 迴圈疊代次數計數器
+        '''
+        self.PosBuffer[iter,0] = EndEffector[0,3]
+        self.PosBuffer[iter,1] = EndEffector[1,3]
+        self.PosBuffer[iter,2] = EndEffector[2,3]
+        for i in range(iter):
+            self.draw_Point(self.PosBuffer[i])
+        
+    def ReadPos(self):
+        '''
+        原點:
+        編碼器(Pluser):0,0,0,0,0,0
+
+        平常手臂原點:
+        編碼器:-2389,-50477,-58433,0,-74923,481
+        馬達角度(U軸888):[-1.6643989318307064, -38.81881655557888, -65.73689492086777, 0.0, -76.4330105565553, 1.0577077428164932]
+        馬達角度(U軸690):[-1.6643989318307064, -38.81881655557888, -84.58816955561282, 0.0, -76.4330105565553, 1.0577077428164932]
+
+
+        校正後(準)
+        原點:
+        編碼器:0,0,0,0,0,0
+        馬達絕對角度:[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        馬達對地角度:[0,90,0,0,0,0]
+
+        手臂平常原點:
+        編碼器:-2389,-50477,-58433,0,-74923,481
+        馬達角度:[-1.6643444336073567, -38.81651799446324, -41.08634509914217, 0.0, -76.43644154254234, 1.0578403342863427]
+        
+        '''
+        NowJointθ = []
+        mh = MotomanConnector() #Create Connector
+        mh.connectMH() #Connect
+        NowJointθ = mh.getJointAnglesMH()
+        print(NowJointθ) #Get the Joint angles and print them
+        mh.disconnectMH()
+        # NowJointθ = [-x for x in NowJointθ]
+
+        return NowJointθ
+    
+    
+    
+    
 
     def main(self):
         self.Pygameinit()
-
-
         # 世界坐標系原點
         World_coordinate = np.eye(4)
 
@@ -303,38 +357,42 @@ class Simulator:
         Right -> 相機x軸
         Top -> 相機上方，與右手坐標系Y軸反向
         ''' 
-        camera =  Mat.TransXYZ(20,0,20) @ Mat.RotaY(d2r(-135)) @ Mat.RotaZ(d2r(90))
+        camera =  Mat.TransXYZ(20,0,5) @ Mat.RotaY(d2r(-135)) @ Mat.RotaZ(d2r(90))
 
         # Jointθ Buffer
         θ_Buffer = d2r(np.zeros((6,1)))
         
+    
         # 示教模式 Jointθ Buffer
         teachθ = [0, 0, 0, 0, 0, 0]
 
         # # 軌跡規劃
-        rate = 0.25
-        xθfinal = 6
-        yθfinal = 2
-        zθfinal = 4
-        xTP = [6,0,0,xθfinal*rate,xθfinal*(1-rate),xθfinal,0,0,1,1,1]
-        yTP = [0,0,0,yθfinal*rate,yθfinal*(1-rate),yθfinal,0,0, 0.5, 0.5, 0.5]
-        zTP = [4,0,0,zθfinal*rate,zθfinal*(1-rate),zθfinal,0,0,1,1,1]
-        # Time, xPos, xVel, xAcc, _ = Plan.TrajectoryPlanning_434(xTP[0],xTP[1],xTP[2],xTP[3],xTP[4],xTP[5],xTP[6],xTP[7],xTP[8],xTP[9],xTP[10])
-        Time, yPos, yVel, yAcc, _ = self.Plan.TrajectoryPlanning_434(yTP[0],yTP[1],yTP[2],yTP[3],yTP[4],yTP[5],yTP[6],yTP[7],yTP[8],yTP[9],yTP[10])
-        # Time, zPos, zVel, zAcc, _ = Plan.TrajectoryPlanning_434(zTP[0],zTP[1],zTP[2],zTP[3],zTP[4],zTP[5],zTP[6],zTP[7],zTP[8],zTP[9],zTP[10])
+        # rate = 0.25
+        # xθfinal = 6
+        # yθfinal = 2
+        # zθfinal = 4
+        # xTP = [6,0,0,xθfinal*rate,xθfinal*(1-rate),xθfinal,0,0,1,1,1]
+        # yTP = [0,0,0,yθfinal*rate,yθfinal*(1-rate),yθfinal,0,0, 0.5, 0.5, 0.5]
+        # zTP = [4,0,0,zθfinal*rate,zθfinal*(1-rate),zθfinal,0,0,1,1,1]
+        # # Time, xPos, xVel, xAcc, _ = Plan.TrajectoryPlanning_434(xTP[0],xTP[1],xTP[2],xTP[3],xTP[4],xTP[5],xTP[6],xTP[7],xTP[8],xTP[9],xTP[10])
+        # Time, yPos, yVel, yAcc, _ = self.Plan.TrajectoryPlanning_434(yTP[0],yTP[1],yTP[2],yTP[3],yTP[4],yTP[5],yTP[6],yTP[7],yTP[8],yTP[9],yTP[10])
+        # # Time, zPos, zVel, zAcc, _ = Plan.TrajectoryPlanning_434(zTP[0],zTP[1],zTP[2],zTP[3],zTP[4],zTP[5],zTP[6],zTP[7],zTP[8],zTP[9],zTP[10])
         
-        GoalEnd = np.zeros((len(Time), 6))
-        TrajectoryBuffer = np.zeros((len(Time),3))
+        # GoalEnd = np.zeros((len(Time), 6))
+        # TrajectoryBuffer = np.zeros((len(Time),3))
 
-        for i in range(len(Time)):
-            GoalEnd[i,:] = [6, yPos[i], 4,d2r(-180), d2r(0), d2r(0)]
-            print(GoalEnd)
-        # plt.plot(Time,yPos, label='Pos')
-        # plt.xlabel('Time')
-        # plt.ylabel('Position')
-        # plt.show()
-        iter = 0
+        # for i in range(len(Time)):
+        #     GoalEnd[i,:] = [6, yPos[i], 4,d2r(-180), d2r(0), d2r(0)]
+        #     print(GoalEnd)
+        # # plt.plot(Time,yPos, label='Pos')
+        # # plt.xlabel('Time')
+        # # plt.ylabel('Position')
+        # # plt.show()
+        # iter = 0
 
+
+        # 迴圈疊代次數
+        Mainloopiter = 0
 
         while True:
             for event in pygame.event.get():
@@ -418,50 +476,101 @@ class Simulator:
             # 繪製工作臺
             self.draw_WorkPlatform()
             
+            # 讀取機台個軸馬達角度
+            # NowJointθ = self.ReadPos()
+            # NowJointθ = d2r(NowJointθ)
 
-            # Endeffector = self.TeachMode(World_coordinate, teachθ)
+            #%% 現場實驗專區
+            # test Jointθ Buffer
+            # 原點joint1, Joint2, Joint5 反向
+            # 起弧點 J1, J5反向
+            θ_test = d2r(np.array([[-1.6643444336073567],
+                                [-38.81651799446324],
+                                [-41.08634509914217],
+                                [0.0],
+                                [-76.43644154254234],
+                                [1.0578403342863427]]))
+            
+            # 手臂原點
+            '''
+            編碼器:-2389,-50477,-58433,0,-74923,481
+            馬達角度:[-1.6643444336073567, -38.81651799446324, -41.08634509914217, 0.0, -76.43644154254234, 1.0578403342863427]
+            FK角度(J1,J2,J5反向):[1.6643444336073567, 38.81651799446324, -41.08634509914217, 0.0, 76.43644154254234, 1.0578403342863427]
+            '''
+            # 起弧點
+            '''
+            註:焊接方向由右至左(與手臂方向同側看向工作台)
 
+            此起弧點距離工作台邊緣(長) : 114 (mm) 
+            此起弧點距離工作台邊緣(寬) : 219.5 (mm) 
+            工作台上黑色洞洞板為 :12.5 (mm)
+            此時工件疊加兩片厚度約為: 4 (mm)
+            鎢棒伸出量約 : 5 (mm)
+            鎢棒距離被銲物距離約 : 1 (mm)
 
+            示教器資訊:
+                編碼器:-36973,18582,-60655,-73039,-23794,43195
+                絕對角度:[-25.75797687055873, -14.289449400184557, -42.64871326114471, 75.30570161872357, -24.274637829014484, -94.99670112161866]
+            通訊取得:
+                編碼器:-36973,18582,-60655,-73039,-23794,43195
+                馬達角度:[-25.75797687055873, 14.289449400184557, -42.64871326114471, -75.30570161872357, -24.274637829014484, 94.99670112161866]
+            FK角度:
 
-            # x,y,z = Endeffector[:3,3]  
-            # NewPoint_ = [x,y,z]
-            # NewPoint = [f"{value:.3f}" for value in NewPoint_] 
-            # 繪製字體，x、y座標為
-            # text = "Endeffector : "
-            # self.drawText(100, 140, text)
-            # self.drawMatrixText(100,120,Endeffector,20)
+            鎢棒與工件表面距離 = EndEffector_Pz(mm) - 機器人Base與工作台的距離237.6(mm) - 黑色固定板(洞洞板)12.5(mm) - 兩片工件約(4mm)
+            => 2.615* (1/Unit) - 237.6 - 12.5 - 4 = 4.1 mm 
+            '''
+            # 角度測試專用
+            # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK(World_coordinate,θ_test[0],θ_test[1],θ_test[2],θ_test[3],θ_test[4],θ_test[5])
+            # self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector)
 
+            # # 手臂原點 deg.0
+            # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK(World_coordinate,θ_Buffer[0],θ_Buffer[1],θ_Buffer[2],θ_Buffer[3],θ_Buffer[4],θ_Buffer[5])
+            # self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector)
+
+            # # 機台數據測試(通訊專用)
+            # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK(World_coordinate,NowJointθ[0],NowJointθ[1],NowJointθ[2],NowJointθ[3],NowJointθ[4],NowJointθ[5])
+            # self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector)
+           
+            # # 繪製軌跡
+            # self.draw_Trajectory(EndEffector, Mainloopiter)
+
+            # 依編碼器方向所設的FK
+            # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,θ_Buffer[0],θ_Buffer[1],θ_Buffer[2],θ_Buffer[3],θ_Buffer[4],θ_Buffer[5])
+            Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,θ_test[0],θ_test[1],θ_test[2],θ_test[3],θ_test[4],θ_test[5])
+            self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
+            # 繪製Matrix4*3
+            self.draw_Matrix4X4(EndEffector, 550, 140)
+
+#%%
+            # 示教模式
+            # EndEffector = self.TeachMode(World_coordinate, teachθ)
 
 
             # # IK and TrajectoryPlan
-            if iter < len(Time):
-                # GoalEnd =np.array([[6, -2, 4, d2r(-180), d2r(0), d2r(0)]]).reshape(6,1)
-                GoalEnd4X4 = self.Mat.AngletoMat(GoalEnd[iter,:].reshape(6,1))
-                # draw_axis(GoalEnd4X4, 1)
-                θ_Buffer = self.Kin.IK_4x4(GoalEnd4X4, θ_Buffer)
-                print('θ', θ_Buffer)
-                if θ_Buffer is not None:
-                    Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK(World_coordinate,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])
-                    print("End: ", EndEffector)
-                    for i in range(3):
-                        TrajectoryBuffer[iter,i] = EndEffector[i,3]
-                        print(TrajectoryBuffer[0])
-                    for i in range(iter):
-                        self.draw_Point(TrajectoryBuffer[i])
-                iter += 1
+            # if iter < len(Time):
+            #     # GoalEnd =np.array([[6, -2, 4, d2r(-180), d2r(0), d2r(0)]]).reshape(6,1)
+            #     GoalEnd4X4 = self.Mat.AngletoMat(GoalEnd[iter,:].reshape(6,1))
+            #     # draw_axis(GoalEnd4X4, 1)
+            #     θ_Buffer = self.Kin.IK_4x4(GoalEnd4X4, θ_Buffer)
+            #     print('θ', θ_Buffer)
+            #     if θ_Buffer is not None:
+            #         Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK(World_coordinate,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])
+            #         print("End: ", EndEffector)
+            #         for i in range(3):
+            #             TrajectoryBuffer[iter,i] = EndEffector[i,3]
+            #             print(TrajectoryBuffer[0])
+            #         for i in range(iter):
+            #             self.draw_Point(TrajectoryBuffer[i])
+            #     iter += 1
 
-            self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
+            # self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
+            # self.draw_Matrix4X4(EndEffector, 550, 140)
 
-            text = "Endeffector : "
-            self.drawText(550, 140, text)
-            self.drawMatrixText(550,120,EndEffector,20)
+            Mainloopiter += 1
             pygame.display.flip()
             pygame.time.wait(10)
 
     
-
-
-
 if __name__ == "__main__":
     Sim = Simulator()
     Sim.main()

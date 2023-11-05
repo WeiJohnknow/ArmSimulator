@@ -18,6 +18,23 @@ class Simulator:
         self.display = (800, 600)
         # 紀錄軌跡點(x,y,z)所用 
         self.PosBuffer = np.zeros((100000,3))
+
+        # 現實長度與OpenGL長度為1:0.01
+        self.Unit = 0.01
+
+        # 銲接工作台尺寸參數(mm)
+        '''
+        工作臺檯面:60*80(cm) = 600*800 (mm)
+        ROBOT Base axis 距離工作臺 : 571.054 (mm)
+        機器人Base離工作台高度差 : 208.097 (mm) ; 新數據(捲尺量) : 23.76(cm) = 237.6 (mm)
+        黑色洞洞板高12.5 (mm)
+        '''
+        self.WorkTable_lenght = 800 * self.Unit
+        self.WorkTable_Weight = 600 * self.Unit
+        self.BaseToWorkTable_Height = 237.6 * self.Unit
+        self.BaseToWorkTable_lenght = 571.054 * self.Unit
+        self.BlackBoard_Height = 12.5 * self.Unit 
+
         self.pi = np.pi
         self.Mat = Matrix4x4() 
         self.Plan = PathPlanning()
@@ -183,30 +200,37 @@ class Simulator:
         glVertex3f(coordinateMat[0], coordinateMat[1], coordinateMat[2])  # 在(0,0,0)处绘制点
         glEnd()
 
-    def draw_WorkPlatform(self):
+    def draw_WorkTable(self):
         '''
         工作臺檯面:60*80(cm) = 600*800 (mm)
         檯面具地面:89.45(cm) = 894.5 (mm)
         ROBOT Base axis 距離工作臺 : 571.054 (mm)
         工作臺高於ROBOT Base axis : 260 (mm)
-        機器人Base離工作台高 : 208.097 (mm) 新數據(捲尺量) : 23.76(cm) = 237.6 (mm)
+        機器人Base離工作台高 : 208.097 (mm) ; 新數據(捲尺量) : 23.76(cm) = 237.6 (mm)
+        黑色洞洞板高12.5 (mm)
+
+        self.WorkTable_lenght = 800 * self.Unit
+        self.WorkTable_Weight = 600 * self.Unit
+        self.BaseToWorkTable_Height = 237.6 * self.Unit
+        self.BaseToWorkTable_lenght = 571.054 * self.Unit
+        self.BlackBoard_Height = 12.5 * self.Unit 
         '''
-        Unit = 0.01
-        StartX = 571.204 * Unit
+        
+        StartX = self.BaseToWorkTable_lenght 
         StartY = 0
-        lengh = 800 * Unit
-        Width = 600 * Unit
-        height = 208.097 * Unit
+        self.WorkTable_lenght = 800 * self.Unit
+        self.WorkTable_Weight = 600 * self.Unit
+        height = self.BaseToWorkTable_Height + self.BlackBoard_Height
 
         vertices = (
-        (StartX, StartY-lengh/2, 0),
-        (StartX, StartY+lengh/2, 0),
-        (StartX+Width, StartY+lengh/2, 0),
-        (StartX+Width, StartY-lengh/2, 0),
-        (StartX, StartY-lengh/2, height),
-        (StartX, StartY+lengh/2, height),
-        (StartX+Width, StartY+lengh/2, height),
-        (StartX+Width, StartY-lengh/2, height),
+        (StartX, StartY-self.WorkTable_lenght/2, 0),
+        (StartX, StartY+self.WorkTable_lenght/2, 0),
+        (StartX+self.WorkTable_Weight, StartY+self.WorkTable_lenght/2, 0),
+        (StartX+self.WorkTable_Weight, StartY-self.WorkTable_lenght/2, 0),
+        (StartX, StartY-self.WorkTable_lenght/2, height),
+        (StartX, StartY+self.WorkTable_lenght/2, height),
+        (StartX+self.WorkTable_Weight, StartY+self.WorkTable_lenght/2, height),
+        (StartX+self.WorkTable_Weight, StartY-self.WorkTable_lenght/2, height),
         )
 
         edges = (
@@ -223,6 +247,42 @@ class Simulator:
             (2,6),
             (3,7)
         )
+
+        surfaces = (
+        (0,1,2,3),
+        (0,3,4,7),
+        (3,2,6,7),
+        (1,2,6,5),
+        (0,1,4,5),
+        (4,5,6,7)
+        )
+
+
+        colors = (
+            (0,0,0),
+            (0,1,0),
+            (0,0,1),
+            (0,1,0),
+            (1,1,1),
+            (0,1,1),
+            (1,0,0),
+            (0,1,0),
+            (0,0,1),
+            (1,0,0),
+            (1,1,1),
+            (0,1,1),
+            )
+
+        glBegin(GL_QUADS)
+        for surface in surfaces:
+            x = 0
+
+            glColor3fv(colors[x])
+            for vertex in surface:
+                # x+=1
+                glVertex3fv(vertices[vertex])
+                
+        glEnd()
 
         glBegin(GL_LINES)
         glColor3f(1.0, 1.0, 1.0)
@@ -342,12 +402,28 @@ class Simulator:
 
         return NowJointθ
     
-    
-    
-    
+    def XYCorrection_FK(self, x, y, EndEffector):
+        """
+        Args:
+            x➜預測量點到工作台"下"邊緣之實際距離(mm)
+            y➜為預測量點到工作台"左"邊緣之實際距離(mm)
+            EndEffector➜模擬器中手臂在該預測點的4X4Matrix
+
+        return:
+            ErrX➜ Robot末端X方向上的誤差(mm)
+            ErrY➜ Robot末端Y方向上的誤差(mm)
+        """
+        x = x * self.Unit
+        y = y * self.Unit
+        ErrX = abs(EndEffector[0,3]-(self.BaseToWorkTable_lenght+(self.WorkTable_Weight-x))) * (1/self.Unit)
+        ErrY = abs(abs(EndEffector[1,3])-((self.WorkTable_lenght/2-y))) * (1/self.Unit)
+
+        return ErrX, ErrY
 
     def main(self):
         self.Pygameinit()
+        glEnable(GL_DEPTH_TEST)  # 启用深度测试
+        glDepthFunc(GL_LESS)  # 设置深度测试函数
         # 世界坐標系原點
         World_coordinate = np.eye(4)
 
@@ -361,34 +437,44 @@ class Simulator:
 
         # Jointθ Buffer
         θ_Buffer = d2r(np.zeros((6,1)))
-        
-    
         # 示教模式 Jointθ Buffer
         teachθ = [0, 0, 0, 0, 0, 0]
+        # 鎢棒至工件表面距離 Buffer
+        DisBuffer = []
+        # 針對FK模型與實際模型的X、Y軸誤差 Buffer
+        ErrXBuffer = []
+        ErrYBuffer = []
 
-        # # 軌跡規劃
-        # rate = 0.25
-        # xθfinal = 6
-        # yθfinal = 2
-        # zθfinal = 4
-        # xTP = [6,0,0,xθfinal*rate,xθfinal*(1-rate),xθfinal,0,0,1,1,1]
-        # yTP = [0,0,0,yθfinal*rate,yθfinal*(1-rate),yθfinal,0,0, 0.5, 0.5, 0.5]
-        # zTP = [4,0,0,zθfinal*rate,zθfinal*(1-rate),zθfinal,0,0,1,1,1]
-        # # Time, xPos, xVel, xAcc, _ = Plan.TrajectoryPlanning_434(xTP[0],xTP[1],xTP[2],xTP[3],xTP[4],xTP[5],xTP[6],xTP[7],xTP[8],xTP[9],xTP[10])
-        # Time, yPos, yVel, yAcc, _ = self.Plan.TrajectoryPlanning_434(yTP[0],yTP[1],yTP[2],yTP[3],yTP[4],yTP[5],yTP[6],yTP[7],yTP[8],yTP[9],yTP[10])
-        # # Time, zPos, zVel, zAcc, _ = Plan.TrajectoryPlanning_434(zTP[0],zTP[1],zTP[2],zTP[3],zTP[4],zTP[5],zTP[6],zTP[7],zTP[8],zTP[9],zTP[10])
+        # 4-3-4軌跡規劃
+        rate = 0.25
+        xθfinal = self.BaseToWorkTable_lenght + self.WorkTable_Weight/2
+        yθfinal = 2
+        zθfinal = self.BaseToWorkTable_Height+self.BlackBoard_Height+4*self.Unit
+        # PosTP = [θinit, Vinit, Ainit, θlift-off, θset-down, θfinal, Vfinal, Afinal, t1, t2, t3]
+        # xTP = [0,0,0, 6, 6, xθfinal, 0, 0, 0.5, 0.5, 0.5]
+        yTP = [0,0,0, yθfinal*rate, yθfinal*(1-rate), yθfinal, 0, 0, 0.5, 0.5, 0.5]
+        # zTP = [0,0,0, 4, 4, zθfinal, 0, 0, 0.5, 0.5, 0.5]
+        # Time, xPos, xVel, xAcc, _ = self.Plan.TrajectoryPlanning_434(xTP[0],xTP[1],xTP[2],xTP[3],xTP[4],xTP[5],xTP[6],xTP[7],xTP[8],xTP[9],xTP[10])
+        Time, yPos, yVel, yAcc, _ = self.Plan.TrajectoryPlanning_434(yTP[0],yTP[1],yTP[2],yTP[3],yTP[4],yTP[5],yTP[6],yTP[7],yTP[8],yTP[9],yTP[10])
+        # Time, zPos, zVel, zAcc, _ = self.Plan.TrajectoryPlanning_434(zTP[0],zTP[1],zTP[2],zTP[3],zTP[4],zTP[5],zTP[6],zTP[7],zTP[8],zTP[9],zTP[10])
         
-        # GoalEnd = np.zeros((len(Time), 6))
-        # TrajectoryBuffer = np.zeros((len(Time),3))
+        # 位置資訊反轉
+        # yPos[:] = yPos[::-1]
+        yPos = yPos-3.5
+        
+        GoalEnd = np.zeros((len(Time), 6))
+        TrajectoryBuffer = np.zeros((len(Time),3))
 
-        # for i in range(len(Time)):
-        #     GoalEnd[i,:] = [6, yPos[i], 4,d2r(-180), d2r(0), d2r(0)]
-        #     print(GoalEnd)
-        # # plt.plot(Time,yPos, label='Pos')
-        # # plt.xlabel('Time')
-        # # plt.ylabel('Position')
-        # # plt.show()
-        # iter = 0
+        # 將規劃完的資料放進軌跡暫存器裡
+        for i in range(len(Time)):
+            GoalEnd[i,:] = [xθfinal, yPos[i], zθfinal+5*self.Unit, d2r(-180), d2r(0), d2r(0)]
+            # print(GoalEnd)
+
+        # plt.plot(Time, yPos, label='Pos')
+        # plt.xlabel('Time')
+        # plt.ylabel('Position')
+        # plt.show()
+
 
 
         # 迴圈疊代次數
@@ -474,7 +560,7 @@ class Simulator:
             self.draw_chessboard()
             
             # 繪製工作臺
-            self.draw_WorkPlatform()
+            self.draw_WorkTable()
             
             # 讀取機台個軸馬達角度
             # NowJointθ = self.ReadPos()
@@ -484,12 +570,12 @@ class Simulator:
             # test Jointθ Buffer
             # 原點joint1, Joint2, Joint5 反向
             # 起弧點 J1, J5反向
-            θ_test = d2r(np.array([[-1.6643444336073567],
-                                [-38.81651799446324],
-                                [-41.08634509914217],
-                                [0.0],
-                                [-76.43644154254234],
-                                [1.0578403342863427]]))
+            θ_test = d2r(np.array([[-25.75797687055873],
+                                [14.289449400184557],
+                                [-42.64871326114471],
+                                [75.30570161872357],
+                                [24.274637829014484],
+                                [-94.99670112161866]]))
             
             # 手臂原點
             '''
@@ -520,51 +606,74 @@ class Simulator:
             => 2.615* (1/Unit) - 237.6 - 12.5 - 4 = 4.1 mm 
             '''
             # 角度測試專用
-            # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK(World_coordinate,θ_test[0],θ_test[1],θ_test[2],θ_test[3],θ_test[4],θ_test[5])
+            # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,θ_test[0],θ_test[1],θ_test[2],θ_test[3],θ_test[4],θ_test[5])
             # self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector)
 
             # # 手臂原點 deg.0
-            # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK(World_coordinate,θ_Buffer[0],θ_Buffer[1],θ_Buffer[2],θ_Buffer[3],θ_Buffer[4],θ_Buffer[5])
+            # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,θ_Buffer[0],θ_Buffer[1],θ_Buffer[2],θ_Buffer[3],θ_Buffer[4],θ_Buffer[5])
             # self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector)
 
             # # 機台數據測試(通訊專用)
-            # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK(World_coordinate,NowJointθ[0],NowJointθ[1],NowJointθ[2],NowJointθ[3],NowJointθ[4],NowJointθ[5])
+            # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,NowJointθ[0],NowJointθ[1],NowJointθ[2],NowJointθ[3],NowJointθ[4],NowJointθ[5])
             # self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector)
            
             # # 繪製軌跡
             # self.draw_Trajectory(EndEffector, Mainloopiter)
 
-            # 依編碼器方向所設的FK
-            # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,θ_Buffer[0],θ_Buffer[1],θ_Buffer[2],θ_Buffer[3],θ_Buffer[4],θ_Buffer[5])
-            Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,θ_test[0],θ_test[1],θ_test[2],θ_test[3],θ_test[4],θ_test[5])
-            self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
-            # 繪製Matrix4*3
-            self.draw_Matrix4X4(EndEffector, 550, 140)
+            # # 繪製Matrix4*3
+            # self.draw_Matrix4X4(EndEffector, 550, 140)
+
+            # 計算鎢棒到工件之距離
+            # BasetoObj = self.BaseToWorkTable_Height * (1/self.Unit) + self.BlackBoard_Height* (1/self.Unit) + 4
+            # dis = EndEffector[2,3] * (1/self.Unit) - BasetoObj
+            # print('鎢棒到工件的垂直距離 : ', dis, "mm")
+            # DisBuffer.append(dis)
+
+            # 計算起弧、收弧點，模擬與實際的誤差
+            # '''
+            # x➜預測量點到工作台"下"邊緣之實際距離(mm)
+            # y➜為預測量點到工作台"左"邊緣之實際距離(mm)
+            # '''
+            # x = 114 
+            # y = 219.5 
+            # errX, errY = self.XYCorrection_FK(x, y, EndEffector)
+            # ErrXBuffer.append(errX)
+            # ErrYBuffer.append(errY)
+
+
 
 #%%
-            # 示教模式
-            # EndEffector = self.TeachMode(World_coordinate, teachθ)
+            # # IK
+            # GoalEnd =np.array([[6, -2, 4, d2r(-180), d2r(0), d2r(0)]]).reshape(6,1)
+            # GoalEnd4X4 = self.Mat.AngletoMat(GoalEnd.reshape(6,1))
+            # self.draw_axis(GoalEnd4X4, 1)
+            # θ_Buffer = self.Kin.IK_4x4(GoalEnd4X4, θ_Buffer)
+            # print('θ', θ_Buffer)
+            # if θ_Buffer is not None:
+                # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])
+                # self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
 
 
-            # # IK and TrajectoryPlan
-            # if iter < len(Time):
-            #     # GoalEnd =np.array([[6, -2, 4, d2r(-180), d2r(0), d2r(0)]]).reshape(6,1)
-            #     GoalEnd4X4 = self.Mat.AngletoMat(GoalEnd[iter,:].reshape(6,1))
-            #     # draw_axis(GoalEnd4X4, 1)
-            #     θ_Buffer = self.Kin.IK_4x4(GoalEnd4X4, θ_Buffer)
-            #     print('θ', θ_Buffer)
-            #     if θ_Buffer is not None:
-            #         Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK(World_coordinate,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])
-            #         print("End: ", EndEffector)
-            #         for i in range(3):
-            #             TrajectoryBuffer[iter,i] = EndEffector[i,3]
-            #             print(TrajectoryBuffer[0])
-            #         for i in range(iter):
-            #             self.draw_Point(TrajectoryBuffer[i])
-            #     iter += 1
-
-            # self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
-            # self.draw_Matrix4X4(EndEffector, 550, 140)
+            # IK and TrajectoryPlan
+            if Mainloopiter < len(Time):
+                # GoalEnd =np.array([[6, -2, 4, d2r(-180), d2r(0), d2r(0)]]).reshape(6,1)
+                GoalEnd4X4 = self.Mat.AngletoMat(GoalEnd[Mainloopiter,:].reshape(6,1))
+                # GoalEnd4X4 = self.Mat.AngletoMat(GoalEnd.reshape(6,1))
+                # self.draw_axis(GoalEnd4X4, 1)
+                θ_Buffer = self.Kin.IK_4x4(GoalEnd4X4, θ_Buffer)
+                print('θ', θ_Buffer)
+                if θ_Buffer is not None:
+                    Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])
+                    self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
+                    print("End: ", EndEffector)
+                    self.draw_Trajectory(EndEffector, Mainloopiter)
+                
+            else:
+                Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])
+                self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
+                self.draw_Trajectory(EndEffector, Mainloopiter)
+            # 繪製Matrix4*4
+            self.draw_Matrix4X4(EndEffector, 550, 140)
 
             Mainloopiter += 1
             pygame.display.flip()

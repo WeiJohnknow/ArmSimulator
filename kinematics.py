@@ -56,10 +56,10 @@ class Kinematics:
         Taxis = Baxis @ BtoT
 
         # 末端法蘭面 to 銲槍末端 (工具座標號:5)
-        TtoWeldingGun = Mat.TransXYZ(-15.461*Unit, 0.897*Unit, 323.762*Unit) @ Mat.RotaXYZ(d2r(0.3753), d2r(-31.4994), d2r(-0.7909))
-        EndEffector = Taxis @ TtoWeldingGun
+        # TtoWeldingGun = Mat.TransXYZ(-15.461*Unit, 0.897*Unit, 323.762*Unit) @ Mat.RotaXYZ(d2r(0.3753), d2r(-31.4994), d2r(-0.7909))
+        # EndEffector = Taxis @ TtoWeldingGun
 
-        # EndEffector = Taxis
+        EndEffector = Taxis
         return Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector
     
     # 依編碼器方向設定的FK Parameter
@@ -99,7 +99,7 @@ class Kinematics:
 
 
 
-        # # 末端法蘭面 to 銲槍末端 (工具座標號:5)
+        # 末端法蘭面 to 銲槍末端 (工具座標號:5)
         TtoWeldingGun = Mat.RotaZ(d2r(90)) @ Mat.RotaX(d2r(180)) @  Mat.TransXYZ(-15.461*Unit, 0.897*Unit, 323.762*Unit) @ Mat.RotaXYZ(d2r(0.3753), d2r(-31.4994), d2r(-0.7909))
         EndEffector = Taxis @ TtoWeldingGun
 
@@ -322,20 +322,23 @@ class Kinematics:
     #     return normθ
 
     def Jacobian4x4(self, θ_Buffer):
+        '''
+        使用前請注意此時Jacobian內的FK Model
+        '''
         J = np.zeros((12,6))
         dt = d2r(0.01)
         World_Point = np.eye(4)
 
         for i in range(len(θ_Buffer)):
             # 查看當前FK末端(Endeffector)位置向量
-            Now_End = self.YASKAWA_MA1440_ArmFK(World_Point,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])[-1]
+            Now_End = self.YASKAWA_MA1440_ArmFK_Encoder(World_Point,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])[-1]
 
             # 將θ_Buffer資料與格式複製
             θ_cpy = np.copy(θ_Buffer)
             θ_cpy[i,0] += dt
 
             # 取經過一次dt的角度變化量，放入FK中查看末端的變化
-            dEnd = self.YASKAWA_MA1440_ArmFK(World_Point,θ_cpy[0,0],θ_cpy[1,0],θ_cpy[2,0],θ_cpy[3,0],θ_cpy[4,0],θ_cpy[5,0])[-1]
+            dEnd = self.YASKAWA_MA1440_ArmFK_Encoder(World_Point,θ_cpy[0,0],θ_cpy[1,0],θ_cpy[2,0],θ_cpy[3,0],θ_cpy[4,0],θ_cpy[5,0])[-1]
 
             # 微分概念公式，目的為求變化量
             Dmat = (dEnd - Now_End) / dt
@@ -357,7 +360,7 @@ class Kinematics:
         while iter > 0:
             iter -= 1
 
-            Now_End = self.YASKAWA_MA1440_ArmFK(World_Point,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])[-1]
+            Now_End = self.YASKAWA_MA1440_ArmFK_Encoder(World_Point,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])[-1]
 
             V_4x4 = Goal_4x4 - Now_End
             error = np.sqrt(np.sum(V_4x4** 2))

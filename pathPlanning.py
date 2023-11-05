@@ -394,7 +394,7 @@ class PathPlanning:
 
         
         # TimeList, PosList , VelList, AccList, samplePoint = TP_434( θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t[0], t[1], t[2])
-        TimeList, PosList , VelList, AccList, samplePoint = TrajectoryPlanning_434(θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t[0], t[1], t[2])
+        TimeList, PosList , VelList, AccList, samplePoint = self.TrajectoryPlanning_434(θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t[0], t[1], t[2])
 
         # 三條曲線以行增加的形式排列
         plt.subplot(3, 1, 1)  
@@ -458,35 +458,18 @@ class PathPlanning:
         # plt.ylabel('Unit')
         # plt.show()
 
-        # S-curve test
-        # AccList, VelList, SList, TimeList = S_curve(100, 38, 35, 30)
+        #S-curve test
+        AccList, VelList, SList, TimeList = self.S_curve(100, 38, 35, 30)
         
-        # plt.plot(TimeList,AccList, label='Acc')
-        # plt.plot(TimeList,VelList, label='Vel')
-        # plt.plot(TimeList,SList, label='S')
-        # plt.title('S-curve motion planning')
-        # plt.xlabel('time')
-        # plt.ylabel('Unit')
-        # # plt.tight_layout()
-        # plt.show()
+        plt.plot(TimeList,AccList, label='Acc')
+        plt.plot(TimeList,VelList, label='Vel')
+        plt.plot(TimeList,SList, label='S')
+        plt.title('S-curve motion planning')
+        plt.xlabel('time')
+        plt.ylabel('Unit')
+        # plt.tight_layout()
+        plt.show()
 
-# test
-
-# Plan = PathPlanning()
-# θinit = 0
-# Vinit = 0
-# Ainit = 0
-
-# Vfinal = 0
-# Afinal = 0
-# θfinal = 100
-# rate = 0.25
-# θlift_off = θfinal * rate
-# θset_down = θfinal * (1-rate)
-# t = [1,1,1]
-
-# TimeList,PosList , VelList, AccList, samplePoint = Plan.TrajectoryPlanning_434(θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t[0], t[1], t[2],nowTime=0)
-# plt.plot(TimeList,PosList, label='Pos')
-# plt.xlabel('Time')
-# plt.ylabel('Position')
-# plt.show()
+if __name__ == "__main__":
+    PathPlan = PathPlanning()
+    PathPlan.main()

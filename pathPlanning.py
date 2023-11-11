@@ -150,7 +150,7 @@ class PathPlanning:
 
             PosList[_u] = P
             VelList[_u] = V
-            AccList[_u] = A
+            AccList[_u] = A 
         
         PreviousNode += samplePoint[0]
 
@@ -194,6 +194,11 @@ class PathPlanning:
         return TimeList, PosList , VelList, AccList, samplePoint
     
     def S_curve(self, Smax, Vmax, Amax, Aavg):
+        '''
+        0.5Amax <= Aavg < Amax
+        Ts >= 0
+        Smax >= 2Vmax**2 / Amax  
+        '''
         Sm = Smax
         Vm = Vmax
         Am = Amax

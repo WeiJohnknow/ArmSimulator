@@ -31,9 +31,11 @@ class Simulator:
         '''
         self.WorkTable_lenght = 800 * self.Unit
         self.WorkTable_Weight = 600 * self.Unit
-        self.BaseToWorkTable_Height = 237.6 * self.Unit
+        # self.BaseToWorkTable_Height = 237.6 * self.Unit
+        # self.BaseToWorkTable_Height = 208.097 * self.Unit
+        self.BaseToWorkTable_Height = 241.7 * self.Unit
         self.BaseToWorkTable_lenght = 571.054 * self.Unit
-        self.BlackBoard_Height = 12.5 * self.Unit 
+        self.BlackBoard_Height = 14.1 * self.Unit 
 
         self.pi = np.pi
         self.Mat = Matrix4x4() 
@@ -115,13 +117,15 @@ class Simulator:
         glEnd()
         glPopMatrix()
 
-    def draw_chessboard(self, TatamiNumber=40, TatamiSize=2):
+    def draw_chessboard(self, Worldcoordinate,TatamiNumber=40, TatamiSize=2):
         '''
         TatamiNumber 地板組成(塌塌米數量)
         TatamiSize 單格塌塌米大小(n*n)
         '''
+        Unit = 0.01
         is_gray = True 
-
+        z = Worldcoordinate @ Mat.TransXYZ(0,0,-450*Unit)
+        Height = z[2,3]
         glPushMatrix()
         glBegin(GL_QUADS)
         for i in range(-TatamiNumber, TatamiNumber, TatamiSize):
@@ -131,10 +135,10 @@ class Simulator:
                     glColor3f(0.4, 0.4, 0.4)  # 灰色
                 else:
                     glColor3f(0.5, 0.5, 0.5)  # 白色
-                glVertex3f(i, j, 0)
-                glVertex3f(i + TatamiSize, j, 0)
-                glVertex3f(i + TatamiSize, j + TatamiSize, 0)
-                glVertex3f(i, j + TatamiSize, 0)
+                glVertex3f(i, j, Height)
+                glVertex3f(i + TatamiSize, j, Height)
+                glVertex3f(i + TatamiSize, j + TatamiSize, Height)
+                glVertex3f(i, j + TatamiSize, Height)
                 is_gray = not is_gray
         glEnd()
         glPopMatrix()
@@ -153,7 +157,7 @@ class Simulator:
         )
 
         edges = (
-            (0,1),
+            # (0,1),
             (1,2),
             (2,3),
             (3,4),
@@ -200,7 +204,7 @@ class Simulator:
         glVertex3f(coordinateMat[0], coordinateMat[1], coordinateMat[2])  # 在(0,0,0)处绘制点
         glEnd()
 
-    def draw_WorkTable(self):
+    def draw_WorkTable(self, WorldCoordinate):
         '''
         工作臺檯面:60*80(cm) = 600*800 (mm)
         檯面具地面:89.45(cm) = 894.5 (mm)
@@ -215,22 +219,26 @@ class Simulator:
         self.BaseToWorkTable_lenght = 571.054 * self.Unit
         self.BlackBoard_Height = 12.5 * self.Unit 
         '''
-        
+        Unit = 0.01
+        # 此Base是為配合世界坐標系與地板的顯示
+        Base = WorldCoordinate @ Mat.TransXYZ(0, 0, -450*Unit)
+        BaseHeight = Base[2,3]
+
         StartX = self.BaseToWorkTable_lenght 
         StartY = 0
         self.WorkTable_lenght = 800 * self.Unit
         self.WorkTable_Weight = 600 * self.Unit
-        height = self.BaseToWorkTable_Height + self.BlackBoard_Height
-
+        # height = self.BaseToWorkTable_Height + self.BlackBoard_Height
+        height = self.BaseToWorkTable_Height 
         vertices = (
-        (StartX, StartY-self.WorkTable_lenght/2, 0),
-        (StartX, StartY+self.WorkTable_lenght/2, 0),
-        (StartX+self.WorkTable_Weight, StartY+self.WorkTable_lenght/2, 0),
-        (StartX+self.WorkTable_Weight, StartY-self.WorkTable_lenght/2, 0),
-        (StartX, StartY-self.WorkTable_lenght/2, height),
-        (StartX, StartY+self.WorkTable_lenght/2, height),
-        (StartX+self.WorkTable_Weight, StartY+self.WorkTable_lenght/2, height),
-        (StartX+self.WorkTable_Weight, StartY-self.WorkTable_lenght/2, height),
+        (StartX, StartY-self.WorkTable_lenght/2, BaseHeight),
+        (StartX, StartY+self.WorkTable_lenght/2, BaseHeight),
+        (StartX+self.WorkTable_Weight, StartY+self.WorkTable_lenght/2, BaseHeight),
+        (StartX+self.WorkTable_Weight, StartY-self.WorkTable_lenght/2, BaseHeight),
+        (StartX, StartY-self.WorkTable_lenght/2, height+BaseHeight),
+        (StartX, StartY+self.WorkTable_lenght/2, height+BaseHeight),
+        (StartX+self.WorkTable_Weight, StartY+self.WorkTable_lenght/2, height+BaseHeight),
+        (StartX+self.WorkTable_Weight, StartY-self.WorkTable_lenght/2, height+BaseHeight),
         )
 
         edges = (
@@ -291,20 +299,88 @@ class Simulator:
                 glVertex3fv(vertices[vertex])
         glEnd()
 
-    def MOVJ(self):
+    def MOVJ(self, GoalEnd4X4, θ_Buffer, WorldPoint, OrgJointAngle):
         '''
         PTP Motion Planning
         ➜軌跡不拘，通常為弧形軌跡
         '''
-        pass
+        # 先用IK算出關節角度，再利用軌跡規劃。
+        # IK
+        θ = self.Kin.IK_4x4( GoalEnd4X4, θ_Buffer)
+        if θ is not None:
+            rate = 0.25
+            t1, t2, t3 = 0.5, 0.5, 0.5
+            # Joint Parameter = [θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t1, t2, t3]
+            Pmr_J1 = [OrgJointAngle[0,0], 0, 0, θ[0,0]*rate, θ[0,0]*(1-rate), θ[0,0], 0, 0, t1, t2, t3]
+            Pmr_J2 = [OrgJointAngle[1,0], 0, 0, θ[1,0]*rate, θ[1,0]*(1-rate), θ[1,0], 0, 0, t1, t2, t3]
+            Pmr_J3 = [OrgJointAngle[2,0], 0, 0, θ[2,0]*rate, θ[2,0]*(1-rate), θ[2,0], 0, 0, t1, t2, t3]
+            Pmr_J4 = [OrgJointAngle[3,0], 0, 0, θ[3,0]*rate, θ[3,0]*(1-rate), θ[3,0], 0, 0, t1, t2, t3]
+            Pmr_J5 = [OrgJointAngle[4,0], 0, 0, θ[4,0]*rate, θ[4,0]*(1-rate), θ[4,0], 0, 0, t1, t2, t3]
+            Pmr_J6 = [OrgJointAngle[5,0], 0, 0, θ[5,0]*rate, θ[5,0]*(1-rate), θ[5,0], 0, 0, t1, t2, t3]
+            TimeList, PosList1, VelList1, AccList1, samplePoint1 = self.Plan.TrajectoryPlanning_434(Pmr_J1[0],Pmr_J1[1], Pmr_J1[2], Pmr_J1[3], Pmr_J1[4], Pmr_J1[5], Pmr_J1[6], Pmr_J1[7], Pmr_J1[8], Pmr_J1[9],Pmr_J1[10])
+            TimeList, PosList2, VelList2, AccList2, samplePoint2 = self.Plan.TrajectoryPlanning_434(Pmr_J2[0],Pmr_J2[1], Pmr_J2[2], Pmr_J2[3], Pmr_J2[4], Pmr_J2[5], Pmr_J2[6], Pmr_J2[7], Pmr_J2[8], Pmr_J2[9],Pmr_J2[10])
+            TimeList, PosList3, VelList3, AccList3, samplePoint3 = self.Plan.TrajectoryPlanning_434(Pmr_J3[0],Pmr_J3[1], Pmr_J3[2], Pmr_J3[3], Pmr_J3[4], Pmr_J3[5], Pmr_J3[6], Pmr_J3[7], Pmr_J3[8], Pmr_J3[9],Pmr_J3[10])
+            TimeList, PosList4, VelList4, AccList4, samplePoint4 = self.Plan.TrajectoryPlanning_434(Pmr_J4[0],Pmr_J4[1], Pmr_J4[2], Pmr_J4[3], Pmr_J4[4], Pmr_J4[5], Pmr_J4[6], Pmr_J4[7], Pmr_J4[8], Pmr_J4[9],Pmr_J4[10])
+            TimeList, PosList5, VelList5, AccList5, samplePoint5 = self.Plan.TrajectoryPlanning_434(Pmr_J5[0],Pmr_J5[1], Pmr_J5[2], Pmr_J5[3], Pmr_J5[4], Pmr_J5[5], Pmr_J5[6], Pmr_J5[7], Pmr_J5[8], Pmr_J5[9],Pmr_J5[10])
+            TimeList, PosList6, VelList6, AccList6, samplePoint6 = self.Plan.TrajectoryPlanning_434(Pmr_J6[0],Pmr_J6[1], Pmr_J6[2], Pmr_J6[3], Pmr_J6[4], Pmr_J6[5], Pmr_J6[6], Pmr_J6[7], Pmr_J6[8], Pmr_J6[9],Pmr_J6[10])
+            # plt.plot(TimeList, PosList1, label='Pos')
+            # plt.plot(TimeList, PosList2, label='Pos')
+            # plt.plot(TimeList, PosList3, label='Pos')
+            # plt.plot(TimeList, PosList4, label='Pos')
+            # plt.plot(TimeList, PosList5, label='Pos')
+            # plt.plot(TimeList, PosList6, label='Pos')
+            # plt.xlabel('Time')
+            # plt.ylabel('Position')
+            # plt.show()
+            # 線性映射
+            '''
+            Joint Angle 應把比初始角扣除
+            '''
+            # PosList1 =  PosList1 + OrgJointAngle[0] 
+            # PosList2 =  PosList2 + OrgJointAngle[1]
+            # PosList3 =  PosList3 + OrgJointAngle[2]
+            # PosList4 =  PosList4 + OrgJointAngle[3]
+            # PosList5 =  PosList5 + OrgJointAngle[4]
+            # PosList6 =  PosList6 + OrgJointAngle[5]
 
-    def MOVL(self):
+        return TimeList, PosList1, PosList2, PosList3, PosList4, PosList5, PosList6
+
+    def MOVL(self, GoalEnd4X4, θ_Buffer, NowPos):
         '''
         PTP Motion Planning
         軌跡為直線
-        '''
-        pass
+        先規劃，後IK
 
+        return TrajectoryBuffer(N,6,1) ,N為軌跡點數目
+        '''
+
+        rate = 0.25
+        t1, t2, t3 = 1, 1, 1
+        # New_x, New_y, New_z = NewEnd[0,3], NewEnd[1,3], NewEnd[2,3] 
+        Goalx, Goaly, Goalz = GoalEnd4X4[0,3], GoalEnd4X4[1,3], GoalEnd4X4[2,3]
+        # Joint Parameter = [θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t1, t2, t3]
+        Pmr_x = [NowPos[0,0], 0, 0, Goalx*rate, Goalx*(1-rate), Goalx, 0, 0, t1, t2, t3]
+        Pmr_y = [NowPos[1,0], 0, 0, Goaly*rate, Goaly*(1-rate), Goaly, 0, 0, t1, t2, t3]
+        Pmr_z = [NowPos[2,0], 0, 0, Goalz*rate, Goalz*(1-rate), Goalz, 0, 0, t1, t2, t3]
+        # TimeList, PosListx, VelListx, AccListx, samplePointx = self.Plan.TrajectoryPlanning_434(Pmr_x[0],Pmr_x[1], Pmr_x[2], Pmr_x[3], Pmr_x[4], Pmr_x[5], Pmr_x[6], Pmr_x[7], Pmr_x[8], Pmr_x[9],Pmr_x[10])
+        TimeList, PosListy, VelListy, AccListy, samplePointy = self.Plan.TrajectoryPlanning_434(Pmr_y[0],Pmr_y[1], Pmr_y[2], Pmr_y[3], Pmr_y[4], Pmr_y[5], Pmr_y[6], Pmr_y[7], Pmr_y[8], Pmr_y[9],Pmr_y[10])
+        # TimeList, PosListz, VelListz, AccListz, samplePointz = self.Plan.TrajectoryPlanning_434(Pmr_z[0],Pmr_z[1], Pmr_z[2], Pmr_z[3], Pmr_z[4], Pmr_z[5], Pmr_z[6], Pmr_z[7], Pmr_z[8], Pmr_z[9],Pmr_z[10])
+        plt.plot(TimeList, PosListy, label='Pos')
+        plt.xlabel('Time')
+        plt.ylabel('Position')
+        plt.show()
+        Trajectory_Buffer = np.zeros((len(TimeList),6,1))
+        
+        for page in range(len(TimeList)):
+            # GoalEnd4X4[0,3] = PosListx[page] 
+            GoalEnd4X4[1,3] = PosListy[page] 
+            # GoalEnd4X4[2,3] = PosListz[page] 
+            for row in range(6):
+                θ = self.Kin.IK_4x4( GoalEnd4X4, θ_Buffer)
+                Trajectory_Buffer[page, row, 0] = θ[row, 0]
+            
+        return Trajectory_Buffer
+    
     def WeldingLine(self, StartPoint, EndPoint):
         '''
         軌跡:
@@ -312,6 +388,7 @@ class Simulator:
         2.起弧點➜收弧點(等速度)
         3.收弧點➜手臂起點
         '''
+
         pass
     
     def TeachMode(self, Base, teachθ):
@@ -340,6 +417,14 @@ class Simulator:
             textData = pygame.image.tostring(textSurface, "RGBA", True)
             glWindowPos2d(x, y-i*scale)
             glDrawPixels(textSurface.get_width(), textSurface.get_height(), GL_RGBA, GL_UNSIGNED_BYTE, textData)
+    
+    def draw_Var(self, dis, x, y):
+        font = pygame.font.SysFont('Time New Roman', 24)
+        text =  f"{dis}"
+        textSurface = font.render(text, True, (255, 255, 66, 255), (0, 66, 0, 255))
+        textData = pygame.image.tostring(textSurface, "RGBA", True)
+        glWindowPos2d(x, y)
+        glDrawPixels(textSurface.get_width(), textSurface.get_height(), GL_RGBA, GL_UNSIGNED_BYTE, textData)
 
     
     def drawText(self, x, y, text:str): 
@@ -350,11 +435,14 @@ class Simulator:
         glWindowPos2d(x, y)
         glDrawPixels(textSurface.get_width(), textSurface.get_height(), GL_RGBA, GL_UNSIGNED_BYTE, textData)
 
-    def draw_Matrix4X4(self, coord, x=550, y= 140):
+    def draw_Matrix4X4(self, coord, dis,x=550, y= 140):
         '''
         X, Y座標原點為螢幕左上角
         '''
+
         text = "Endeffector : "
+        self.drawText(x, y+40, "Gun to Obj(mm) :")
+        self.draw_Var(dis, x, y+20)
         self.drawText(x, y, text)
         self.drawMatrixText(x,y-20,coord,20)
 
@@ -434,7 +522,7 @@ class Simulator:
         Top -> 相機上方，與右手坐標系Y軸反向
         ''' 
         camera =  Mat.TransXYZ(20,0,5) @ Mat.RotaY(d2r(-135)) @ Mat.RotaZ(d2r(90))
-
+        # camera =  Mat.TransXYZ(0,-20,5) @ Mat.RotaY(d2r(-135)) @ Mat.RotaZ(d2r(90))
         # Jointθ Buffer
         θ_Buffer = d2r(np.zeros((6,1)))
         # 示教模式 Jointθ Buffer
@@ -444,42 +532,128 @@ class Simulator:
         # 針對FK模型與實際模型的X、Y軸誤差 Buffer
         ErrXBuffer = []
         ErrYBuffer = []
+        '''
+        YASKAWA MA1440 起始位置與姿態
+        [-1.6671311132785285, -38.81651799446324, -41.087751371115175, -0.0020620682544592226, -76.44358294225668, 1.071035847811744]
+        '''
+        OrgJointAngle = np.array([[d2r(-1.6671311132785285)],
+                                  [d2r(-38.81651799446324)],
+                                  [d2r(-41.087751371115175)],
+                                  [d2r(-0.0020620682544592226)],
+                                  [d2r(-76.44358294225668)],
+                                  [d2r(1.071035847811744)]])
+        θ_Buffer[0, 0] =  d2r(-1.6671311132785285)
+        θ_Buffer[1, 0] =  d2r(-38.81651799446324)
+        θ_Buffer[2, 0] =  d2r(-41.087751371115175)
+        θ_Buffer[3, 0] =  d2r(-0.0020620682544592226)
+        θ_Buffer[4, 0] =  d2r(-76.44358294225668)
+        θ_Buffer[5, 0] =  d2r(1.071035847811744)
 
-        # 4-3-4軌跡規劃
-        rate = 0.25
-        xθfinal = self.BaseToWorkTable_lenght + self.WorkTable_Weight/2
-        yθfinal = 2
-        zθfinal = self.BaseToWorkTable_Height+self.BlackBoard_Height+4*self.Unit
-        # PosTP = [θinit, Vinit, Ainit, θlift-off, θset-down, θfinal, Vfinal, Afinal, t1, t2, t3]
-        # xTP = [0,0,0, 6, 6, xθfinal, 0, 0, 0.5, 0.5, 0.5]
-        yTP = [0,0,0, yθfinal*rate, yθfinal*(1-rate), yθfinal, 0, 0, 0.5, 0.5, 0.5]
-        # zTP = [0,0,0, 4, 4, zθfinal, 0, 0, 0.5, 0.5, 0.5]
-        # Time, xPos, xVel, xAcc, _ = self.Plan.TrajectoryPlanning_434(xTP[0],xTP[1],xTP[2],xTP[3],xTP[4],xTP[5],xTP[6],xTP[7],xTP[8],xTP[9],xTP[10])
-        Time, yPos, yVel, yAcc, _ = self.Plan.TrajectoryPlanning_434(yTP[0],yTP[1],yTP[2],yTP[3],yTP[4],yTP[5],yTP[6],yTP[7],yTP[8],yTP[9],yTP[10])
-        # Time, zPos, zVel, zAcc, _ = self.Plan.TrajectoryPlanning_434(zTP[0],zTP[1],zTP[2],zTP[3],zTP[4],zTP[5],zTP[6],zTP[7],zTP[8],zTP[9],zTP[10])
-        
-        # 位置資訊反轉
-        # yPos[:] = yPos[::-1]
-        yPos = yPos-3.5
-        
-        GoalEnd = np.zeros((len(Time), 6))
-        TrajectoryBuffer = np.zeros((len(Time),3))
 
-        # 將規劃完的資料放進軌跡暫存器裡
-        for i in range(len(Time)):
-            GoalEnd[i,:] = [xθfinal, yPos[i], zθfinal+5*self.Unit, d2r(-180), d2r(0), d2r(0)]
-            # print(GoalEnd)
+
+
+        # # 4-3-4軌跡規劃
+        # rate = 0.25
+        # xθfinal = self.BaseToWorkTable_lenght + self.WorkTable_Weight/2
+        # yθfinal = 2
+        # zθfinal = self.BaseToWorkTable_Height+self.BlackBoard_Height+4*self.Unit
+        # # PosTP = [θinit, Vinit, Ainit, θlift-off, θset-down, θfinal, Vfinal, Afinal, t1, t2, t3]
+        # # xTP = [0,0,0, 6, 6, xθfinal, 0, 0, 0.5, 0.5, 0.5]
+        # yTP = [0,0,0, yθfinal*rate, yθfinal*(1-rate), yθfinal, 0, 0, 0.5, 0.5, 0.5]
+        # # zTP = [0,0,0, 4, 4, zθfinal, 0, 0, 0.5, 0.5, 0.5]
+        # # Time, xPos, xVel, xAcc, _ = self.Plan.TrajectoryPlanning_434(xTP[0],xTP[1],xTP[2],xTP[3],xTP[4],xTP[5],xTP[6],xTP[7],xTP[8],xTP[9],xTP[10])
+        # Time, yPos, yVel, yAcc, _ = self.Plan.TrajectoryPlanning_434(yTP[0],yTP[1],yTP[2],yTP[3],yTP[4],yTP[5],yTP[6],yTP[7],yTP[8],yTP[9],yTP[10])
+        # # Time, zPos, zVel, zAcc, _ = self.Plan.TrajectoryPlanning_434(zTP[0],zTP[1],zTP[2],zTP[3],zTP[4],zTP[5],zTP[6],zTP[7],zTP[8],zTP[9],zTP[10])
+        
+        # # 位置資訊反轉
+        # # yPos[:] = yPos[::-1]
+        # yPos = yPos-3.5
+        
+        # GoalEnd = np.zeros((len(Time), 6))
+        # TrajectoryBuffer = np.zeros((len(Time),3))
+
+        # # 將規劃完的資料放進軌跡暫存器裡
+        # for i in range(len(Time)):
+        #     GoalEnd[i,:] = [xθfinal, yPos[i], zθfinal+5*self.Unit, d2r(-180), d2r(0), d2r(0)]
+        #     # print(GoalEnd)
 
         # plt.plot(Time, yPos, label='Pos')
         # plt.xlabel('Time')
         # plt.ylabel('Position')
         # plt.show()
 
+        # MOVJ(4-3-4)
+        GoalEnd =np.array([[6, 4, -2, d2r(-180), d2r(0), d2r(0)]]).reshape(6,1)
+        GoalEnd4X4 = self.Mat.AngletoMat(GoalEnd.reshape(6,1))
+        TimeList, PosList1, PosList2, PosList3, PosList4, PosList5, PosList6 = self.MOVJ(GoalEnd4X4, θ_Buffer, World_coordinate, OrgJointAngle)
+        
+        # MOVL(4-3-4)
+        OrgJointAngle_2nd = np.array([[d2r(0.80859733)],
+                                  [d2r(-0.16683994)],
+                                  [d2r(-1.18046817)],
+                                  [d2r(1.20091336)],
+                                  [d2r(-0.42177255)],
+                                  [d2r(-1.90982586)]])
+        GoalEnd_2nd =np.array([[6, -4, -2, d2r(-180), d2r(0), d2r(0)]]).reshape(6,1)
+        GoalEnd4X4_2nd = self.Mat.AngletoMat(GoalEnd_2nd.reshape(6,1))
+        TrajectoryBuffer = self.MOVL( GoalEnd4X4_2nd, OrgJointAngle_2nd, GoalEnd)
+        # 兩段軌跡資料結合
+        for i in range(len(TimeList)):
+            PosList1[len(TimeList)+i] = TrajectoryBuffer[i,0,0]
+            PosList2[len(TimeList)+i] = TrajectoryBuffer[i,1,0]
+            PosList3[len(TimeList)+i] = TrajectoryBuffer[i,2,0]
+            PosList4[len(TimeList)+i] = TrajectoryBuffer[i,3,0]
+            PosList5[len(TimeList)+i] = TrajectoryBuffer[i,4,0]
+            PosList6[len(TimeList)+i] = TrajectoryBuffer[i,5,0]
 
+
+        '''
+        Smax : 最大移動距離
+        Vmax : 最大允許速度
+        Amax : 最大允許加速度
+        Aavg : 平均加速度
+        定律:
+        1. 平均加速度必須小於Amax ; 平均加速度必須大於最大加速度的一半
+        2. 恆加速段時間不可小於0 ; 最大速度平方的兩倍/最大加速度 要大於最大移動距離
+        先決定Smax, Vmax, Amax
+        '''
+        # Scurve
+        # GoalEnd =np.array([[6, -4, -2, d2r(-180), d2r(0), d2r(0)]]).reshape(6,1)
+        # GoalEnd4X4 = self.Mat.AngletoMat(GoalEnd.reshape(6,1))
+        # self.draw_axis(GoalEnd4X4, 1)
+        # θ_Buffer = self.Kin.IK_4x4(GoalEnd4X4, θ_Buffer)
+        # print('θ', θ_Buffer)
+        # # Smax1 ,Vmax1, Amax1, Aavg1 = θ_Buffer[0,0], -0.5, -1, -0.6
+        # Smax1 ,Vmax1, Amax1, Aavg1 = θ_Buffer[0,0], -2.8, -20, -15
+        # Smax2 ,Vmax2, Amax2, Aavg2 = θ_Buffer[1,0], -1.3243, -20, -15
+        # Smax3 ,Vmax3, Amax3, Aavg3 = θ_Buffer[2,0], -3.4456, -20, -15
+        # Smax4 ,Vmax4, Amax4, Aavg4 = θ_Buffer[3,0], -3.4775, -20, -15
+        # Smax5 ,Vmax5, Amax5, Aavg5 = θ_Buffer[4,0], -2.02, -20, -15
+        # Smax6 ,Vmax6, Amax6, Aavg6 = θ_Buffer[5,0], 4.3469, 20, 15
+        # AccList1, VelList1, SList1, TimeList1 = self.Plan.S_curve(Smax1, Vmax1, Amax1, Amax1*0.75)
+        # AccList2, VelList2, SList2, TimeList2 = self.Plan.S_curve(Smax2, Vmax2, Amax2, Amax2*0.75)
+        # AccList3, VelList3, SList3, TimeList3 = self.Plan.S_curve(Smax3, Vmax3, Amax3, Amax3*0.75)
+        # AccList4, VelList4, SList4, TimeList4 = self.Plan.S_curve(Smax4, Vmax4, Amax4, Amax4*0.75)
+        # AccList5, VelList5, SList5, TimeList5 = self.Plan.S_curve(Smax5, Vmax5, Amax5, Amax5*0.75)
+        # AccList6, VelList6, SList6, TimeList6 = self.Plan.S_curve(Smax6, Vmax6, Amax6, Amax6*0.75)
+        # plt.plot(TimeList1, SList1, label='Pos')
+        # plt.plot(TimeList2, SList2, label='Pos')
+        # plt.plot(TimeList3, SList3, label='Pos')
+        # plt.plot(TimeList4, SList4, label='Pos')
+        # plt.plot(TimeList5, SList5, label='Pos')
+        # plt.plot(TimeList6, SList6, label='Pos')
+        # plt.xlabel('Time')
+        # plt.ylabel('Position')
+        # plt.show()
 
         # 迴圈疊代次數
         Mainloopiter = 0
-
+        # iter1 = 0
+        # iter2 = 0
+        # iter3 = 0
+        # iter4 = 0
+        # iter5 = 0
+        # iter6 = 0
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.KEYDOWN:
@@ -555,12 +729,14 @@ class Simulator:
             # 對視景模型操作
             glMatrixMode(GL_MODELVIEW)
             glLoadIdentity()
+            # 繪製世界坐標系
+            self.draw_axis(World_coordinate, 1)
             
             # 繪製地板
-            self.draw_chessboard()
+            self.draw_chessboard(World_coordinate)
             
             # 繪製工作臺
-            self.draw_WorkTable()
+            self.draw_WorkTable(World_coordinate)
             
             # 讀取機台個軸馬達角度
             # NowJointθ = self.ReadPos()
@@ -579,9 +755,9 @@ class Simulator:
             
             # 手臂原點
             '''
-            編碼器:-2389,-50477,-58433,0,-74923,481
-            馬達角度:[-1.6643444336073567, -38.81651799446324, -41.08634509914217, 0.0, -76.43644154254234, 1.0578403342863427]
-            FK角度(J1,J2,J5反向):[1.6643444336073567, 38.81651799446324, -41.08634509914217, 0.0, 76.43644154254234, 1.0578403342863427]
+            編碼器:-2393,-50477,-58435,-2,-74930,487
+            馬達角度:[-1.6671311132785285, -38.81651799446324, -41.087751371115175, -0.0020620682544592226, -76.44358294225668, 1.071035847811744]
+           
             '''
             # 起弧點
             '''
@@ -615,27 +791,29 @@ class Simulator:
 
             # # 機台數據測試(通訊專用)
             # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,NowJointθ[0],NowJointθ[1],NowJointθ[2],NowJointθ[3],NowJointθ[4],NowJointθ[5])
-            # self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector)
+            # self.draw_Arm(Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector)
            
-            # # 繪製軌跡
+            # 繪製軌跡
             # self.draw_Trajectory(EndEffector, Mainloopiter)
 
-            # # 繪製Matrix4*3
-            # self.draw_Matrix4X4(EndEffector, 550, 140)
 
             # 計算鎢棒到工件之距離
-            # BasetoObj = self.BaseToWorkTable_Height * (1/self.Unit) + self.BlackBoard_Height* (1/self.Unit) + 4
-            # dis = EndEffector[2,3] * (1/self.Unit) - BasetoObj
+            # BasetoObj = 450 - (self.BaseToWorkTable_Height * (1/self.Unit) + self.BlackBoard_Height* (1/self.Unit) +4)
+            # BasetoObj = 450 - (self.BaseToWorkTable_Height * (1/self.Unit) + self.BlackBoard_Height* (1/self.Unit) )
+            # dis = BasetoObj -  abs(EndEffector[2,3] * (1/self.Unit))
             # print('鎢棒到工件的垂直距離 : ', dis, "mm")
             # DisBuffer.append(dis)
 
-            # 計算起弧、收弧點，模擬與實際的誤差
+            # # 繪製Matrix4*3
+            # self.draw_Matrix4X4(EndEffector, dis,450, 140)
+
+            # 計算校正點實際與模擬的誤差
             # '''
             # x➜預測量點到工作台"下"邊緣之實際距離(mm)
             # y➜為預測量點到工作台"左"邊緣之實際距離(mm)
             # '''
-            # x = 114 
-            # y = 219.5 
+            # x = 430.5 
+            # y = 36
             # errX, errY = self.XYCorrection_FK(x, y, EndEffector)
             # ErrXBuffer.append(errX)
             # ErrYBuffer.append(errY)
@@ -643,37 +821,84 @@ class Simulator:
 
 
 #%%
-            # # IK
-            # GoalEnd =np.array([[6, -2, 4, d2r(-180), d2r(0), d2r(0)]]).reshape(6,1)
+            # IK
+            # GoalEnd =np.array([[6, -4, -2, d2r(-180), d2r(0), d2r(0)]]).reshape(6,1)
             # GoalEnd4X4 = self.Mat.AngletoMat(GoalEnd.reshape(6,1))
             # self.draw_axis(GoalEnd4X4, 1)
             # θ_Buffer = self.Kin.IK_4x4(GoalEnd4X4, θ_Buffer)
             # print('θ', θ_Buffer)
             # if θ_Buffer is not None:
-                # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])
-                # self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
-
-
-            # IK and TrajectoryPlan
-            if Mainloopiter < len(Time):
-                # GoalEnd =np.array([[6, -2, 4, d2r(-180), d2r(0), d2r(0)]]).reshape(6,1)
-                GoalEnd4X4 = self.Mat.AngletoMat(GoalEnd[Mainloopiter,:].reshape(6,1))
-                # GoalEnd4X4 = self.Mat.AngletoMat(GoalEnd.reshape(6,1))
-                # self.draw_axis(GoalEnd4X4, 1)
-                θ_Buffer = self.Kin.IK_4x4(GoalEnd4X4, θ_Buffer)
-                print('θ', θ_Buffer)
-                if θ_Buffer is not None:
-                    Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])
-                    self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
-                    print("End: ", EndEffector)
-                    self.draw_Trajectory(EndEffector, Mainloopiter)
+            #     Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])
+            #     self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
                 
-            else:
-                Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])
-                self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
-                self.draw_Trajectory(EndEffector, Mainloopiter)
-            # 繪製Matrix4*4
-            self.draw_Matrix4X4(EndEffector, 550, 140)
+
+            # # IK and TrajectoryPlan
+            # if Mainloopiter < len(Time):
+            #     # GoalEnd =np.array([[6, -2, 4, d2r(-180), d2r(0), d2r(0)]]).reshape(6,1)
+            #     GoalEnd4X4 = self.Mat.AngletoMat(GoalEnd[Mainloopiter,:].reshape(6,1))
+            #     # GoalEnd4X4 = self.Mat.AngletoMat(GoalEnd.reshape(6,1))
+            #     # self.draw_axis(GoalEnd4X4, 1)
+            #     θ_Buffer = self.Kin.IK_4x4(GoalEnd4X4, θ_Buffer)
+            #     print('θ', θ_Buffer)
+            #     if θ_Buffer is not None:
+            #         Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])
+            #         self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
+            #         print("End: ", EndEffector)
+            #         self.draw_Trajectory(EndEffector, Mainloopiter)
+                
+            # else:
+            #     Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])
+            #     self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
+            #     self.draw_Trajectory(EndEffector, Mainloopiter)
+            # # 繪製Matrix4*4
+            # self.draw_Matrix4X4(EndEffector, 550, 140)
+
+            # MOVJ
+            if Mainloopiter < len(TimeList): 
+                # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,PosList1[Mainloopiter],PosList2[Mainloopiter],PosList3[Mainloopiter],PosList4[Mainloopiter],PosList5[Mainloopiter],PosList6[Mainloopiter])
+                 Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,TrajectoryBuffer[Mainloopiter,0],TrajectoryBuffer[Mainloopiter,1],TrajectoryBuffer[Mainloopiter,2],TrajectoryBuffer[Mainloopiter,3],TrajectoryBuffer[Mainloopiter,4],TrajectoryBuffer[Mainloopiter,5])
+            # elif (Mainloopiter >= len(TimeList)):
+                
+                # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,TrajectoryBuffer[Mainloopiter,0],PosList2[Mainloopiter,1],PosList3[Mainloopiter,2],PosList4[Mainloopiter,3],PosList5[Mainloopiter,4],PosList6[Mainloopiter,5])
+            self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
+            self.draw_Trajectory(EndEffector, Mainloopiter)
+            self.draw_Matrix4X4(EndEffector, 550)
+
+            
+            
+            
+            # S-curve
+            # if iter1 < len(TimeList1) or iter2 < len(TimeList2) or iter3 < len(TimeList3) or iter4 < len(TimeList4) or iter5 < len(TimeList5) or iter6 < len(TimeList6):
+            #     if iter1 >= len(TimeList1)-1:
+            #         iter1 = len(TimeList1)-1
+            #     else:
+            #         iter1 += 1
+            #     if iter2 >= len(TimeList2)-1:
+            #         iter2 = len(TimeList2)-1
+            #     else:
+            #         iter2 += 1
+            #     if iter3 >= len(TimeList3)-1:
+            #         iter3 = len(TimeList3)-1
+            #     else:
+            #         iter3 += 1
+            #     if iter4 >= len(TimeList4)-1:
+            #         iter4 = len(TimeList4)-1
+            #     else:
+            #         iter4 += 1
+            #     if iter5 >= len(TimeList5)-1:
+            #         iter5 = len(TimeList5)-1
+            #     else:
+            #         iter5 += 1
+            #     if iter6 >= len(TimeList6)-1:
+            #         iter6 = len(TimeList6)-1
+            #     else:
+            #         iter6 += 1
+
+            #     Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,SList1[iter1],SList2[iter2],SList3[iter3],SList4[iter4],SList5[iter5],SList6[iter6])
+            #     self.draw_Trajectory(EndEffector, Mainloopiter)
+            #     self.draw_Matrix4X4(EndEffector, 550)
+            #     self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
+
 
             Mainloopiter += 1
             pygame.display.flip()

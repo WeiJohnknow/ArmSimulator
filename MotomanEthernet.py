@@ -107,7 +107,7 @@ class MotomanConnector:
 
         data2_str = d2.decode("utf-8").replace("\r","").split(",")
 
-        data2_arr = [-(int(data2_str[0])/self.S_pulse),-(int(data2_str[1])/self.L_pulse),int(data2_str[2])/self.U_pulse,-(int(data2_str[3])/self.R_pulse),-(int(data2_str[4])/self.B_pulse),-(int(data2_str[5])/self.T_pulse)]
+        data2_arr = [float(data2_str[0])/self.S_pulse,float(data2_str[1])/self.L_pulse,float(data2_str[2])/self.U_pulse,float(data2_str[3])/self.R_pulse,float(data2_str[4])/self.B_pulse,float(data2_str[5])/self.T_pulse]
         return data2_arr
 
     def getCoordinatesMH(self,coordinateSystem = 0): #Somehow our controller raises an internal error

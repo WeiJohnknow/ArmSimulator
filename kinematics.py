@@ -63,7 +63,7 @@ class Kinematics:
         return Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector
     
     # 依編碼器方向設定的FK Parameter
-    def YASKAWA_MA1440_ArmFK_Encoder(self, Base, Saxisθ, Laxisθ, Uaxisθ, Raxisθ, Baxisθ, Taxisθ):
+    def YASKAWA_MA1440_ArmFK_Encoder(self, WorldCoord, Saxisθ, Laxisθ, Uaxisθ, Raxisθ, Baxisθ, Taxisθ):
         '''
         輸入請注意角度單位: 度、mm
         OpenGL Unit = 0.01(10cm)
@@ -77,7 +77,12 @@ class Kinematics:
         Payload : 6 kg
         ROBOT Base axis 距離工作臺 : 571.054(mm)
         '''
+        
         Unit = 0.01
+
+        # 世界坐標系轉換成機器人基礎坐標系
+        WtoB = Mat.TransXYZ(0, 0, -450*Unit)
+        Base = WorldCoord @ WtoB
         
         BtoS = Mat.TransXYZ(0,0,299*Unit)  @ Mat.RotaZ(Saxisθ)
         Saxis = Base @ BtoS
@@ -97,14 +102,20 @@ class Kinematics:
         BtoT = Mat.RotaY(d2r(-90)) @ Mat.TransXYZ(0,0,-100*Unit)  @ Mat.RotaZ(Taxisθ)
         Taxis = Baxis @ BtoT
 
+        TtoError = Mat.TransXYZ(0,3.2*Unit,-4.1*Unit)
+        NewTaxis = Taxis @ TtoError
 
 
         # 末端法蘭面 to 銲槍末端 (工具座標號:5)
         TtoWeldingGun = Mat.RotaZ(d2r(90)) @ Mat.RotaX(d2r(180)) @  Mat.TransXYZ(-15.461*Unit, 0.897*Unit, 323.762*Unit) @ Mat.RotaXYZ(d2r(0.3753), d2r(-31.4994), d2r(-0.7909))
-        EndEffector = Taxis @ TtoWeldingGun
+        EndEffector = NewTaxis @ TtoWeldingGun
+        CorrEndEffector = EndEffector @ Mat.TransXYZ(2.12*Unit,-0.1*Unit,0.8*Unit)
 
-        # EndEffector = Taxis
-        return Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector
+        # TtoWeldingGun = Mat.RotaZ(d2r(90)) @ Mat.RotaX(d2r(180)) @ Mat.RotaX(d2r(0.3753)) @ Mat.RotaY(d2r(-31.4994)) @ Mat.RotaZ(d2r(-0.7909))  @  Mat.TransXYZ(-15.461*Unit, 0.897*Unit, 323.762*Unit) 
+        # EndEffector = Taxis @ TtoWeldingGun
+
+        # CorrEndEffector = NewTaxis
+        return Base, Saxis, Laxis, Uaxis, Raxis, Baxis, NewTaxis, CorrEndEffector
         
     def PUMA_Arm_FK(self, Base,θ1,θ2,θ3,θ4,θ5,θ6):
         '''
@@ -355,8 +366,8 @@ class Kinematics:
         
         iter = 10
         # 學習率
-        test = 0.05
-
+        # test = 0.05
+        test = 0.75
         while iter > 0:
             iter -= 1
 
@@ -380,13 +391,13 @@ class Kinematics:
             # 更新角度
             θ_Buffer += w * test
             # θ_Buffer = Normdeg(θ_Buffer)
-            print(θ_Buffer)
+            # print(θ_Buffer)
 
         print("iter :", iter)
         # normθ = norm_deg(θ)
         # print(θ)
         normθ = self.Normdeg(θ_Buffer)
-
+        print(normθ)
         print("error " , error)
 
         return normθ

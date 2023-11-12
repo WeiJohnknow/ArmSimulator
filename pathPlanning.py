@@ -127,7 +127,7 @@ class PathPlanning:
         a33 = X[5]
         a34 = X[6]
 
-        sampleIntervals = 0.01
+        sampleIntervals = 0.001
         samplePoint = [int(t1/sampleIntervals), int(t2/sampleIntervals), int(t3/sampleIntervals)]
         reciprocal = 1/sampleIntervals
         
@@ -373,107 +373,95 @@ class PathPlanning:
             s7End = s7
 
         return AccList, VelList, SList, TimeList
+    
+    def MatrixPathPlanning(self, GoalEnd, NowEnd):
+        """
+        NowEnd to GoalEnd = D
+        D is Translation Matrix
+        code Ref. 2023hurocup file robot.py fun.GetDmat
+        """ 
+        sin = np.sin
+        cos = np.cos
+        arccos = np.arccos
+        inv  = np.linalg.inv
+        pi = np.pi
+        
 
-    def addGraphTicks(InputData, interval):
-        # 資料集的最大最小值
-        MaxValue = np.max(InputData)
-        MinValue = np.min(InputData)
-
-        yTicks = [-40, -30, -20 -10, 0, 10, 20, 30, 40]
-        plt.yticks(yTicks)
+        D = inv(NowEnd) @ GoalEnd
+        θ = arccos(round((D[0,0] + D[1,1] + D[2,2] - 1.0)/2.0,4))
+        if type(θ) !=type(np.arccos(0.5)):
+            θ = 0
+        if round(θ % pi,4) !=round(0.0,4):
+            u = 2.0*sin(θ)
+            kx = (D[2,1] - D[1,2]) / u
+            ky = (D[0,2] - D[2,0]) / u
+            kz = (D[1,0] - D[0,1]) / u
+        else:
+            u = 0.001
+            kx = (D[2,1] - D[1,2]) / u
+            ky = (D[0,2] - D[2,0]) / u
+            kz = (D[1,0] - D[0,1]) / u
+        # kx = (D[2,1]-D[1,2]) / (2*sin(θ))
+        # ky = (D[0,2]-D[2,0]) / (2*sin(θ))
+        # kz = (D[1,0]-D[0,1]) / (2*sin(θ))
+        
+        Δx = GoalEnd[0,3] - NowEnd[0,3]
+        Δy = GoalEnd[1,3] - NowEnd[1,3]
+        Δz = GoalEnd[2,3] - NowEnd[2,3]        
+        sampleInterval = 0.001
+        TBuffer = np.zeros(((int(1/sampleInterval),4,4)))
+        # D = np.eye(4)
+        for λ_ in range(int((1/sampleInterval))):
+            λ =  λ_/(1/sampleInterval)
+            V = (1-cos(θ*λ))
+            
+            # D[0,0] = kx**2*V+cos(θ*λ)
+            # D[0,1] = kx*ky*V+kz*sin(θ*λ)
+            # D[0,2] = kx*kz*V-ky*sin(θ*λ)
+            # D[1,0] = kx*ky*V-kz*sin(θ*λ)
+            # D[1,1] = ky**2*V+cos(θ*λ)
+            # D[1,2] = ky*kz*V+kx*sin(θ*λ)
+            # D[2,1] = kx*kz*V+ky*sin(θ*λ)
+            # D[2,2] = ky*kz*V-kx*sin(θ*λ)
+            # D[2,3] = kz**2*V+cos(θ*λ)
+            # D[3,0] = Δx*λ
+            # D[3,1] = Δy*λ
+            # D[3,2] = Δz*λ
+            D = np.array(([ [kx**2*V+cos(θ*λ), kx*ky*V-kz*sin(θ*λ), kx*kz*V+ky*sin(θ*λ), Δx*λ],
+                                    [kx*ky*V+kz*sin(θ*λ), ky**2*V+cos(θ*λ), ky*kz*V-kx*sin(θ*λ), Δy*λ],
+                                    [kx*kz*V-ky*sin(θ*λ), ky*kz*V+kx*sin(θ*λ), kz**2*V+cos(θ*λ), Δz*λ],
+                                    [0, 0, 0, 1]]))
+            # D[np.isnan(D)] = 0.0
+            T = NowEnd @ D
+            TBuffer[λ_] = T
+            
+        
+        return TBuffer
+        
 
     def main(self):
-
-        # 4-3-4 test
-        θinit = 0
-        Vinit = 0 
-        Ainit = 0
-        θfinal = 90 
-        Vfinal = 0
-        Afinal = 0
-
-        rate = 0.25
-        θlift_off = θfinal*rate
-        θset_down = θfinal*(1.0-rate)
-        t = [3, 3, 3]
-
+        NowEnd = np.array([[-1,0,0,10],
+                                    [0,1,0,10],
+                                    [0,0,1,10],
+                                    [0,0,0,1]])
+        GoalEnd = np.array([[0,-1,0,10],
+                                    [0,0,1,30],
+                                    [-1,0,0,10],
+                                    [0,0,0,1]])
+        T = self.MatrixPathPlanning(GoalEnd, NowEnd)
+        print(T)
+        print("test")
+        #S-curve test
+        # AccList, VelList, SList, TimeList = self.S_curve(100, 38, 35, 30)
         
-        # TimeList, PosList , VelList, AccList, samplePoint = TP_434( θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t[0], t[1], t[2])
-        TimeList, PosList , VelList, AccList, samplePoint = self.TrajectoryPlanning_434(θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t[0], t[1], t[2])
-
-        # 三條曲線以行增加的形式排列
-        plt.subplot(3, 1, 1)  
-        plt.plot(TimeList,PosList, label='Pos')
-        plt.xlabel('Time')
-        plt.ylabel('Position')
-        # plt.yticks([0, 0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.4, 1.6])  # 自定义 Y 轴刻度
-        # plt.xticks([0, 0.2, 0.4, 0.5, 0.6, 0.8, 1, 1.2, 1.4, 1.5, 1.6])  # 自定义 X 轴刻度
-        # 添加最大值和最小值标签
-        plt.text(TimeList[np.argmax(PosList)], max(PosList), f'Max: {max(PosList):.2f}', va='bottom', ha='center', color='red', fontsize=16)
-        # plt.text(TimeList[np.argmin(PosList)], min(PosList), f'Min: {min(PosList):.2f}', va='top', ha='center', color='blue')
-        
-        plt.subplot(3, 1, 2)
-        plt.plot(TimeList,VelList, label='Vel')
-        plt.xlabel('Time')
-        plt.ylabel('Velocity')
-        # plt.yticks([0, 0.2, 0.4, 0.6, 0.8])  # 自定义 Y 轴刻度
-        # plt.xticks([0, 0.2, 0.4, 0.5, 0.6, 0.8, 1, 1.2, 1.4, 1.5, 1.6])  # 自定义 X 轴刻度
-        plt.text(TimeList[np.argmax(VelList)], max(VelList), f'Max: {max(VelList):.2f}', va='bottom', ha='center', color='red', fontsize=16)
-
-        plt.subplot(3, 1, 3)
-        plt.plot(TimeList,AccList, label='Acc')
-        plt.xlabel('Time')
-        plt.ylabel('Acceleration')
-        # plt.yticks([-1.2, -1, -0.8, -0.6,-0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1, 1.2])  # 自定义 Y 轴刻度
-        # plt.xticks([0, 0.2, 0.4, 0.5, 0.6, 0.8, 1, 1.2, 1.4, 1.5, 1.6])  # 自定义 X 轴刻度
-        plt.text(TimeList[np.argmax(AccList)], max(AccList), f'Max: {max(AccList):.2f}', va='bottom', ha='center', color='red', fontsize=16)
-        plt.text(TimeList[np.argmin(AccList)], min(AccList), f'Min: {min(AccList):.2f}', va='top', ha='center', color='blue', fontsize=16)
-
-        # 手動調配間距
-        # plt.subplots_adjust(wspace=0.3)  # 调整水平间距
-        plt.subplots_adjust(hspace=0.3)  # 调整垂直间距
-
-        # 自動調配間距
-        # plt.tight_layout() 
-        plt.show()
-        
-        
-
-
-        # # 第二段曲線
-        # θinit = θfinal
-        # Vinit = Vfinal 
-        # Ainit = Afinal 
-        # Vfinal = 0
-        # Afinal = 0
-        # θfinal = 150
-
-        # rate = 0.25
-        # θlift_off =θinit+ (θfinal-θinit)*rate
-        # θset_down =θinit+ (θfinal-θinit)*(1.0-rate)
-        # t = [0.5, 0.5, 0.5]
-
-        # TimeList2,PosList2 , VelList2, AccList2, samplePoint = TrajectoryPlanning_434( θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t[0], t[1], t[2],nowTime=TimeList[-1])
-        
-        # plt.plot(TimeList+TimeList2,PosList+PosList2, label='POS')
-        # plt.plot(TimeList+TimeList2,VelList+VelList2, label='Vel')
-        # plt.plot(TimeList+TimeList2,AccList+AccList2, label='Acc')
-        # plt.title('4-3-4 Trajectory planning')
+        # plt.plot(TimeList,AccList, label='Acc')
+        # plt.plot(TimeList,VelList, label='Vel')
+        # plt.plot(TimeList,SList, label='S')
+        # plt.title('S-curve motion planning')
         # plt.xlabel('time')
         # plt.ylabel('Unit')
+        # # plt.tight_layout()
         # plt.show()
-
-        #S-curve test
-        AccList, VelList, SList, TimeList = self.S_curve(100, 38, 35, 30)
-        
-        plt.plot(TimeList,AccList, label='Acc')
-        plt.plot(TimeList,VelList, label='Vel')
-        plt.plot(TimeList,SList, label='S')
-        plt.title('S-curve motion planning')
-        plt.xlabel('time')
-        plt.ylabel('Unit')
-        # plt.tight_layout()
-        plt.show()
 
 if __name__ == "__main__":
     PathPlan = PathPlanning()

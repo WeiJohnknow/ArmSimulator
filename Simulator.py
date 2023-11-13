@@ -12,6 +12,7 @@ import datetime
 from PathPlanning import *
 from Kinematics import *
 from MotomanEthernet import *
+import csv
 
 class Simulator:
     def __init__(self):
@@ -459,27 +460,9 @@ class Simulator:
         for i in range(iter):
             self.draw_Point(self.PosBuffer[i])
         
-    def ReadPos(self):
+    def ReadJointAngle(self):
         '''
-        原點:
-        編碼器(Pluser):0,0,0,0,0,0
-
-        平常手臂原點:
-        編碼器:-2389,-50477,-58433,0,-74923,481
-        馬達角度(U軸888):[-1.6643989318307064, -38.81881655557888, -65.73689492086777, 0.0, -76.4330105565553, 1.0577077428164932]
-        馬達角度(U軸690):[-1.6643989318307064, -38.81881655557888, -84.58816955561282, 0.0, -76.4330105565553, 1.0577077428164932]
-
-
-        校正後(準)
-        原點:
-        編碼器:0,0,0,0,0,0
-        馬達絕對角度:[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        馬達對地角度:[0,90,0,0,0,0]
-
-        手臂平常原點:
-        編碼器:-2389,-50477,-58433,0,-74923,481
-        馬達角度:[-1.6643444336073567, -38.81651799446324, -41.08634509914217, 0.0, -76.43644154254234, 1.0578403342863427]
-        
+        Read Arm Joint Angle
         '''
         NowJointθ = []
         mh = MotomanConnector() #Create Connector
@@ -490,6 +473,34 @@ class Simulator:
         # NowJointθ = [-x for x in NowJointθ]
 
         return NowJointθ
+    
+    def ReadNowPos(self):
+        '''
+        Read Arm end-effector(6X1) Matrix
+        '''
+        NowPos6X1 = np.zeros((6,1))
+        NowPos4X4 = np.eye(4)
+        mh = MotomanConnector() #Create Connector
+        mh.connectMH() #Connect
+        Buffer = mh.getCoordinatesMH()
+        # print(NowPos6X1)
+
+        # str 轉換 float
+        for i in range(len(Buffer)):
+            Buffer[i] = float(Buffer[i])
+        
+        NowPos6X1[0,0] = Buffer[0]*self.Unit
+        NowPos6X1[1,0] = Buffer[1]*self.Unit
+        NowPos6X1[2,0] = Buffer[2]*self.Unit
+        NowPos6X1[3,0] = d2r(Buffer[3])
+        NowPos6X1[4,0] = d2r(Buffer[4])
+        NowPos6X1[5,0] = d2r(Buffer[5])
+        
+        NowPos4X4 = Mat.AngletoMat(NowPos6X1)
+        print(NowPos4X4)
+        mh.disconnectMH()
+
+        return NowPos4X4
     
     def XYCorrection_FK(self, x, y, EndEffector):
         """
@@ -508,6 +519,32 @@ class Simulator:
         ErrY = abs(abs(EndEffector[1,3])-((self.WorkTable_lenght/2-y))) * (1/self.Unit)
 
         return ErrX, ErrY
+    
+    def erroeXYZ(self, JointAngleMat, NowPosMat):
+        '''
+        Input: Matrix4x4
+        error = 模擬 - 現實
+        error>0 : 模擬>現實
+        error<0 : 模擬<現實
+        '''
+
+        errorX =  JointAngleMat[0,3] - NowPosMat[0,3]
+        errorY =  JointAngleMat[1,3] - NowPosMat[1,3] 
+        errorZ =  JointAngleMat[2,3] - NowPosMat[2,3]
+        errorXYZ = np.zeros((1,3))
+        errorXYZ[0,0] = errorX * (1/self.Unit)
+        errorXYZ[0,1] = errorY * (1/self.Unit)
+        errorXYZ[0,2] = errorZ * (1/self.Unit)
+
+
+        with open('Yerror.csv', mode='a', newline='') as file:
+            writer = csv.writer(file)
+
+            # 寫入數據
+            # writer.writerows(errorXYZ)
+            writer.writerow(errorXYZ.flatten())
+
+        return errorXYZ
 
     def main(self):
         self.Pygameinit()
@@ -667,19 +704,15 @@ class Simulator:
         # plt.show()
 
         # 矩陣軌跡法
-        # GoalEnd =np.array([[6, -4, -2, d2r(-180), d2r(0), d2r(0)]]).reshape(6,1)
-        # GoalEnd4X4 = self.Mat.AngletoMat(GoalEnd.reshape(6,1))
-        NowEnd = np.eye(4)
-        NowEnd = NowEnd @ Mat.TransXYZ(6,0,-2) @ Mat.RotaX(d2r(-180)) 
-        GoalEnd = np.eye(4)
-        GoalEnd = GoalEnd @ Mat.TransXYZ(6,4,-2) @ Mat.RotaX(d2r(-180)) 
-        PosBuffer4X4 = self.Plan.MatrixPathPlanning(GoalEnd, NowEnd)
-        θ = np.zeros((len(PosBuffer4X4),6,1))
-        for i in range(len(PosBuffer4X4)):
-             θ[i] = self.Kin.IK_4x4(PosBuffer4X4[i], θ_Buffer)
+        # NowEnd = np.eye(4)
+        # NowEnd = NowEnd @ Mat.TransXYZ(6,0,-2) @ Mat.RotaX(d2r(-180)) 
+        # GoalEnd = np.eye(4)
+        # GoalEnd = GoalEnd @ Mat.TransXYZ(6,4,-2) @ Mat.RotaX(d2r(-180)) 
+        # PosBuffer4X4 = self.Plan.MatrixPathPlanning(GoalEnd, NowEnd)
         # θ = np.zeros((len(PosBuffer4X4),6,1))
         # for i in range(len(PosBuffer4X4)):
-        #     θ = self.Kin.IK_4x4(PosBuffer4X4[i], θ_Buffer)
+        #      θ[i] = self.Kin.IK_4x4(PosBuffer4X4[i], θ_Buffer)
+
 
 
 
@@ -768,16 +801,20 @@ class Simulator:
             glLoadIdentity()
             # 繪製世界坐標系
             self.draw_axis(World_coordinate, 1)
-            
+            # Now = World_coordinate @ Mat.TransXYZ(895.002*self.Unit,-0.044*self.Unit,813.978*self.Unit) @ Mat.RotaXYZ(d2r(91.8386),d2r(-89.7555), d2r(88.1586))
+            # self.draw_axis(Now, 1)
             # 繪製地板
             self.draw_chessboard(World_coordinate)
             
             # 繪製工作臺
             self.draw_WorkTable(World_coordinate)
             
-            # 讀取機台個軸馬達角度
-            # NowJointθ = self.ReadPos()
+            # 讀取手臂各軸馬達角度
+            # NowJointθ = self.ReadJointAngle()
             # NowJointθ = d2r(NowJointθ)
+
+            # 讀取手臂目前位置姿態
+            # NowPos4X4 = self.ReadNowPos()
 
             #%% 現場實驗專區
             # test Jointθ Buffer
@@ -823,16 +860,26 @@ class Simulator:
             # self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector)
 
             # # 手臂原點 deg.0
-            # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,θ_Buffer[0],θ_Buffer[1],θ_Buffer[2],θ_Buffer[3],θ_Buffer[4],θ_Buffer[5])
-            # self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector)
+            Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,θ_Buffer[0],θ_Buffer[1],θ_Buffer[2],θ_Buffer[3],θ_Buffer[4],θ_Buffer[5])
+            self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector)
 
-            # # 機台數據測試(通訊專用)
-            # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,NowJointθ[0],NowJointθ[1],NowJointθ[2],NowJointθ[3],NowJointθ[4],NowJointθ[5])
-            # self.draw_Arm(Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector)
+            # # Joint Angle(通訊專用)
+            # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffectorJ = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,NowJointθ[0],NowJointθ[1],NowJointθ[2],NowJointθ[3],NowJointθ[4],NowJointθ[5])
+            # self.draw_Arm(Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffectorJ)
            
+            # PsoMat6x1 (通訊專用)
+            # self.draw_axis(NowPos4X4, 1)
+            # θ_Buffer = self.Kin.IK_4x4(NowPos4X4,θ_Buffer)
+            # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffectorP = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])
+            # self.draw_Arm(Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffectorP)
+            
+            # 實際與模擬器誤差計算
+            # error = self.erroeXYZ(EndEffectorJ, EndEffectorP)
+            # print(error)
+
             # 繪製軌跡
             # self.draw_Trajectory(EndEffector, Mainloopiter)
-
+            
 
             # 計算鎢棒到工件之距離
             # BasetoObj = 450 - (self.BaseToWorkTable_Height * (1/self.Unit) + self.BlackBoard_Height* (1/self.Unit) +4)
@@ -842,7 +889,7 @@ class Simulator:
             # DisBuffer.append(dis)
 
             # # 繪製Matrix4*3
-            # self.draw_Matrix4X4(EndEffector, dis,450, 140)
+            self.draw_Matrix4X4(EndEffector, 1,450, 140)
 
             # 計算校正點實際與模擬的誤差
             # '''
@@ -934,14 +981,15 @@ class Simulator:
             #     self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
             #     self.draw_Trajectory(PosBuffer4X4[Mainloopiter], Mainloopiter)
 
-            if Mainloopiter < len(θ):
-                Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,θ[Mainloopiter,0,0],θ[Mainloopiter,1,0],θ[Mainloopiter,2,0],θ[Mainloopiter,3,0],θ[Mainloopiter,4,0],θ[Mainloopiter,5,0])
-                self.draw_axis(NowEnd,1)
-                self.draw_axis(GoalEnd,1)
+            # 矩陣軌跡法
+            # if Mainloopiter < len(θ):
+            #     Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,θ[Mainloopiter,0,0],θ[Mainloopiter,1,0],θ[Mainloopiter,2,0],θ[Mainloopiter,3,0],θ[Mainloopiter,4,0],θ[Mainloopiter,5,0])
+            #     self.draw_axis(NowEnd,1)
+            #     self.draw_axis(GoalEnd,1)
                 
-            self.draw_Matrix4X4(EndEffector, 550)
-            self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
-            self.draw_Trajectory(EndEffector, Mainloopiter)
+            # self.draw_Matrix4X4(EndEffector, 550)
+            # self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
+            # self.draw_Trajectory(EndEffector, Mainloopiter)
 
             Mainloopiter += 1
             pygame.display.flip()

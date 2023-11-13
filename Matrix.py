@@ -150,6 +150,9 @@ class Matrix4x4:
     
 
     def AngletoMat(self, inputMat):
+        '''
+        Matrix_6X1  to Matrix_4X4
+        '''
         coord = np.eye(4)
         Buffer = np.eye(3)
         coord[0,3] = inputMat[0,0] 
@@ -159,6 +162,7 @@ class Matrix4x4:
 
         # Fix Angle XYZ ➜ Euler Angle ZYX
         Buffer = self.RotaZ(inputMat[5,0]) @ self.RotaY(inputMat[4,0]) @ self.RotaX(inputMat[3,0])
+        # Buffer = self.RotaX(inputMat[3,0]) @ self.RotaY(inputMat[4,0]) @ self.RotaZ(inputMat[5,0])
         coord[:3,0] = Buffer[:3,0]
         coord[:3,1] = Buffer[:3,1]
         coord[:3,2] = Buffer[:3,2]

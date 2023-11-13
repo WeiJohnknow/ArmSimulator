@@ -102,14 +102,14 @@ class Kinematics:
         BtoT = Mat.RotaY(d2r(-90)) @ Mat.TransXYZ(0,0,-100*Unit)  @ Mat.RotaZ(Taxisθ)
         Taxis = Baxis @ BtoT
 
-        TtoError = Mat.TransXYZ(0,3.2*Unit,-4.1*Unit)
-        NewTaxis = Taxis @ TtoError
-
+        # TtoError = Mat.TransXYZ(0.403666667*Unit,4.503833333*Unit,-4.514333333*Unit)
+        # NewTaxis = Taxis @ TtoError
+        NewTaxis = Taxis
 
         # 末端法蘭面 to 銲槍末端 (工具座標號:5)
         TtoWeldingGun = Mat.RotaZ(d2r(90)) @ Mat.RotaX(d2r(180)) @  Mat.TransXYZ(-15.461*Unit, 0.897*Unit, 323.762*Unit) @ Mat.RotaXYZ(d2r(0.3753), d2r(-31.4994), d2r(-0.7909))
         EndEffector = NewTaxis @ TtoWeldingGun
-        CorrEndEffector = EndEffector @ Mat.TransXYZ(2.12*Unit,-0.1*Unit,0.8*Unit)
+        CorrEndEffector = EndEffector @ Mat.TransXYZ(0,0,0)
 
         # TtoWeldingGun = Mat.RotaZ(d2r(90)) @ Mat.RotaX(d2r(180)) @ Mat.RotaX(d2r(0.3753)) @ Mat.RotaY(d2r(-31.4994)) @ Mat.RotaZ(d2r(-0.7909))  @  Mat.TransXYZ(-15.461*Unit, 0.897*Unit, 323.762*Unit) 
         # EndEffector = Taxis @ TtoWeldingGun

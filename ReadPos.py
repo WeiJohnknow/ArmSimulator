@@ -2,6 +2,7 @@ from MotomanEthernet import MotomanConnector # ..MotomanEthernet - .. because th
 buffer = []
 mh = MotomanConnector() #Create Connector
 mh.connectMH() #Connect
-buffer = mh.getJointAnglesMH()
+# buffer = mh.getJointAnglesMH()
+buffer = mh.getCoordinatesMH()
 print(buffer) #Get the Joint angles and print them
 mh.disconnectMH()

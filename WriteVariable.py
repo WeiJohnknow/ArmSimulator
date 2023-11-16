@@ -1,4 +1,4 @@
-from ..MotomanEthernet import MotomanConnector # ..MotomanEthernet - .. because the file is one folder above the current one
+from MotomanEthernet import MotomanConnector # ..MotomanEthernet - .. because the file is one folder above the current one
 
 mh = MotomanConnector() #Create connector
 mh.connectMH()  #Connect

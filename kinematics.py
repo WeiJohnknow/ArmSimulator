@@ -100,16 +100,37 @@ class Kinematics:
         Baxis = Raxis @ RtoB
 
         BtoT = Mat.RotaY(d2r(-90)) @ Mat.TransXYZ(0,0,-100*Unit)  @ Mat.RotaZ(Taxisθ)
+        # BtoT = Mat.RotaY(d2r(90)) @ Mat.TransXYZ(0,0,100*Unit)  @ Mat.RotaZ(Taxisθ)
         Taxis = Baxis @ BtoT
 
-        # TtoError = Mat.TransXYZ(0.403666667*Unit,4.503833333*Unit,-4.514333333*Unit)
-        # NewTaxis = Taxis @ TtoError
-        NewTaxis = Taxis
+        # SimuToReal = np.array([[0, -1, 0, 0],
+        #                               [1, 0, 0, -3.99933190e-02],
+        #                                [0, 0,  1,  4.00047547e-02],
+        #                                [0, 0, 0,  1]])
+        
+        NewTaxis = Taxis 
 
         # 末端法蘭面 to 銲槍末端 (工具座標號:5)
-        TtoWeldingGun = Mat.RotaZ(d2r(90)) @ Mat.RotaX(d2r(180)) @  Mat.TransXYZ(-15.461*Unit, 0.897*Unit, 323.762*Unit) @ Mat.RotaXYZ(d2r(0.3753), d2r(-31.4994), d2r(-0.7909))
+        TtoWeldingGun = Mat.RotaZ(d2r(90)) @ Mat.RotaX(d2r(180)) @  Mat.TransXYZ(-15.460*Unit, 0.896*Unit, 323.761*Unit) @ Mat.RotaXYZ(d2r(0.3753), d2r(-31.4994), d2r(-0.7909)) 
         EndEffector = NewTaxis @ TtoWeldingGun
-        CorrEndEffector = EndEffector @ Mat.TransXYZ(0,0,0)
+        # TtoWeldingGun = Mat.RotaZ(d2r(90)) @ Mat.RotaX(d2r(180)) @  Mat.TransXYZ(-15.461*Unit, 0.897*Unit, 323.762*Unit) @ Mat.RotaXYZ(d2r(0.3753), d2r(-31.4994), d2r(-0.7909)) 
+        # EndEffector = NewTaxis @ TtoWeldingGun
+        # 模擬與現實誤差
+        # SimuToReal = np.array([[ 1.00000000e+00, -1.30913500e-16, -1.18135399e-13,  4.40041929e-02],
+        #                                 [-2.02024244e-16,  1.00000000e+00, -1.80438607e-15, -8.69497133e-08],
+        #                                 [-7.37827662e-14, -4.59887844e-15,  1.00000000e+00, -3.89952691e-02],
+        #                                 [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  1.00000000e+00]])
+        # SimuToReal = np.array([[   9.99999994e-01,-2.93870019e-06, 1.07516960e-04, 7.39025440e-03],
+        #                                 [ 2.93858342e-06, 1.00000000e+00, 1.08621619e-06, 1.18572239e-03],
+        #                                 [-1.07516963e-04,-1.08590023e-06, 9.99999994e-01, 6.24277543e-02],
+        #                                 [ 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.00000000e+00]])
+        # SimuToReal = np.array([[   9.99999994e-01,-2.93870019e-06, 1.07516960e-04, 5.13944473e-02],
+        #                                 [ 2.93858342e-06, 1.00000000e+00, 1.08621619e-06, 1.18563544e-03],
+        #                                 [-1.07516963e-04,-1.08590023e-06, 9.99999994e-01, 2.34324852e-02],
+        #                                 [ 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.00000000e+00]])
+        # CorrEndEffector = EndEffector @ SimuToReal
+        CorrEndEffector = EndEffector
+        
 
         # TtoWeldingGun = Mat.RotaZ(d2r(90)) @ Mat.RotaX(d2r(180)) @ Mat.RotaX(d2r(0.3753)) @ Mat.RotaY(d2r(-31.4994)) @ Mat.RotaZ(d2r(-0.7909))  @  Mat.TransXYZ(-15.461*Unit, 0.897*Unit, 323.762*Unit) 
         # EndEffector = Taxis @ TtoWeldingGun

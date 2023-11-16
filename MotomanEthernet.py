@@ -160,8 +160,14 @@ class MotomanConnector:
             Exception: Exception if the type is not allowed
         """
         cmd = f"{type},{number},{value}\r"
-        if type in [0,1,2,3,7]: self.__sendCMD("LOADV",cmd) #Check if Variable Type is allowed
-        else: raise Exception("Variable Type not supported!")
+        # cmd_ = f"{type},{number},{1},{1},{437.086},{-0.011},{554.855},{179.7853},{-11.2885},{1.0951},{000000},{9}\r"
+        cmd_ = f"{type},{number},{0},{-2},{-50478},{-58433},{0},{-74933},{489},{9}\r"
+        if type in [0,1,2,3,7]: 
+            self.__sendCMD("LOADV",cmd) #Check if Variable Type is allowed
+        elif type in [4,5,6]:
+            self.__sendCMD("LOADV",cmd_)
+        else: 
+            raise Exception("Variable Type not supported!")
 
     def ReadVariableMH(self,type,number):
         """Read a variable from the controller

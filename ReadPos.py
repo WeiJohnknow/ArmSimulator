@@ -1,5 +1,5 @@
 from MotomanEthernet import MotomanConnector # ..MotomanEthernet - .. because the file is one folder above the current one
-buffer = []
+# buffer = []
 mh = MotomanConnector() #Create Connector
 mh.connectMH() #Connect
 # buffer = mh.getJointAnglesMH()

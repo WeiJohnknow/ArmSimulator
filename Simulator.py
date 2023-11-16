@@ -354,8 +354,7 @@ class Simulator:
         先規劃，後IK
 
         return TrajectoryBuffer(N,6,1) ,N為軌跡點數目
-        '''
-
+        ''' 
         rate = 0.25
         t1, t2, t3 = 1, 1, 1
         # New_x, New_y, New_z = NewEnd[0,3], NewEnd[1,3], NewEnd[2,3] 
@@ -382,16 +381,6 @@ class Simulator:
                 Trajectory_Buffer[page, row, 0] = θ[row, 0]
             
         return Trajectory_Buffer
-    
-    def WeldingLine(self, StartPoint, EndPoint):
-        '''
-        軌跡:
-        1.手臂起點➜焊接起弧點
-        2.起弧點➜收弧點(等速度)
-        3.收弧點➜手臂起點
-        '''
-
-        pass
     
     def TeachMode(self, Base, teachθ):
         '''
@@ -428,7 +417,6 @@ class Simulator:
         glWindowPos2d(x, y)
         glDrawPixels(textSurface.get_width(), textSurface.get_height(), GL_RGBA, GL_UNSIGNED_BYTE, textData)
 
-    
     def drawText(self, x, y, text:str): 
 
         font = pygame.font.SysFont('Time New Roman', 24)
@@ -502,49 +490,42 @@ class Simulator:
 
         return NowPos4X4
     
-    def XYCorrection_FK(self, x, y, EndEffector):
-        """
-        Args:
-            x➜預測量點到工作台"下"邊緣之實際距離(mm)
-            y➜為預測量點到工作台"左"邊緣之實際距離(mm)
-            EndEffector➜模擬器中手臂在該預測點的4X4Matrix
 
-        return:
-            ErrX➜ Robot末端X方向上的誤差(mm)
-            ErrY➜ Robot末端Y方向上的誤差(mm)
-        """
-        x = x * self.Unit
-        y = y * self.Unit
-        ErrX = abs(EndEffector[0,3]-(self.BaseToWorkTable_lenght+(self.WorkTable_Weight-x))) * (1/self.Unit)
-        ErrY = abs(abs(EndEffector[1,3])-((self.WorkTable_lenght/2-y))) * (1/self.Unit)
-
-        return ErrX, ErrY
-    
-    def erroeXYZ(self, JointAngleMat, NowPosMat):
+    def erroeXYZ(self, JointAngleMat, NowPosMat, file_Path_Name):
         '''
         Input: Matrix4x4
         error = 模擬 - 現實
         error>0 : 模擬>現實
         error<0 : 模擬<現實
+        
         '''
 
-        errorX =  JointAngleMat[0,3] - NowPosMat[0,3]
-        errorY =  JointAngleMat[1,3] - NowPosMat[1,3] 
-        errorZ =  JointAngleMat[2,3] - NowPosMat[2,3]
-        errorXYZ = np.zeros((1,3))
-        errorXYZ[0,0] = errorX * (1/self.Unit)
-        errorXYZ[0,1] = errorY * (1/self.Unit)
-        errorXYZ[0,2] = errorZ * (1/self.Unit)
+        err = np.zeros((4,4))
+        err[0,0] =  round(JointAngleMat[0,0] - NowPosMat[0,0],3)
+        err[1,0] =  round(JointAngleMat[1,0] - NowPosMat[1,0],3)
+        err[2,0] =  round(JointAngleMat[2,0] - NowPosMat[2,0],3)
+        err[0,1] =  round(JointAngleMat[0,1] - NowPosMat[0,1],3)
+        err[1,1] =  round(JointAngleMat[1,1] - NowPosMat[1,1],3)
+        err[2,1] =  round(JointAngleMat[2,1] - NowPosMat[2,1],3)
+        err[0,2] =  round(JointAngleMat[0,2] - NowPosMat[0,2],3)
+        err[1,2] =  round(JointAngleMat[1,2] - NowPosMat[1,2],3)
+        err[2,2] =  round(JointAngleMat[2,2] - NowPosMat[2,2],3)
 
-
-        with open('Yerror.csv', mode='a', newline='') as file:
+        err[0,3] =  round((JointAngleMat[0,3] - NowPosMat[0,3])* (1/self.Unit),3)
+        err[1,3] =  round((JointAngleMat[1,3] - NowPosMat[1,3])* (1/self.Unit),3)
+        err[2,3] =  round((JointAngleMat[2,3] - NowPosMat[2,3])* (1/self.Unit),3)
+        # Xx,Yx,Zx,Xy,Yy,Zy,Xz,Yz,Zz,Px,Py,Pz
+        errorMat1X12 = np.zeros((1,12))
+        errorMat1X12 = err[:3,:4].T.reshape(-1)
+       
+        with open(file_Path_Name, mode='a', newline='') as file:
             writer = csv.writer(file)
 
             # 寫入數據
             # writer.writerows(errorXYZ)
-            writer.writerow(errorXYZ.flatten())
+            writer.writerow(errorMat1X12.flatten())
 
-        return errorXYZ
+        return err, errorMat1X12
 
     def main(self):
         self.Pygameinit()
@@ -763,6 +744,10 @@ class Simulator:
                         teachθ[5] += d2r(1)
                     elif event.key == pygame.K_KP6:
                         teachθ[5] -= d2r(1)
+                    elif event.type == pygame.K_ESCAPE:
+                        # self.Con.disconnectMH()
+                        pygame.quit()
+                        quit()
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 4:
                         camera = camera @ Mat.TransXYZ(0, 0, 0.25)
@@ -770,9 +755,11 @@ class Simulator:
                     elif event.button == 5:
                         camera = camera @ Mat.TransXYZ(0, 0, -0.25)
                         # print(camera)
-                elif event.type == pygame.QUIT:
-                    pygame.quit()
-                    quit()
+                # elif event.type == pygame.QUIT:
+                #     self.Con.disconnectMH()
+                #     pygame.quit()
+                #     quit()
+
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
@@ -808,15 +795,15 @@ class Simulator:
             
             # 繪製工作臺
             self.draw_WorkTable(World_coordinate)
-            
+            #%% 現場實驗專區
             # 讀取手臂各軸馬達角度
-            # NowJointθ = self.ReadJointAngle()
-            # NowJointθ = d2r(NowJointθ)
+            NowJointθ = self.ReadJointAngle()
+            NowJointθ = d2r(NowJointθ)
 
             # 讀取手臂目前位置姿態
-            # NowPos4X4 = self.ReadNowPos()
+            NowPos4X4 = self.ReadNowPos()
 
-            #%% 現場實驗專區
+            
             # test Jointθ Buffer
             # 原點joint1, Joint2, Joint5 反向
             # 起弧點 J1, J5反向
@@ -833,39 +820,18 @@ class Simulator:
             馬達角度:[-1.6671311132785285, -38.81651799446324, -41.087751371115175, -0.0020620682544592226, -76.44358294225668, 1.071035847811744]
            
             '''
-            # 起弧點
-            '''
-            註:焊接方向由右至左(與手臂方向同側看向工作台)
 
-            此起弧點距離工作台邊緣(長) : 114 (mm) 
-            此起弧點距離工作台邊緣(寬) : 219.5 (mm) 
-            工作台上黑色洞洞板為 :12.5 (mm)
-            此時工件疊加兩片厚度約為: 4 (mm)
-            鎢棒伸出量約 : 5 (mm)
-            鎢棒距離被銲物距離約 : 1 (mm)
-
-            示教器資訊:
-                編碼器:-36973,18582,-60655,-73039,-23794,43195
-                絕對角度:[-25.75797687055873, -14.289449400184557, -42.64871326114471, 75.30570161872357, -24.274637829014484, -94.99670112161866]
-            通訊取得:
-                編碼器:-36973,18582,-60655,-73039,-23794,43195
-                馬達角度:[-25.75797687055873, 14.289449400184557, -42.64871326114471, -75.30570161872357, -24.274637829014484, 94.99670112161866]
-            FK角度:
-
-            鎢棒與工件表面距離 = EndEffector_Pz(mm) - 機器人Base與工作台的距離237.6(mm) - 黑色固定板(洞洞板)12.5(mm) - 兩片工件約(4mm)
-            => 2.615* (1/Unit) - 237.6 - 12.5 - 4 = 4.1 mm 
-            '''
             # 角度測試專用
             # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,θ_test[0],θ_test[1],θ_test[2],θ_test[3],θ_test[4],θ_test[5])
             # self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector)
 
             # # 手臂原點 deg.0
-            Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,θ_Buffer[0],θ_Buffer[1],θ_Buffer[2],θ_Buffer[3],θ_Buffer[4],θ_Buffer[5])
-            self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector)
+            # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,θ_Buffer[0],θ_Buffer[1],θ_Buffer[2],θ_Buffer[3],θ_Buffer[4],θ_Buffer[5])
+            # self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector)
 
             # # Joint Angle(通訊專用)
-            # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffectorJ = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,NowJointθ[0],NowJointθ[1],NowJointθ[2],NowJointθ[3],NowJointθ[4],NowJointθ[5])
-            # self.draw_Arm(Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffectorJ)
+            Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffectorJ = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,NowJointθ[0],NowJointθ[1],NowJointθ[2],NowJointθ[3],NowJointθ[4],NowJointθ[5])
+            self.draw_Arm(Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffectorJ)
            
             # PsoMat6x1 (通訊專用)
             # self.draw_axis(NowPos4X4, 1)
@@ -874,11 +840,11 @@ class Simulator:
             # self.draw_Arm(Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffectorP)
             
             # 實際與模擬器誤差計算
-            # error = self.erroeXYZ(EndEffectorJ, EndEffectorP)
-            # print(error)
+            error, errorMat1X12 = self.erroeXYZ(EndEffectorJ, NowPos4X4, "Data/Mat4X4errorGUN_Z.csv")
+            print(error)
 
             # 繪製軌跡
-            # self.draw_Trajectory(EndEffector, Mainloopiter)
+            # self.draw_Trajectory(EndEffectorJ, Mainloopiter)
             
 
             # 計算鎢棒到工件之距離
@@ -889,7 +855,15 @@ class Simulator:
             # DisBuffer.append(dis)
 
             # # 繪製Matrix4*3
-            self.draw_Matrix4X4(EndEffector, 1,450, 140)
+            # self.draw_Matrix4X4(EndEffectorJ, 1,450, 140)
+
+            # 末端姿態校正
+            # # self.draw_axis(EndEffectorJ, 1)
+            # realPos =np.array([[895.005*self.Unit, -0.033*self.Unit, 813.975*self.Unit, d2r(139.5857), d2r(-89.9928), d2r(40.4122)]]).reshape(6,1)
+            # realPos4X4 = self.Mat.AngletoMat(realPos.reshape(6,1))
+            # # self.draw_axis(realPos4X4, 1)
+            # SimuToReal = np.linalg.pinv(EndEffectorJ) @ realPos4X4
+            # print(SimuToReal)
 
             # 計算校正點實際與模擬的誤差
             # '''

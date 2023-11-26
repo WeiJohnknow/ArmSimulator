@@ -1,0 +1,29 @@
+payload[0] = rtc
+payload[2:8] = robot_1 in pulses
+payload[8:14] = robot_2 in pulses
+payload[14:16] = station_1 in pulses
+payload[16] = flags
+payload[18] = job line
+payload[19] = job step
+payload[20:26] robot_1 in 0.0001 deg
+payload[26:32] robot_2 in 0.0001 deg
+payload[32:34] station_1 in 0.0001 deg
+
+flags:
+
+STATUS_STEP=0x01
+STATUS_1_CYCLE=0x02
+STATUS_AUTO=0x04
+STATUS_RUNNING=0x08
+STATUS_HOLD=0x10
+STATUS_SAFETY_SPEED_OPERATION=0x20
+STATUS_TEACH=0x40
+STATUS_PLAY=0x80
+STATUS_COMMAND_REMOTE=0x100
+STATUS_ALARM=0x200
+STATUS_ERROR=0x400
+STATUS_SERVO_POWER=0x800
+STATUS_API_ERROR_ROBOT=0x4000
+STATUS_API_ERROR_STATUS=0x8000
+
+API Error flags will show if there is an error reading a MotoPlus function.

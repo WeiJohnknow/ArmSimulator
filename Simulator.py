@@ -13,6 +13,7 @@ from PathPlanning import *
 from Kinematics import *
 from MotomanEthernet import *
 import csv
+from TimeTool import *
 
 class Simulator:
     def __init__(self):
@@ -34,7 +35,7 @@ class Simulator:
         self.WorkTable_Weight = 600 * self.Unit
         # self.BaseToWorkTable_Height = 237.6 * self.Unit
         # self.BaseToWorkTable_Height = 208.097 * self.Unit
-        self.BaseToWorkTable_Height = 241.7 * self.Unit
+        self.BaseToWorkTable_Height = 238.438 * self.Unit
         self.BaseToWorkTable_lenght = 571.054 * self.Unit
         self.BlackBoard_Height = 14.1 * self.Unit 
 
@@ -42,7 +43,8 @@ class Simulator:
         self.Mat = Matrix4x4() 
         self.Plan = PathPlanning()
         self.Kin = Kinematics()
-        self.Con = MotomanConnector()
+        self.mh = MotomanConnector()
+        self.Time = TimeTool()
 
     def Pygameinit(self):
         # glutInit(sys.argv)
@@ -299,6 +301,78 @@ class Simulator:
             for vertex in edge:
                 glVertex3fv(vertices[vertex])
         glEnd()
+    def BlackBoard(self, WorldCoordinate):
+        
+        height = self.BaseToWorkTable_Height 
+        Base = WorldCoordinate @ Mat.TransXYZ(0, 0, -450*self.Unit)
+        BaseHeight = Base[2,3]
+        vertices = (
+        (744.006*self.Unit, -362.450*self.Unit, height+BaseHeight),
+        (1173.834*self.Unit, -358.294*self.Unit, height+BaseHeight),
+        (1168.142*self.Unit, 292.4*self.Unit, height+BaseHeight),
+        (740.125*self.Unit, 288.409*self.Unit, height+BaseHeight),
+        (744.006*self.Unit, -362.450*self.Unit, -450*self.Unit-(-196.757*self.Unit)),
+        (1173.834*self.Unit, -358.294*self.Unit, -450*self.Unit-(-193.579*self.Unit)),
+        (1168.142*self.Unit, 292.4*self.Unit, -450*self.Unit-(-195.658*self.Unit)),
+        (740.125*self.Unit, 288.409*self.Unit, -450*self.Unit-(-197.426*self.Unit)),
+        )
+
+        edges = (
+            (0,1),
+            (1,2),
+            (2,3),
+            (3,0),
+            (4,5),
+            (5,6),
+            (6,7),
+            (7,4),
+            (0,4),
+            (1,5),
+            (2,6),
+            (3,7)
+        )
+        surfaces = (
+        (0,1,2,3),
+        (0,3,4,7),
+        (3,2,6,7),
+        (1,2,6,5),
+        (0,1,4,5),
+        (4,5,6,7)
+        )
+
+
+        colors = (
+            (0,0,0),
+            (0,1,0),
+            (0,0,1),
+            (0,1,0),
+            (1,1,1),
+            (0,1,1),
+            (1,0,0),
+            (0,1,0),
+            (0,0,1),
+            (1,0,0),
+            (1,1,1),
+            (0,1,1),
+            )
+
+        glBegin(GL_QUADS)
+        for surface in surfaces:
+            x = 0
+
+            glColor3fv(colors[x])
+            for vertex in surface:
+                # x+=1
+                glVertex3fv(vertices[vertex])
+                
+        glEnd()
+
+        glBegin(GL_LINES)
+        glColor3f(1.0, 1.0, 1.0)
+        for edge in edges:
+            for vertex in edge:
+                glVertex3fv(vertices[vertex])
+        glEnd()
 
     def MOVJ(self, GoalEnd4X4, θ_Buffer, NowPosJθ):
         '''
@@ -453,11 +527,10 @@ class Simulator:
         Read Arm Joint Angle
         '''
         NowJointθ = []
-        mh = MotomanConnector() #Create Connector
-        mh.connectMH() #Connect
-        NowJointθ = mh.getJointAnglesMH()
+        self.mh.connectMH() #Connect
+        NowJointθ = self.mh.getJointAnglesMH()
         print(NowJointθ) #Get the Joint angles and print them
-        mh.disconnectMH()
+        self.mh.disconnectMH()
         # NowJointθ = [-x for x in NowJointθ]
 
         return NowJointθ
@@ -468,9 +541,9 @@ class Simulator:
         '''
         NowPos6X1 = np.zeros((6,1))
         NowPos4X4 = np.eye(4)
-        mh = MotomanConnector() #Create Connector
-        mh.connectMH() #Connect
-        Buffer = mh.getCoordinatesMH()
+        
+        self.mh.connectMH() #Connect
+        Buffer = self.mh.getCoordinatesMH()
         # print(NowPos6X1)
 
         # str 轉換 float
@@ -486,7 +559,7 @@ class Simulator:
         
         NowPos4X4 = Mat.AngletoMat(NowPos6X1)
         print(NowPos4X4)
-        mh.disconnectMH()
+        self.mh.disconnectMH()
 
         return NowPos4X4
     
@@ -517,15 +590,47 @@ class Simulator:
         # Xx,Yx,Zx,Xy,Yy,Zy,Xz,Yz,Zz,Px,Py,Pz
         errorMat1X12 = np.zeros((1,12))
         errorMat1X12 = err[:3,:4].T.reshape(-1)
+
+        # 標題檔
+        header = np.array([['Xx', 'Xy', 'Xz', 'Yx', 'Yy', 'Yz', 'Zx', 'Zy', 'Zz', 'Px', 'Py', 'Pz']])
        
         with open(file_Path_Name, mode='a', newline='') as file:
             writer = csv.writer(file)
+
+            # 若CSV檔是空的，第一行寫入標題檔
+            if file.tell() == 0:
+                writer.writerows(header)
 
             # 寫入數據
             # writer.writerows(errorXYZ)
             writer.writerow(errorMat1X12.flatten())
 
         return err, errorMat1X12
+    
+    def SaveCSV(self, Data4X4, cmdCostTime, file_name_path):
+        """
+        將資料存入CSV檔中
+        Input Data shape(4,4)
+        """
+        data1X12 = np.zeros((1,12))
+        # data1X12 = Data4X4[:3,:4].T.reshape(-1)
+        data1X12 = Data4X4[:3,:4].T.ravel().copy()
+        data1X13 = np.array([[data1X12[0],data1X12[1],data1X12[2],data1X12[3],data1X12[4],data1X12[5],data1X12[6],data1X12[7],data1X12[8],data1X12[9],data1X12[10],data1X12[11], cmdCostTime]])
+
+        # 標題檔
+        header = np.array([['Xx', 'Xy', 'Xz', 'Yx', 'Yy', 'Yz', 'Zx', 'Zy', 'Zz', 'Px', 'Py', 'Pz', 'cmdCostTime']])
+
+        with open(file_name_path, mode='a', newline='') as file:
+            writer = csv.writer(file)
+
+            # 若CSV檔是空的，第一行寫入標題檔
+            if file.tell() == 0:
+                writer.writerows(header)
+
+            # 寫入數據
+            # writer.writerows(errorXYZ)
+            writer.writerow(data1X13.flatten())
+
 
     def main(self):
         self.Pygameinit()
@@ -541,6 +646,7 @@ class Simulator:
         Top -> 相機上方，與右手坐標系Y軸反向
         ''' 
         camera =  Mat.TransXYZ(20,0,5) @ Mat.RotaY(d2r(-135)) @ Mat.RotaZ(d2r(90))
+        # camera =  Mat.TransXYZ(10,-30,5) @ Mat.RotaX(d2r(-45))
         # camera =  Mat.TransXYZ(0,-20,5) @ Mat.RotaY(d2r(-135)) @ Mat.RotaZ(d2r(90))
         # Jointθ Buffer
         θ_Buffer = d2r(np.zeros((6,1)))
@@ -571,12 +677,12 @@ class Simulator:
                                         [0, -1, 0, -0.15],
                                         [0,  0, -1, 2],
                                         [0, 0, 0, 1]]))
-        θ_Buffer[0, 0] =  d2r(-1.6671311132785285)
-        θ_Buffer[1, 0] =  d2r(-38.81651799446324)
-        θ_Buffer[2, 0] =  d2r(-41.087751371115175)
-        θ_Buffer[3, 0] =  d2r(-0.0020620682544592226)
-        θ_Buffer[4, 0] =  d2r(-76.44358294225668)
-        θ_Buffer[5, 0] =  d2r(1.071035847811744)
+        # θ_Buffer[0, 0] =  d2r(-1.6671311132785285)
+        # θ_Buffer[1, 0] =  d2r(-38.81651799446324)
+        # θ_Buffer[2, 0] =  d2r(-41.087751371115175)
+        # θ_Buffer[3, 0] =  d2r(-0.0020620682544592226)
+        # θ_Buffer[4, 0] =  d2r(-76.44358294225668)
+        # θ_Buffer[5, 0] =  d2r(1.071035847811744)
 
 
 
@@ -786,22 +892,37 @@ class Simulator:
             # 對視景模型操作
             glMatrixMode(GL_MODELVIEW)
             glLoadIdentity()
+            
             # 繪製世界坐標系
             self.draw_axis(World_coordinate, 1)
-            # Now = World_coordinate @ Mat.TransXYZ(895.002*self.Unit,-0.044*self.Unit,813.978*self.Unit) @ Mat.RotaXYZ(d2r(91.8386),d2r(-89.7555), d2r(88.1586))
-            # self.draw_axis(Now, 1)
+            
             # 繪製地板
             self.draw_chessboard(World_coordinate)
             
             # 繪製工作臺
             self.draw_WorkTable(World_coordinate)
+            # self.BlackBoard( World_coordinate)
             #%% 現場實驗專區
+            
+            # 存檔路徑
+            Simpath =       "SimularMat4X4/Mat4X4GUN_Back_3.csv"
+            RealPath =         "RealMat4X4/Mat4X4GUN_Back_3.csv"
+            ErrorPath =  "ErrorMat4X4/Mat4X4errorGUN_Back_3.csv"
+
             # 讀取手臂各軸馬達角度
-            NowJointθ = self.ReadJointAngle()
-            NowJointθ = d2r(NowJointθ)
+            # RJt1 = self.Time.ReadNowTime()
+            # NowJointθ = self.ReadJointAngle()
+            # RJt2 = self.Time.ReadNowTime()
+            # NowJointθ = d2r(NowJointθ)
+            # RJterror = self.Time.TimeError(RJt1,RJt2)
+            
 
             # 讀取手臂目前位置姿態
-            NowPos4X4 = self.ReadNowPos()
+            # RPt1 = self.Time.ReadNowTime()
+            # NowPos4X4 = self.ReadNowPos()
+            # RPt2 = self.Time.ReadNowTime()
+            # RPterror = self.Time.TimeError(RPt1,RPt2)
+            # self.SaveCSV( NowPos4X4, RPterror,RealPath)
 
             
             # test Jointθ Buffer
@@ -822,31 +943,34 @@ class Simulator:
             '''
 
             # 角度測試專用
+            # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.Mh12_FK(World_coordinate,θ_test[0],θ_test[1],θ_test[2],θ_test[3],θ_test[4],θ_test[5])
             # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,θ_test[0],θ_test[1],θ_test[2],θ_test[3],θ_test[4],θ_test[5])
             # self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector)
 
             # # 手臂原點 deg.0
+            # Base1, Saxis1, Laxis1, Uaxis1, Raxis1, Baxis1, Taxis1, EndEffector1 = self.Kin.Mh12_FK(World_coordinate,θ_Buffer[0],θ_Buffer[1],θ_Buffer[2],θ_Buffer[3],θ_Buffer[4],θ_Buffer[5])
             # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,θ_Buffer[0],θ_Buffer[1],θ_Buffer[2],θ_Buffer[3],θ_Buffer[4],θ_Buffer[5])
-            # self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector)
+            # self.draw_Arm(Base1, Saxis1, Laxis1, Uaxis1, Raxis1, Baxis1, Taxis1, EndEffector1)
+            # self.draw_Arm(Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector)
+
 
             # # Joint Angle(通訊專用)
-            Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffectorJ = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,NowJointθ[0],NowJointθ[1],NowJointθ[2],NowJointθ[3],NowJointθ[4],NowJointθ[5])
-            self.draw_Arm(Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffectorJ)
-           
+            # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffectorJ = self.Kin.Mh12_FK(World_coordinate,NowJointθ[0],NowJointθ[1],NowJointθ[2],NowJointθ[3],NowJointθ[4],NowJointθ[5])
+            # self.SaveCSV( EndEffectorJ, RJterror,Simpath)
+            # self.draw_Arm(Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffectorJ)
+
             # PsoMat6x1 (通訊專用)
             # self.draw_axis(NowPos4X4, 1)
             # θ_Buffer = self.Kin.IK_4x4(NowPos4X4,θ_Buffer)
             # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffectorP = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])
+            # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffectorJ = self.Kin.Mh12_FK(World_coordinate,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])
             # self.draw_Arm(Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffectorP)
             
             # 實際與模擬器誤差計算
-            error, errorMat1X12 = self.erroeXYZ(EndEffectorJ, NowPos4X4, "Data/Mat4X4errorGUN_Z.csv")
-            print(error)
+            # error, errorMat1X12 = self.erroeXYZ(EndEffectorJ, NowPos4X4, ErrorPath)
+            # print(error)
 
-            # 繪製軌跡
-            # self.draw_Trajectory(EndEffectorJ, Mainloopiter)
-            
-
+        
             # 計算鎢棒到工件之距離
             # BasetoObj = 450 - (self.BaseToWorkTable_Height * (1/self.Unit) + self.BlackBoard_Height* (1/self.Unit) +4)
             # BasetoObj = 450 - (self.BaseToWorkTable_Height * (1/self.Unit) + self.BlackBoard_Height* (1/self.Unit) )
@@ -854,40 +978,29 @@ class Simulator:
             # print('鎢棒到工件的垂直距離 : ', dis, "mm")
             # DisBuffer.append(dis)
 
+            # 繪製軌跡
+            # self.draw_Trajectory(EndEffectorJ, Mainloopiter)
+
             # # 繪製Matrix4*3
             # self.draw_Matrix4X4(EndEffectorJ, 1,450, 140)
 
-            # 末端姿態校正
-            # # self.draw_axis(EndEffectorJ, 1)
-            # realPos =np.array([[895.005*self.Unit, -0.033*self.Unit, 813.975*self.Unit, d2r(139.5857), d2r(-89.9928), d2r(40.4122)]]).reshape(6,1)
-            # realPos4X4 = self.Mat.AngletoMat(realPos.reshape(6,1))
-            # # self.draw_axis(realPos4X4, 1)
-            # SimuToReal = np.linalg.pinv(EndEffectorJ) @ realPos4X4
-            # print(SimuToReal)
-
-            # 計算校正點實際與模擬的誤差
-            # '''
-            # x➜預測量點到工作台"下"邊緣之實際距離(mm)
-            # y➜為預測量點到工作台"左"邊緣之實際距離(mm)
-            # '''
-            # x = 430.5 
-            # y = 36
-            # errX, errY = self.XYCorrection_FK(x, y, EndEffector)
-            # ErrXBuffer.append(errX)
-            # ErrYBuffer.append(errY)
-
-
 
 #%%
-            # IK
-            # GoalEnd =np.array([[6, -4, -2, d2r(-180), d2r(0), d2r(0)]]).reshape(6,1)
-            # GoalEnd4X4 = self.Mat.AngletoMat(GoalEnd.reshape(6,1))
+            #IK
+            '''
+            ORG =   485.267, -1.225, 234.322, 179.9840, 20.2243, 1.6886
+            start = 955.326, -312.783, -154.686, -168.3765, -2.9339, 7.0523
+            end =   955.326, -178.005, -154.700, -168.3718, -2.9293, 7.0363
+            '''
+            GoalEnd =np.array([[9.55, -1.78, -1.54, d2r(-168.3765), d2r(-2.9339), d2r(7.0523)]]).reshape(6,1)
+            GoalEnd4X4 = self.Mat.AngletoMat(GoalEnd.reshape(6,1))
             # self.draw_axis(GoalEnd4X4, 1)
-            # θ_Buffer = self.Kin.IK_4x4(GoalEnd4X4, θ_Buffer)
-            # print('θ', θ_Buffer)
-            # if θ_Buffer is not None:
-            #     Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])
-            #     self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
+            θ_Buffer = self.Kin.IK_4x4(GoalEnd4X4, θ_Buffer)
+            print('θ', θ_Buffer)
+            if θ_Buffer is not None:
+                Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.Mh12_FK(World_coordinate,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])
+                # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])
+                self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
                 
 
             # # IK and TrajectoryPlan

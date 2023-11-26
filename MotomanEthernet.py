@@ -119,7 +119,9 @@ class MotomanConnector:
         Returns:
             list: List with the current Positional Values
         """
-        d1, d2 = self.__sendCMD("RPOSC","0,0\r")
+        # d1, d2 = self.__sendCMD("RPOSC","0,0\r")
+        d1, d2 = self.__sendCMD("RPOSC",f"{coordinateSystem},{0}\r")
+        
         return d2.decode("utf-8").replace("\r","").split(",")
 
     def servoMH(self, state = True): #Enable/Disable Servos
@@ -144,11 +146,11 @@ class MotomanConnector:
             B (float): B angle
             T (float): T angle
         """
-        cmd = f"{speed},{int(S*1341.4)},{int(L*1341.4)},{int(U*1341.4)},{int(R*1000)},{int(B*1000)},{int(T*622)},0,0,0,0,0,0,0\r" #Convert encoder pulses
+        cmd = f"{speed},{int(S*self.S_pulse)},{int(L*self.L_pulse)},{int(U*self.U_pulse)},{int(R*self.R_pulse)},{int(B*self.B_pulse)},{int(T*self.T_pulse)},0,0,0,0,0,0,0\r" #Convert encoder pulses
         self.__sendCMD("PMOVJ",cmd)
+    
 
-
-    def WriteVariableMH(self,type,number,value):
+    def WriteVariableMH(self, cmd):
         """Write a Variable on the controller
 
         Args:
@@ -159,15 +161,17 @@ class MotomanConnector:
         Raises:
             Exception: Exception if the type is not allowed
         """
-        cmd = f"{type},{number},{value}\r"
-        # cmd_ = f"{type},{number},{1},{1},{437.086},{-0.011},{554.855},{179.7853},{-11.2885},{1.0951},{000000},{9}\r"
-        cmd_ = f"{type},{number},{0},{-2},{-50478},{-58433},{0},{-74933},{489},{9}\r"
-        if type in [0,1,2,3,7]: 
-            self.__sendCMD("LOADV",cmd) #Check if Variable Type is allowed
-        elif type in [4,5,6]:
-            self.__sendCMD("LOADV",cmd_)
+        cmdfmt1 = f"{cmd[0]},{cmd[1]},{cmd[2]}\r"
+        cmdfmt2 = f"{cmd[0]},{cmd[1]},{cmd[2]},{cmd[3]},{cmd[4]},{cmd[5]},{cmd[6]},{cmd[7]},{cmd[8]},{cmd[9]},{cmd[10]},{cmd[11]}\r"
+        if len(cmd) == 3: 
+            # cmdfmt1 = cmd
+            self.__sendCMD("LOADV",cmdfmt1) #Check if Variable Type is allowed
+        elif len(cmd) == 12:
+            # cmdfmt2 = cmd
+            self.__sendCMD("LOADV",cmdfmt2)
         else: 
             raise Exception("Variable Type not supported!")
+        
 
     def ReadVariableMH(self,type,number):
         """Read a variable from the controller
@@ -213,3 +217,51 @@ class MotomanConnector:
         """
         d1,d2 = self.__sendCMD("START",f"{job}\r")
         return d1, d2
+    
+    def MOVJ(self, cmd):
+        """Move Joint Angle with Posture Matrix
+
+        Args:
+            cmd = f"{Speed(%)},{coordinate},{X},{Y},{Z},{Rx},{Ry},{Rz},{Type},{Tool No.},{0},{0},{0},{0},{0},{0}\r"
+
+            coordinate: 
+            Base: 0
+            Robot : 1
+            User1 : 2
+            ...
+            User64 : 65
+        """
+        cmd_ = f"{cmd[0]},{cmd[1]},{cmd[2]},{cmd[3]},{cmd[4]},{cmd[5]},{cmd[6]},{cmd[7]},{cmd[8]},{cmd[9]},{cmd[10]},{cmd[11]},{cmd[12]},{cmd[13]},{cmd[14]},{cmd[15]}\r"
+        self.__sendCMD("MOVJ",cmd_)
+
+    def MOVL(self, cmd):
+        """Move Line with Posture Matrix
+
+        Args:
+            cmd = f"{Speed(0 or 1)},{speed(mm/s or deg/s)}{coordinate},{X},{Y},{Z},{Rx},{Ry},{Rz},{Type},{Tool No.},{0},{0},{0},{0},{0},{0}\r"
+
+            coordinate: 
+                Base: 0
+                Robot : 1
+                User1 : 2
+                ...
+                User64 : 65
+            
+            Type : 0
+        """
+        # MOVL cmd = f"{Speed(0 or 1)},{speed(mm/s or deg/s)}{coordinate},{X},{Y},{Z},{Rx},{Ry},{Rz},{Type},{Tool No.},{0},{0},{0},{0},{0},{0}"
+        cmd_ = f"{cmd[0]},{cmd[1]},{cmd[2]},{cmd[3]},{cmd[4]},{cmd[5]},{cmd[6]},{cmd[7]},{cmd[8]},{cmd[9]},{cmd[10]},{cmd[11]},{cmd[12]},{cmd[13]},{cmd[14]},{cmd[15]},{cmd[16]}\r"
+        self.__sendCMD("MOVL",cmd_)
+
+    def Servo_ON_OFF(self, State):
+        ''' Servo Power ON/OFF
+
+        ON:1
+        OFF:0
+        '''
+        OFF = f"{0}\r"
+        ON = f"{1}\r"
+        if State == 'ON':
+            self.__sendCMD("SVON",ON)
+        else:
+            self.__sendCMD("SVON",OFF)

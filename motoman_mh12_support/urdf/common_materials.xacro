@@ -1,0 +1,30 @@
+<?xml version="1.0" ?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:include filename="$(find motoman_resources)/urdf/common_colors.xacro"/>
+
+  <xacro:macro name="material_yaskawa_blue">
+    <material name="">
+      <color rgba="${33/255} ${38/255} ${191/255} 1.0}"/>
+    </material>
+  </xacro:macro>
+
+  <xacro:macro name="material_yaskawa_white">
+    <material name="">
+      <color rgba="0.99 0.99 0.99 1"/>
+    </material>
+  </xacro:macro>
+
+  <!-- not an official colour, but used in some old xacro:macros -->
+  <xacro:macro name="material_yaskawa_yellow">
+    <material name="">
+      <color rgba="0 1 1 1"/>
+    </material>
+  </xacro:macro>
+
+  <!-- not an official colour, but used in some old xacro:macros -->
+  <xacro:macro name="material_yaskawa_silver">
+    <material name="">
+      <color rgba="0.8 0.8 0.8 1"/>
+    </material>
+  </xacro:macro>
+</robot>

@@ -265,3 +265,5 @@ class MotomanConnector:
             self.__sendCMD("SVON",ON)
         else:
             self.__sendCMD("SVON",OFF)
+
+

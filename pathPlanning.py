@@ -1,9 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from Toolbox import CsvTool
 
 class PathPlanning:
     def __init__(self):
-        pass
+        self.Csv = CsvTool()
+        
     
     def TP_434(self, θ1, V1, A1, θ2, θ3, θ4, V4, A4, t1, t2, t3):
         # θ = M * C
@@ -88,6 +90,16 @@ class PathPlanning:
         return TimeList, PosList, VelList, AccList, samplePoint
 
     def TrajectoryPlanning_434(self, θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t1, t2, t3, StartTime=0):
+        """
+        Args:
+            θinit, Vinit, Ainit
+            θlift_off, θset_down
+            final, Vfinal, Afinal
+            t1, t2, t3
+
+        retrun:
+            TimeList, PosList , VelList, AccList, samplePoint
+        """
         P1 = θlift_off - θinit
         P2 = θset_down - θlift_off
         P3 = θfinal - θset_down
@@ -437,20 +449,37 @@ class PathPlanning:
             
         
         return TBuffer
+    
+    
         
 
     def main(self):
-        NowEnd = np.array([[-1,0,0,10],
-                                    [0,1,0,10],
-                                    [0,0,1,10],
-                                    [0,0,0,1]])
-        GoalEnd = np.array([[0,-1,0,10],
-                                    [0,0,1,30],
-                                    [-1,0,0,10],
-                                    [0,0,0,1]])
-        T = self.MatrixPathPlanning(GoalEnd, NowEnd)
-        print(T)
-        print("test")
+        # 4-3-4
+        rate = 0.25
+        θinit, Vinit, Ainit, Vfinal, Afinal = 0, 0, 0, 0, 0
+        θfinal = 50
+        θlift_off = 50*rate
+        θset_down = 50*(1-rate)
+        t1, t2, t3 = 1, 1, 1
+        TimeList, PosList , VelList, AccList, samplePoint = self.TrajectoryPlanning_434\
+        (θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t1, t2, t3)
+        self.Csv.SaveCsv(PosList, "Trajectory_Point/TrajectoryPlan434_3.csv")
+        data = self.Csv.LoadCsv("Trajectory_Point/TrajectoryPlan434_3.csv")
+
+        # # Matrix PathPlan test
+        # NowEnd = np.array([[-1,0,0,10],
+        #                             [0,1,0,10],
+        #                             [0,0,1,10],
+        #                             [0,0,0,1]])
+        # GoalEnd = np.array([[0,-1,0,10],
+        #                             [0,0,1,30],
+        #                             [-1,0,0,10],
+        #                             [0,0,0,1]])
+        # T = self.MatrixPathPlanning(GoalEnd, NowEnd)
+        # print(T)
+        # print("test")
+
+
         #S-curve test
         # AccList, VelList, SList, TimeList = self.S_curve(100, 38, 35, 30)
         

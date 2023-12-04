@@ -4,16 +4,14 @@ from pygame.locals import *
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
-import cv2 
 from Matrix import *
-import matplotlib
 import matplotlib.pyplot as plt
 import datetime
 from PathPlanning import *
 from Kinematics import *
 from MotomanEthernet import *
 import csv
-from TimeTool import *
+from Toolbox import TimeTool, CsvTool
 
 class Simulator:
     def __init__(self):
@@ -45,6 +43,7 @@ class Simulator:
         self.Kin = Kinematics()
         self.mh = MotomanConnector()
         self.Time = TimeTool()
+        self.Csv = CsvTool()
 
     def Pygameinit(self):
         # glutInit(sys.argv)
@@ -645,9 +644,8 @@ class Simulator:
         Right -> 相機x軸
         Top -> 相機上方，與右手坐標系Y軸反向
         ''' 
-        camera =  Mat.TransXYZ(20,0,5) @ Mat.RotaY(d2r(-135)) @ Mat.RotaZ(d2r(90))
-        # camera =  Mat.TransXYZ(10,-30,5) @ Mat.RotaX(d2r(-45))
-        # camera =  Mat.TransXYZ(0,-20,5) @ Mat.RotaY(d2r(-135)) @ Mat.RotaZ(d2r(90))
+        # camera =  Mat.TransXYZ(20,0,5) @ Mat.RotaY(d2r(-135)) @ Mat.RotaZ(d2r(90))
+
         # Jointθ Buffer
         θ_Buffer = d2r(np.zeros((6,1)))
         # 示教模式 Jointθ Buffer
@@ -677,12 +675,12 @@ class Simulator:
                                         [0, -1, 0, -0.15],
                                         [0,  0, -1, 2],
                                         [0, 0, 0, 1]]))
-        # θ_Buffer[0, 0] =  d2r(-1.6671311132785285)
-        # θ_Buffer[1, 0] =  d2r(-38.81651799446324)
-        # θ_Buffer[2, 0] =  d2r(-41.087751371115175)
-        # θ_Buffer[3, 0] =  d2r(-0.0020620682544592226)
-        # θ_Buffer[4, 0] =  d2r(-76.44358294225668)
-        # θ_Buffer[5, 0] =  d2r(1.071035847811744)
+        θ_Buffer[0, 0] =  d2r(-1.6671311132785285)
+        θ_Buffer[1, 0] =  d2r(-38.81651799446324)
+        θ_Buffer[2, 0] =  d2r(-41.087751371115175)
+        θ_Buffer[3, 0] =  d2r(-0.0020620682544592226)
+        θ_Buffer[4, 0] =  d2r(-76.44358294225668)
+        θ_Buffer[5, 0] =  d2r(1.071035847811744)
 
 
 
@@ -791,17 +789,17 @@ class Simulator:
         # plt.show()
 
         # 矩陣軌跡法
-        # NowEnd = np.eye(4)
-        # NowEnd = NowEnd @ Mat.TransXYZ(6,0,-2) @ Mat.RotaX(d2r(-180)) 
-        # GoalEnd = np.eye(4)
-        # GoalEnd = GoalEnd @ Mat.TransXYZ(6,4,-2) @ Mat.RotaX(d2r(-180)) 
-        # PosBuffer4X4 = self.Plan.MatrixPathPlanning(GoalEnd, NowEnd)
-        # θ = np.zeros((len(PosBuffer4X4),6,1))
-        # for i in range(len(PosBuffer4X4)):
-        #      θ[i] = self.Kin.IK_4x4(PosBuffer4X4[i], θ_Buffer)
+        NowEnd = np.eye(4)
+        NowEnd = NowEnd @ Mat.TransXYZ(6,0,-2) @ Mat.RotaX(d2r(-180)) 
+        GoalEnd = np.eye(4)
+        GoalEnd = GoalEnd @ Mat.TransXYZ(6,4,-2) @ Mat.RotaX(d2r(-180)) 
+        PosBuffer4X4 = self.Plan.MatrixPathPlanning(GoalEnd, NowEnd)
+        θ = np.zeros((len(PosBuffer4X4),6,1))
+        for i in range(len(PosBuffer4X4)):
+            θ[i] = self.Kin.IK_4x4(PosBuffer4X4[i], θ_Buffer)
 
 
-
+        
 
         # 迴圈疊代次數
         Mainloopiter = 0
@@ -811,63 +809,93 @@ class Simulator:
         # iter4 = 0
         # iter5 = 0
         # iter6 = 0
+        # 相機(觀察者)極座標參數
+        cameraDir = 20
+        cameraθ = 45
+        cameraφ = 0
         while True:
             for event in pygame.event.get():
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_UP:
-                        camera = camera @ Mat.TransXYZ(0,-1,0) 
-                        # print(camera)
-                    elif event.key == pygame.K_DOWN:
-                        camera = camera @ Mat.TransXYZ(0,1,0)
-                        # print(camera)
-                    elif event.key == pygame.K_LEFT:
-                        camera = camera @ Mat.TransXYZ(-1,0,0)
-                        # print(camera)
-                    elif event.key == pygame.K_RIGHT:
-                        camera = camera @ Mat.TransXYZ(1,0,0)
-                        # print(camera)
-                    elif event.key == pygame.K_1:
-                        teachθ[0] += d2r(1)
-                    elif event.key == pygame.K_KP1:
-                        teachθ[0] -= d2r(1)
-                    elif event.key == pygame.K_2:
-                        teachθ[1] += d2r(1)
-                    elif event.key == pygame.K_KP2:
-                        teachθ[1] -= d2r(1)
-                    elif event.key == pygame.K_3:
-                        teachθ[2] += d2r(1)
-                    elif event.key == pygame.K_KP3:
-                        teachθ[2] -= d2r(1)
-                    elif event.key == pygame.K_4:
-                        teachθ[3] += d2r(1)
-                    elif event.key == pygame.K_KP4:
-                        teachθ[3] -= d2r(1)
-                    elif event.key == pygame.K_5:
-                        teachθ[4] += d2r(1)
-                    elif event.key == pygame.K_KP5:
-                        teachθ[4] -= d2r(1)
-                    elif event.key == pygame.K_6:
-                        teachθ[5] += d2r(1)
-                    elif event.key == pygame.K_KP6:
-                        teachθ[5] -= d2r(1)
-                    elif event.type == pygame.K_ESCAPE:
-                        # self.Con.disconnectMH()
-                        pygame.quit()
-                        quit()
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    quit()
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 4:
-                        camera = camera @ Mat.TransXYZ(0, 0, 0.25)
-                        # print(camera)
+                        cameraDir -= 1
                     elif event.button == 5:
-                        camera = camera @ Mat.TransXYZ(0, 0, -0.25)
-                        # print(camera)
-                # elif event.type == pygame.QUIT:
-                #     self.Con.disconnectMH()
-                #     pygame.quit()
-                #     quit()
+                        cameraDir += 1
+           
+            keys = pygame.key.get_pressed()
 
+            # 觀察者視角移動
+            if keys[pygame.K_a]:
+                cameraφ -= 0.05
+            if keys[pygame.K_d]:
+                cameraφ += 0.05
+            
+            if keys[pygame.K_w]:
+                cameraθ -= 0.05
+            if keys[pygame.K_s]:
+                cameraθ += 0.05
+            
+            # if mouse[event.button == 4]:
+            #     camera = camera @ Mat.TransXYZ(0, 0, 0.25)  # 旋轉攝影機角度
+            # if mouse[event.button == 5]:
+            #     camera = camera @ Mat.TransXYZ(0, 0, -0.25)  # 旋轉攝影機角度 
 
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+            # for event in pygame.event.get():
+            #     if event.type == pygame.KEYDOWN:
+            #         if event.key == pygame.K_UP:
+            #             camera = camera @ Mat.TransXYZ(0,-1,0) 
+            #             # print(camera)
+            #         elif event.key == pygame.K_DOWN:
+            #             camera = camera @ Mat.TransXYZ(0,1,0)
+            #             # print(camera)
+            #         elif event.key == pygame.K_LEFT:
+            #             camera = camera @ Mat.TransXYZ(-1,0,0)
+            #             # print(camera)
+            #         elif event.key == pygame.K_RIGHT:
+            #             camera = camera @ Mat.TransXYZ(1,0,0)
+            #             # print(camera)
+            #         elif event.key == pygame.K_1:
+            #             teachθ[0] += d2r(1)
+            #         elif event.key == pygame.K_KP1:
+            #             teachθ[0] -= d2r(1)
+            #         elif event.key == pygame.K_2:
+            #             teachθ[1] += d2r(1)
+            #         elif event.key == pygame.K_KP2:
+            #             teachθ[1] -= d2r(1)
+            #         elif event.key == pygame.K_3:
+            #             teachθ[2] += d2r(1)
+            #         elif event.key == pygame.K_KP3:
+            #             teachθ[2] -= d2r(1)
+            #         elif event.key == pygame.K_4:
+            #             teachθ[3] += d2r(1)
+            #         elif event.key == pygame.K_KP4:
+            #             teachθ[3] -= d2r(1)
+            #         elif event.key == pygame.K_5:
+            #             teachθ[4] += d2r(1)
+            #         elif event.key == pygame.K_KP5:
+            #             teachθ[4] -= d2r(1)
+            #         elif event.key == pygame.K_6:
+            #             teachθ[5] += d2r(1)
+            #         elif event.key == pygame.K_KP6:
+            #             teachθ[5] -= d2r(1)
+            #         elif event.type == pygame.K_ESCAPE:
+            #             # self.Con.disconnectMH()
+            #             pygame.quit()
+            #             quit()
+            #     elif event.type == pygame.MOUSEBUTTONDOWN:
+            #         if event.button == 4:
+            #             camera = camera @ Mat.TransXYZ(0, 0, 0.25)
+            #             # print(camera)
+            #         elif event.button == 5:
+            #             camera = camera @ Mat.TransXYZ(0, 0, -0.25)
+            #             # print(camera)
+            #     # elif event.type == pygame.QUIT:
+            #     #     self.Con.disconnectMH()
+            #     #     pygame.quit()
+            #     #     quit()
+
 
             '''
             glMatrixMode(參數)
@@ -884,14 +912,22 @@ class Simulator:
             aspect = self.display[0] / float(self.display[1])
             gluPerspective(45, aspect, 0.1, 50.0)
             
-            gluLookAt(camera[0,3], camera[1,3], camera[2,3],
-                    World_coordinate[0,3], World_coordinate[1,3], World_coordinate[2,3], 
-                    -camera[0,1], -camera[1,1], -camera[2,1])
-            
 
+            # 極座標系統
+            cameraX = cameraDir * np.sin(cameraθ) * np.cos(cameraφ)
+            cameraY = cameraDir * np.sin(cameraθ) * np.sin(cameraφ)
+            cameraZ = cameraDir * np.cos(cameraθ)
+
+            
+            gluLookAt(cameraX, cameraY, cameraZ,
+                      World_coordinate[0,3], World_coordinate[1,3], World_coordinate[2,3]
+                      ,0,0,1)
+            
             # 對視景模型操作
             glMatrixMode(GL_MODELVIEW)
             glLoadIdentity()
+
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
             
             # 繪製世界坐標系
             self.draw_axis(World_coordinate, 1)
@@ -992,15 +1028,15 @@ class Simulator:
             start = 955.326, -312.783, -154.686, -168.3765, -2.9339, 7.0523
             end =   955.326, -178.005, -154.700, -168.3718, -2.9293, 7.0363
             '''
-            GoalEnd =np.array([[9.55, -1.78, -1.54, d2r(-168.3765), d2r(-2.9339), d2r(7.0523)]]).reshape(6,1)
-            GoalEnd4X4 = self.Mat.AngletoMat(GoalEnd.reshape(6,1))
-            # self.draw_axis(GoalEnd4X4, 1)
-            θ_Buffer = self.Kin.IK_4x4(GoalEnd4X4, θ_Buffer)
-            print('θ', θ_Buffer)
-            if θ_Buffer is not None:
-                Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.Mh12_FK(World_coordinate,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])
-                # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])
-                self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
+            # GoalEnd =np.array([[9.55, -1.78, -1.54, d2r(-168.3765), d2r(-2.9339), d2r(7.0523)]]).reshape(6,1)
+            # GoalEnd4X4 = self.Mat.AngletoMat(GoalEnd.reshape(6,1))
+            # # self.draw_axis(GoalEnd4X4, 1)
+            # θ_Buffer = self.Kin.IK_4x4(GoalEnd4X4, θ_Buffer)
+            # print('θ', θ_Buffer)
+            # if θ_Buffer is not None:
+            #     Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.Mh12_FK(World_coordinate,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])
+            #     # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,θ_Buffer[0,0],θ_Buffer[1,0],θ_Buffer[2,0],θ_Buffer[3,0],θ_Buffer[4,0],θ_Buffer[5,0])
+            #     self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
                 
 
             # # IK and TrajectoryPlan
@@ -1069,14 +1105,18 @@ class Simulator:
             #     self.draw_Trajectory(PosBuffer4X4[Mainloopiter], Mainloopiter)
 
             # 矩陣軌跡法
-            # if Mainloopiter < len(θ):
-            #     Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.YASKAWA_MA1440_ArmFK_Encoder(World_coordinate,θ[Mainloopiter,0,0],θ[Mainloopiter,1,0],θ[Mainloopiter,2,0],θ[Mainloopiter,3,0],θ[Mainloopiter,4,0],θ[Mainloopiter,5,0])
-            #     self.draw_axis(NowEnd,1)
-            #     self.draw_axis(GoalEnd,1)
+            if Mainloopiter < len(θ):
+                Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.Mh12_FK(World_coordinate,θ[Mainloopiter,0,0],θ[Mainloopiter,1,0],θ[Mainloopiter,2,0],θ[Mainloopiter,3,0],θ[Mainloopiter,4,0],θ[Mainloopiter,5,0])
+                self.draw_axis(NowEnd,1)
+                self.draw_axis(GoalEnd,1)
                 
-            # self.draw_Matrix4X4(EndEffector, 550)
-            # self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
-            # self.draw_Trajectory(EndEffector, Mainloopiter)
+            self.draw_Matrix4X4(EndEffector, 550)
+            self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
+            self.draw_Trajectory(EndEffector, Mainloopiter)
+
+
+            
+            
 
             Mainloopiter += 1
             pygame.display.flip()

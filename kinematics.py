@@ -169,9 +169,11 @@ class Kinematics:
         TtoTool =  Mat.TransXYZ(0,0,-100*Unit)
         Tool = Taxis @ TtoTool
 
+        
         TtoWeldingGun = Mat.RotaZ(d2r(90)) @ Mat.RotaX(d2r(180)) @  Mat.TransXYZ(-15.460*Unit, 0.896*Unit, 323.761*Unit) @ Mat.RotaXYZ(d2r(0.3753), d2r(-31.4994), d2r(-0.7909)) 
         EndEffector = Tool @ TtoWeldingGun
 
+        
         return Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector
     
     def PUMA_Arm_FK(self, Base,θ1,θ2,θ3,θ4,θ5,θ6):

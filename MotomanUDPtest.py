@@ -7,7 +7,7 @@ import logging
 import socket
 import time
 
-from udpPacket import UdpPacket, UdpPacket_Req, UdpPacket_Ans
+from MotomanEthernetUDP import UdpPacket, UdpPacket_Req, UdpPacket_Ans
 
 #sws
 
@@ -48,6 +48,7 @@ class DxFastEthServer():
         req_packet = UdpPacket_Req(reqSubHeader, reqData, procDiv)       #prepare packet
         req_packet.reqID=0
         req_str = str(req_packet)                               #string representation of the packet
+        req_str = bytes(req_str, 'utf-8')
 
         ans_str = self.socketSndRcv(req_str)
 
@@ -338,7 +339,28 @@ class DxFastEthServer():
         ansPacket = self.sendCmd(reqSubHeader, reqData, 2)
 
         return ( ansPacket != None and ansPacket.status == 0)
+    
+    # Robot Control cmd
+    # Read Robot Position
+    def ReadPos(self, Inst, ):
+        """Read Postion
+        Instance(Control Group):
+            1~8(R1~R8) (pulse) / 11~18(B1~B8) (pulse) / 21~44(S1~S24) (pulse) / 101~108(R1~R8) (Cartesian coordinate)
 
+        Attribute:
+            1.Data Type : 0:pulse/ 1:base coordinate value
+        """
+        reqSubHeader = { 'cmdNo': (0x75, 0x00),
+                    'inst': [Inst, 0],
+                    'attr': (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13),
+                    'service':  0x01,
+                    'padding': (0, 0) }
+        reqData = []
+
+        ansPacket = self.sendCmd(reqSubHeader, reqData)
+
+        return ansPacket
+        
 
 #HELPER functions
 # 
@@ -351,38 +373,38 @@ def toSint (val, nbits):
         val =  val - (1 << 16)
     return val
 
-
-
 #Testing...
 if __name__ == '__main__':
 
-    dx = DxFastEthServer("192.168.255.1")
+    dx = DxFastEthServer("192.168.255.200")
 
     # dx.getStatusInfo()
     # for i, item in enumerate(dx.status.viewkeys()):
     #     print item, ": ", dx.status[item]
 
 
-
-    type=1          #0-B, 1-I, 2-D
-    nr=0            #index
-    value=120       #value
-    dx.writeVar(type, nr, value)
-
-
-
-    print ("---------------Write/Read  variables")
-    type=0              #0-B, 1-I, 2-D
-    nr=0                #index
-    # value=255    #value
+    # Writer Variable
+    # type=1          #0-B, 1-I, 2-D
+    # nr=0            #index
+    # value=120       #value
     # dx.writeVar(type, nr, value)
-    print(dx.readVar(type, nr))
 
 
-    #-----------Servo, Hold On/Off
+
+    # print ("---------------Write/Read  variables")
+    # type=0              #0-B, 1-I, 2-D
+    # nr=0                #index
+    # # value=255    #value
+    # # dx.writeVar(type, nr, value)
+    # print(dx.readVar(type, nr))
+
+
+    # Servo, Hold On/Off
     dx.putServoOn()
     time.sleep(2)
     dx.putServoOff()
+
+
     #
     # dx.putHoldOn()
     # time.sleep(1)

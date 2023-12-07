@@ -1,7 +1,5 @@
 # coding=utf-8
-__author__ = 'kromau'
 
-# Echo client program
 import array
 import logging
 import socket
@@ -362,8 +360,7 @@ class DxFastEthServer():
     # Read Robot Position
     def ReadPos(self, type=101):
         """Read Postion
-
-        type = 1(pulse) or 101(Coordinate)  
+        type : JointAngle(1) or Coordinate(101) 
         """
         reqSubHeader = { 'cmdNo': (0x75, 0x00),
                     'inst': [101, 0],
@@ -376,26 +373,29 @@ class DxFastEthServer():
 
         AnsData = np.zeros((6,1))
         if type == 1:
-            
-            
-            AnsData[0,0] = float(self.Cvt_SignInt(ansPacket[20:24])/self.S_pulse)
-            L_pulse = self.Cvt_SignInt(ansPacket[24:28])/self.L_pulse
-            U_pulse = self.Cvt_SignInt(ansPacket[28:32]) 
-            R_pulse = self.Cvt_SignInt(ansPacket[32:36])
-            B_pulse = self.Cvt_SignInt(ansPacket[36:40])
-            T_pulse = self.Cvt_SignInt(ansPacket[40:44])
+            # S_Angle, L_Angle, U_Angle, R_Angle, B_Angle, T_Angle 
+            AnsData[0,0] = self.Cvt_SignInt(ansPacket[20:24])/self.S_pulse
+            AnsData[1,0] = self.Cvt_SignInt(ansPacket[24:28])/self.L_pulse
+            AnsData[2,0] = self.Cvt_SignInt(ansPacket[28:32])/self.U_pulse
+            AnsData[3,0] = self.Cvt_SignInt(ansPacket[32:36])/self.R_pulse
+            AnsData[4,0] = self.Cvt_SignInt(ansPacket[36:40])/self.B_pulse
+            AnsData[5,0] = self.Cvt_SignInt(ansPacket[40:44])/self.T_pulse
             
             return AnsData
+        
         if type == 101:
-            x = ansPacket[6]
-            y = ansPacket[7]
-            z = ansPacket[8]
-            Rx = ansPacket[9]
-            Ry = ansPacket[10]
-            Rz = ansPacket[11]
+            #　x, y, z, Rx, Ry, Rz
+            AnsData[0,0] = self.Cvt_SignInt(ansPacket[20:24])*0.01
+            AnsData[1,0] = self.Cvt_SignInt(ansPacket[24:28])*0.01
+            AnsData[2,0] = self.Cvt_SignInt(ansPacket[28:32])*0.01
+            AnsData[3,0] = self.Cvt_SignInt(ansPacket[32:36])*0.001
+            AnsData[4,0] = self.Cvt_SignInt(ansPacket[36:40])*0.001
+            AnsData[5,0] = self.Cvt_SignInt(ansPacket[40:44])*0.001
+
+            return AnsData
 
 
-        return ansPacket
+        
     
     def ReadIO(self):
         # 測試未完成  1Byte 不能超過127 會format error
@@ -454,9 +454,10 @@ if __name__ == '__main__':
 
     # Read Position
     Bf = Time.ReadNowTime()
-    # dx.ReadPos()
+    NowPos = dx.ReadPos()
+    print('Mat6x1 :', NowPos)
     # dx.readVar( 1, 4)
-    dx.ReadIO()
+    # dx.ReadIO()
     Af = Time.ReadNowTime()
     timeerr = Af - Bf
     print('Cost time :', timeerr)

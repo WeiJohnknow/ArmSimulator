@@ -54,7 +54,39 @@ class UdpPacket_Req(UdpPacket):
         # Prepare request packet
         # chr(args)  把args轉為Unicode 
         if self.cmdNo[0] > int(0x7F):
+            cmdNo_new = []
+            cmdNo_new[0] = 0x7F
+            cmdNo_new[1] = self.cmdNo[0]- 0x7f
             print('cmdBNo. 溢位(>0x7F),需另作調整')
+            l_str = (self.identifier +                  # Identifier 4 Byte Fixed to “YERC”
+                    chr( self.headSize[0] ) +           #Header part size 2Byte Size of header part (fixed to 0x20)
+                    chr( self.headSize[1] ) +
+                    chr( self.dataSize[0] ) +           #Data part size 2Byte Size of data part (variable)
+                    chr( self.dataSize[1] ) +
+                    chr( self.reserve1 ) +              #Reserve 1 1Byte Fixed to “3”
+                    chr( self.procDiv ) +               #Processing division 1Byte 1: robot control, 2: file control
+                    chr( self.ACK ) +
+                                    #ACK 1Byte 0: Reques 1: Other than request
+                    chr( self.reqID ) +                 #Request ID 1Byte Identifying ID for command session
+                                                                #(increment this ID every time the client side outputs a
+                                                                #command. In reply to this, server side answers the received
+                                                                #value.)
+                    chr( self.blockNo[0]) +             #Block No. 4Byte Request: 0
+                    chr( self.blockNo[1]) +                  # Answer: add 0x8000_0000 to the last packet.
+                    chr( self.blockNo[2]) +                  # Data transmission other than above: add 1
+                    chr( self.blockNo[3]) +                  # (max: 0x7fff_ffff)
+                    self.reserve2  +                    #Reserve 2          8 Byte       Fixed to “99999999”
+
+                    chr( self.cmdNo[0] ) +
+                    chr( self.cmdNo[1] ) +
+                    chr( self.inst[0] ) +
+                    chr( self.inst[1] ) +
+                    chr( self.attr ) +
+                    chr( self.service ) +
+                    chr( self.padding[0] ) +
+                    chr( self.padding[1] )
+                )
+            
             pass
         if len(self.inst) > 2:
             l_str = (self.identifier +                  # Identifier 4 Byte Fixed to “YERC”

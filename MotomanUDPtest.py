@@ -6,6 +6,9 @@ import array
 import logging
 import socket
 import time
+import chardet
+from Toolbox import TimeTool
+import numpy as np
 
 from MotomanEthernetUDP import UdpPacket, UdpPacket_Req, UdpPacket_Ans
 
@@ -14,13 +17,19 @@ from MotomanEthernetUDP import UdpPacket, UdpPacket_Req, UdpPacket_Ans
 class DxFastEthServer():
 
     #def __init__(self, ip="192.168.255.1"):
-    def __init__(self, ip="192.168.255.200"):
+    def __init__(self, ip="192.168.255.200",S_pulse = 1435.4, L_pulse = 1300.4, U_pulse = 1422.2, R_pulse = 969.9, B_pulse = 980.2, T_pulse = 454.7):
         """
         constructor method for DxFastEthServer class
         :param ip:  ip number of dx controller-server
         :return:    None
         """
-
+        self.S_pulse = S_pulse
+        self.L_pulse = L_pulse
+        self.U_pulse = U_pulse
+        self.R_pulse = R_pulse
+        self.B_pulse = B_pulse
+        self.T_pulse = T_pulse
+        Time = TimeTool()
         #create socket
         self.s = socket.socket(socket.AF_INET,          #Internet socket type
                                socket.SOCK_DGRAM)       #UDP socket !!!
@@ -47,11 +56,15 @@ class DxFastEthServer():
 
         req_packet = UdpPacket_Req(reqSubHeader, reqData, procDiv)       #prepare packet
         req_packet.reqID=0
-        req_str = str(req_packet)                               #string representation of the packet
-        req_str = bytes(req_str, 'utf-8')
-
+        # 轉為字串
+        req_str = str(req_packet)
+        # 字串轉bytes                               #string representation of the packet
+        req_str = req_str.encode("utf-8")
+        # 'YERC \x00\x04\x00\x03\x01\x00\x00\x00\x00\x00\x0099999999\x83\x00\x02\x00\x01\x10\x00\x00\x01\x00\x00\x00'
+        
         ans_str = self.socketSndRcv(req_str)
-
+        
+        
 
         if ans_str == None:
             return None
@@ -71,11 +84,13 @@ class DxFastEthServer():
         try:
             #send request packet (string) to dx server, get response (string) from dx server
             #send request
+            Bf = Time.ReadNowTime()
             self.s.sendto( req_str,                             #UDP packet
                            (self.UDP_IP, self.UDP_PORT) )       #A pair (host, port) is used for the AF_INET address family
             #get answer from the server
             (ans_str, address) = self.s.recvfrom(512)
-
+            Af = Time.ReadNowTime()
+            print('Sendamd cost time: ', Af-Bf)
         except socket.timeout as e:
             print ('socket timeout: ' + str(e))
             logging.exception(str(e))
@@ -284,14 +299,17 @@ class DxFastEthServer():
 
         if (type == 0):     #B var
             #B var - unsigned data
+            print(ansPacket.data[0])
             return ( ansPacket.data[0] )
         elif (type == 1):   #I var
             #convert received data (2 bytes) to signed integer
+            print(toSint(ansPacket.data[1]*(1<<8) + ansPacket.data[0], 16))
             return toSint(ansPacket.data[1]*(1<<8) + ansPacket.data[0], 16)
         elif (type == 2):   #D var
             #convert received data (4 bytes) to signed integer
             wordLow=ansPacket.data[1]*(1<<8) + ansPacket.data[0]
             wordHigh=ansPacket.data[3]*(1<<8) + ansPacket.data[2]
+            print(toSint(wordHigh*(1<<16) + wordLow, 32))
             return toSint(wordHigh*(1<<16) + wordLow, 32)
 
     #Get File list
@@ -342,25 +360,67 @@ class DxFastEthServer():
     
     # Robot Control cmd
     # Read Robot Position
-    def ReadPos(self, Inst, ):
+    def ReadPos(self, type=101):
         """Read Postion
-        Instance(Control Group):
-            1~8(R1~R8) (pulse) / 11~18(B1~B8) (pulse) / 21~44(S1~S24) (pulse) / 101~108(R1~R8) (Cartesian coordinate)
 
-        Attribute:
-            1.Data Type : 0:pulse/ 1:base coordinate value
+        type = 1(pulse) or 101(Coordinate)  
         """
         reqSubHeader = { 'cmdNo': (0x75, 0x00),
-                    'inst': [Inst, 0],
-                    'attr': (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13),
-                    'service':  0x01,
+                    'inst': [101, 0],
+                    'attr': 0,
+                    'service':  0x0E,
                     'padding': (0, 0) }
         reqData = []
 
         ansPacket = self.sendCmd(reqSubHeader, reqData)
 
+        AnsData = np.zeros((6,1))
+        if type == 1:
+            
+            
+            AnsData[0,0] = float(self.Cvt_SignInt(ansPacket[20:24])/self.S_pulse)
+            L_pulse = self.Cvt_SignInt(ansPacket[24:28])/self.L_pulse
+            U_pulse = self.Cvt_SignInt(ansPacket[28:32]) 
+            R_pulse = self.Cvt_SignInt(ansPacket[32:36])
+            B_pulse = self.Cvt_SignInt(ansPacket[36:40])
+            T_pulse = self.Cvt_SignInt(ansPacket[40:44])
+            
+            return AnsData
+        if type == 101:
+            x = ansPacket[6]
+            y = ansPacket[7]
+            z = ansPacket[8]
+            Rx = ansPacket[9]
+            Ry = ansPacket[10]
+            Rz = ansPacket[11]
+
+
         return ansPacket
-        
+    
+    def ReadIO(self):
+        # 測試未完成  1Byte 不能超過127 會format error
+        reqSubHeader = { 'cmdNo': (0x78, 0x00),
+                    'inst': [127, 1],
+                    'attr': 1,
+                    'service':  0x0E,
+                    'padding': (0, 0) }
+        reqData = [127]
+
+        ansPacket = self.sendCmd(reqSubHeader, reqData)
+
+        # 32bit 有符整數
+    def Cvt_SignInt(self, data):
+        """Convert 32bit Signed Integer
+        input type: list
+        input len: 4
+        """
+        result = (data[3] << 24) | (data[2] << 16) | (data[1] << 8) | data[0]
+
+        # 判斷是否為負數
+        if result & (1 << 31):
+            result -= 1 << 32
+
+        return result
 
 #HELPER functions
 # 
@@ -373,21 +433,33 @@ def toSint (val, nbits):
         val =  val - (1 << 16)
     return val
 
+
+
 #Testing...
 if __name__ == '__main__':
 
     dx = DxFastEthServer("192.168.255.200")
-
+    Time = TimeTool()
     # dx.getStatusInfo()
     # for i, item in enumerate(dx.status.viewkeys()):
     #     print item, ": ", dx.status[item]
 
 
-    # Writer Variable
+    # Writer Variable     test OK!!
     # type=1          #0-B, 1-I, 2-D
     # nr=0            #index
-    # value=120       #value
+    # value=120      #value
     # dx.writeVar(type, nr, value)
+    # dx.readVar( 1, 4)
+
+    # Read Position
+    Bf = Time.ReadNowTime()
+    # dx.ReadPos()
+    # dx.readVar( 1, 4)
+    dx.ReadIO()
+    Af = Time.ReadNowTime()
+    timeerr = Af - Bf
+    print('Cost time :', timeerr)
 
 
 
@@ -400,9 +472,9 @@ if __name__ == '__main__':
 
 
     # Servo, Hold On/Off
-    dx.putServoOn()
+    # dx.putServoOn()
     time.sleep(2)
-    dx.putServoOff()
+    # dx.putServoOff()
 
 
     #

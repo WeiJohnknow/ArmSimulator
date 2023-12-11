@@ -1,34 +1,6 @@
-
-# for i in range(256):
-#     high = i >> 8
-#     Low = i - (high << 8)
-
-#     # 有號 無號 映射
-#     if Low > 127:
-#         Low = -(255 - (Low-1))
-#     print(i, Low)
-
-
-
-
-# 'YERC \x00\x04\x00\x03\x01\x00\x00\x00\x00\x00\x0099999999\x83\x00\x02\x00\x01\x10\x00\x00\x01\x00\x00\x00'
-# b'YERC \x00\x04\x00\x03\x01\x00\x00\x00\x00\x00\x0099999999\xc2\x83\x00\x02\x00\x01\x10\x00\x00\x01\x00\x00\x00'
-# b'YERC \x00\x04\x00\x03\x01\x00\x00\x00\x00\x00\x0099999999\x83\x00\x02\x00\x01\x10\x00\x00\x01\x00\x00\x00'
-
-
-# b'YERC \x00\x04\x00\x03\x01\x00\x00\x00\x00\x00\x0099999999\x83\x83\x02\x00\x01\x10\x00\x00\x01\x00\x00\x00'
-
-
-
-# Hex = 'YERC \x00\x04\x00\x03\x01\x00\x00\x00\x00\x00\x0099999999\x83\x00\x02\x00\x01\x10\x00\x00\x01\x00\x00\x00'
-# byte_data = bytes.fromhex(Hex)
-# print(Hex.encode("ascii"))
-# print(Hex)
-
-
 import struct
 import socket
-import time
+
 
 class UDP_packet:
     def __init__(self, Sub_header, data=[]) -> None:
@@ -77,6 +49,8 @@ class UDP_packet:
 
     
     def Pack_Req_packet(self):
+        """Pack Request Packet
+        """
         # main
         packet = self.identifier.encode('utf-8')
         packet += struct.pack('B', self.Header_part_size[0])
@@ -102,13 +76,20 @@ class UDP_packet:
         packet += struct.pack('B', self.Service)
         packet += struct.pack('B', self.padding[0])
         packet += struct.pack('B', self.padding[1])
-        for i in range(self.Data_part_size[0]):
-            packet += struct.pack('B', self.Data[i])
 
+        # 判斷資料型別是否為Bytes
+        if isinstance(self.Data, bytes):
+            packet += self.Data
+        else:
+            for i in range(self.Data_part_size[0]):
+                packet += struct.pack('B', self.Data[i])
+
+    
         return packet
     
     def Unpack_Ans_packet(self, Ans_packet):
-
+        """Unpack Answer Packet
+        """
 
         # 封包執行狀態
         status = hex(Ans_packet[25])
@@ -250,18 +231,211 @@ class MotomanUDP:
         Ans_packet = self.sendCmd( reqSubHeader, reqData)
         data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
         print(data)
+#------------------------------------------------------------------------------ Robot Move Cammand-----------------------------------------------------------------------------------------
+    def MoveCMD_data(self, speedType, speed, coordinateType, coordinate):
 
+        # TODO : 參數未完成
+        """Move Joint Angle(Point to Point)
+        - Args: data use  Pack_MoveCMD_Packet(fun.)!!!
+        - speedType:
+            - 0: Link operation(0.01%)
+            - 1: V(Cartesian operation)(0.1 mm/s)
+            - 2: VR(Cartesian operation)(0.1 degree/s)
+        - coordinate:
+            - 16: Base coordinate
+            - 17: Robot coordinate
+            - 18: User coordinate
+            - 19: Tool coordinate
+        - x  unit(μm) 
+        - y  unit(μm)
+        - z  unit(μm)
+        - Rx unit(0.0001 degree)
+        - Ry unit(0.0001 degree)
+        - Rz unit(0.0001 degree)
+        """
+        # Example
+        # Movedata ={"Robot": 1,
+        #    "Station": 1,
+        #    "speedType": 0,
+        #    "speed": 5,
+        #    "coordinateType": 19,
+        #    "coordinate":[485.364, -1.213, 234.338, 179.984, 20.2111, 1.6879],
+        #    "Reservation1":0,
+        #    "Reservation2":0,
+        #    "Type": 0,
+        #    "Expanded type": 0,
+        #    "Tool No": 5,
+        #    "User coordniate": 0,
+        #    "Base axis": [0, 0, 0],
+        #    "Station axis": [0, 0, 0, 0, 0, 0]}
+
+        Movedata ={"Robot": 1,
+           "Station": 1,
+           "speedType": speedType,
+           "speed": speed,
+           "coordinateType": coordinateType,
+           "coordinate":[coordinate[0], coordinate[1], coordinate[2], coordinate[3], coordinate[4], coordinate[5]],
+           "Reservation1":0,
+           "Reservation2":0,
+           "Type": 0,
+           "Expanded type": 0,
+           "Tool No": 5,
+           "User coordniate": 0,
+           "Base axis": [0, 0, 0],
+           "Station axis": [0, 0, 0, 0, 0, 0]}
+        
+        return Movedata
+
+    def signDecide(self, number, rate):
+        """判斷正負符號並編碼成Bytes型別
+        """
+        if number < 0:
+            ans = struct.pack('i', int(number*rate))
+        else:
+            ans = struct.pack('I', int(number*rate))
+
+        return ans
+
+    def Pack_MoveCMD_Packet(self, Movedata):
+        """
+        """
+        Robot = struct.pack('I', Movedata["Robot"])
+        Station= struct.pack('I', Movedata["Station"])
+        speedType= struct.pack('I', Movedata["speedType"])
+        speed= struct.pack('I', Movedata["speed"])
+        coordinateType= struct.pack('I', Movedata["coordinateType"])
+        coordinate_x= self.signDecide(Movedata["coordinate"][0], 1000)
+        coordinate_y= self.signDecide(Movedata["coordinate"][1], 1000)
+        coordinate_z= self.signDecide(Movedata["coordinate"][2], 1000)
+        coordinate_Rx= self.signDecide(Movedata["coordinate"][3], 10000)
+        coordinate_Ry= self.signDecide(Movedata["coordinate"][4], 10000)
+        coordinate_Rz= self.signDecide(Movedata["coordinate"][5], 10000)
+        Reservation1= struct.pack('I', Movedata["Reservation1"])
+        Reservation2= struct.pack('I', Movedata["Reservation2"])
+        Type= struct.pack('I', Movedata["Type"])
+        Expanded_type= struct.pack('I', Movedata["Expanded type"])
+        Tool_No= struct.pack('I', Movedata["Tool No"])
+        User_coordniate= struct.pack('I', Movedata["User coordniate"])
+        Base_axis_1= struct.pack('I', Movedata["Base axis"][0])
+        Base_axis_2= struct.pack('I', Movedata["Base axis"][1])
+        Base_axis_3= struct.pack('I', Movedata["Base axis"][2])
+        Station_axis_1= struct.pack('I', Movedata["Station axis"][0])
+        Station_axis_2= struct.pack('I', Movedata["Station axis"][1])
+        Station_axis_3= struct.pack('I', Movedata["Station axis"][2])
+        Station_axis_4= struct.pack('I', Movedata["Station axis"][3])
+        Station_axis_5= struct.pack('I', Movedata["Station axis"][4])
+        Station_axis_6= struct.pack('I', Movedata["Station axis"][5])
+        # Move command data 
+        MovePacket = Robot+Station+speedType+speed+coordinateType+coordinate_x+coordinate_y+coordinate_z\
+                +coordinate_Rx+coordinate_Ry+coordinate_Rz+Reservation1+Reservation2+Type+Expanded_type\
+                +Tool_No+User_coordniate+Base_axis_1+Base_axis_2+Base_axis_3+Station_axis_1+Station_axis_2\
+                +Station_axis_3+Station_axis_4+Station_axis_5+Station_axis_6
+        
+        return MovePacket
+
+    def MoveCMD_req(self, data):
+
+        # TODO: Ans解碼未完成
+        reqSubHeader = { 'Command_No': (0x8A, 0x00),
+                    'Instance': [1, 0],  # 1:Joint 2:Line
+                    'Attribute': 1,
+                    'Service':  0x02,
+                    'Padding': (0, 0)}
+        reqData = data
+
+        Ans_packet = self.sendCmd(reqSubHeader, reqData)
+
+    def moveMH(self):
+        # TODO 參數輸入未完成
+        """Move Command
+        Use me!!! 
+        """
+        # 參數
+        # 填寫參數，並轉字典形式
+        dict_data = self.MoveCMD_data(speedType, speed, coordinateType, coordinate)
+        # 把字典打包封包
+        Movedata_packet = self.Pack_MoveCMD_Packet(dict_data)
+        # 加入標題、子標題並完成封包後寄出
+        self.MoveCMD_req(Movedata_packet)
     
+
+        
 
 # UDP test
 udp = MotomanUDP()
 # udp.ServoMH(0)
-# time.sleep(5)
 # Error = udp.ServoMH(2)
 # udp.ReadPos()
-while True:
-    udp.ReadIO(255) 
-# print(Error)
+# udp.ReadIO(255) 
+
+# 未完成與測試
+udp.moveMH()
+
+
+
+"""
+ORG = [16, 4, 5, 0, 0, 485.364, -1.213, 234.338, 179.984, 20.2111, 1.6879, 0, 0]
+start = [16, 4, 5, 0, 0, 958.58, -102.274, -164.748, -165.2922, -7.1994, 17.5635, 0, 0]
+end = [16, 4, 5, 0, 0, 956.709, 23.919, -164.373, -165.2942, -7.2005, 17.5837, 0, 0]
+"""
+
+def signDecide(number, rate):
+    """判斷正負符號並編碼成Bytes型別
+    """
+    if number < 0:
+        ans = struct.pack('i', int(number*rate))
+    else:
+        ans = struct.pack('I', int(number*rate))
+
+    return ans
+
+# Movedata ={"Robot": 1,
+#            "Station": 1,
+#            "speedType": 0,
+#            "speed": 5,
+#            "coordinateType": 19,
+#            "coordinate":[485.364, -1.213, 234.338, 179.984, 20.2111, 1.6879],
+#            "Reservation1":0,
+#            "Reservation2":0,
+#            "Type": 0,
+#            "Expanded type": 0,
+#            "Tool No": 5,
+#            "User coordniate": 0,
+#            "Base axis": [0, 0, 0],
+#            "Station axis": [0, 0, 0, 0, 0, 0]}
+
+# Robot = struct.pack('I', Movedata["Robot"])
+# Station= struct.pack('I', Movedata["Station"])
+# speedType= struct.pack('I', Movedata["speedType"])
+# speed= struct.pack('I', Movedata["speed"])
+# coordinateType= struct.pack('I', Movedata["coordinateType"])
+# coordinate_x= signDecide(Movedata["coordinate"][0], 1000)
+# coordinate_y= signDecide(Movedata["coordinate"][1], 1000)
+# coordinate_z= signDecide(Movedata["coordinate"][2], 1000)
+# coordinate_Rx= signDecide(Movedata["coordinate"][3], 10000)
+# coordinate_Ry= signDecide(Movedata["coordinate"][4], 10000)
+# coordinate_Rz= signDecide(Movedata["coordinate"][5], 10000)
+# Reservation1= struct.pack('I', Movedata["Reservation1"])
+# Reservation2= struct.pack('I', Movedata["Reservation2"])
+# Type= struct.pack('I', Movedata["Type"])
+# Expanded_type= struct.pack('I', Movedata["Expanded type"])
+# Tool_No= struct.pack('I', Movedata["Tool No"])
+# User_coordniate= struct.pack('I', Movedata["User coordniate"])
+# Base_axis_1= struct.pack('I', Movedata["Base axis"][0])
+# Base_axis_2= struct.pack('I', Movedata["Base axis"][1])
+# Base_axis_3= struct.pack('I', Movedata["Base axis"][2])
+# Station_axis_1= struct.pack('I', Movedata["Station axis"][0])
+# Station_axis_2= struct.pack('I', Movedata["Station axis"][1])
+# Station_axis_3= struct.pack('I', Movedata["Station axis"][2])
+# Station_axis_4= struct.pack('I', Movedata["Station axis"][3])
+# Station_axis_5= struct.pack('I', Movedata["Station axis"][4])
+# Station_axis_6= struct.pack('I', Movedata["Station axis"][5])
+# data = Robot+Station+speedType+speed+coordinateType+coordinate_x+coordinate_y+coordinate_z\
+#         +coordinate_Rx+coordinate_Ry+coordinate_Rz+Reservation1+Reservation2+Type+Expanded_type\
+#         +Tool_No+User_coordniate+Base_axis_1+Base_axis_2+Base_axis_3+Station_axis_1+Station_axis_2\
+#         +Station_axis_3+Station_axis_4+Station_axis_5+Station_axis_6
+# print(data)
+
 
 
 # Ans = b'YERC \x00\x04\x00\x03\x01\x00\x00\x00\x00\x00\x0099999999\x83\x00\x02\x00\x01\x10\x00\x00\x01\x00\x00\x00'

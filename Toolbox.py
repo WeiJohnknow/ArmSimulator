@@ -9,41 +9,54 @@ class TimeTool:
         pass
 
     def ReadNowTime(self):
-        # 讀取現在系統時間
-        Now_time = datetime.now()
-        # 年
-        year = Now_time.year
-        # 月
-        month = Now_time.month
-        # 日
-        day = Now_time.day
-        # 時
-        hour = Now_time.hour    
-        # 分
-        minute = Now_time.minute
-        # 秒
-        second = Now_time.second
-        # 毫秒
-        millisecond = Now_time.microsecond//1000
-        # 微秒
-        microsecond = Now_time.microsecond
-        
-        # return [year, month, day, hour, minute, second, millisecond, microsecond]
-        return millisecond
+        Nowtime = datetime.now()
+    
+        return Nowtime
     
     def TimeError(self, Before, After):
-        '''
-        注意計算時單位要相等
-        ex: second-second
-        '''
-        if After < Before:
-            # ms已進位
-            After += 1000
-            Ans = After - Before
-        else:
-            Ans = After - Before
+        """Calculate Time error
+        - args:
+            - Before time
+            - Afert time
+        - return: 
+            - dtype: dict
+            - Key: minute、second、millisecond、microsecond
+        - example: \n
+            # Time point \n
+            tb = ReadNowTime()
+
+            # work...\n
+            .......some code \n
+
+            # Next time point\n
+            ta = ReadNowTime() \n
+
+            # Calculate Time error\n
+            TimeError = TimeError(tb, ta)\n
+            
+            # Read the Time value\n
+            TimeError["minute"] = total second \n
+            TimeError["second"] = total second \n
+            TimeError["millisecond"] = total second \n
+            TimeError["microsecond"] = total second \n
+        """
+        # 時間差
+        time_err = After - Before
+        # 分差
+        minutes_err, seconds_err = divmod(time_err.total_seconds(), 60)
+        # 秒差
+        second_err = int(seconds_err)
+        # 毫秒差
+        millisecond_err = int((time_err.microseconds / 1000) + seconds_err * 1000)
+        # 微秒差
+        microsecond_err = (time_err.seconds * 1000000) + (time_err.microseconds)
+
+        timeData = {"minute": minutes_err,
+                    "second": second_err,
+                    "millisecond": millisecond_err,
+                    "microsecond": microsecond_err}
         
-        return Ans
+        return timeData
     
 class CsvTool:
     def __init__(self) -> None:
@@ -202,12 +215,14 @@ class CsvTool:
         plt.show()
 
 if __name__ == "__main__":
-    Csv = CsvTool()
-    testdata = np.array([[0,4,8,12],
-                                [1,5,9,13],
-                                [2,6,10,14],
-                                [3,7,11,15]])
-    # testdata = np.array([0,1,2,3,4,5])
-    # Csv.SaveCsv(testdata, "testdata.csv")
-    data = Csv.LoadCsv("testdata.csv")
-    print(data[0, 2])
+    # Csv = CsvTool()
+    # testdata = np.array([[0,4,8,12],
+    #                             [1,5,9,13],
+    #                             [2,6,10,14],
+    #                             [3,7,11,15]])
+    # # testdata = np.array([0,1,2,3,4,5])
+    # # Csv.SaveCsv(testdata, "testdata.csv")
+    # data = Csv.LoadCsv("testdata.csv")
+    # print(data[0, 2])
+
+    print(TimeTool().ReadNowTime("minute"))

@@ -176,8 +176,14 @@ class MotomanUDP:
         Error = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
         return Error
     
-    def ReadPos(self):
-        reqSubHeader = { 'Command_No': (0x75, 0x00),
+    def getcoordinateMH(self):
+        """Get coordniate
+        - result:
+            [dataType, Form, Tool No, User coordinate No, Extended form, x, y, z, Rx, Ry, Rz, 0, 0]
+        - coordinate:
+            [x, y, z, Rx, Ry, Rz]
+        """
+        reqSubHeader= { 'Command_No': (0x75, 0x00),
                     'Instance': [101, 0],
                     'Attribute': 0,
                     'Service':  0x0E,
@@ -188,7 +194,9 @@ class MotomanUDP:
         data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
         result = self.Cvt_SignInt( data)
         print(result)
-
+        coordinate = [result[5], result[6], result[7], result[8], result[9], result[10]]
+        return result, coordinate
+     
     def Cvt_SignInt(self, data):
         """Convert 32bit Signed Integer
         input type: list
@@ -219,6 +227,7 @@ class MotomanUDP:
         return result
     
     def ReadIO(self, number):
+        # TODO Instance高、低位元輸入還未完成
         number = hex(number)
         
         reqSubHeader = { 'Command_No': (0x78, 0x00),
@@ -231,17 +240,36 @@ class MotomanUDP:
         Ans_packet = self.sendCmd( reqSubHeader, reqData)
         data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
         print(data)
+    
+    def ReadRegister(self, number):
+        """
+        - number : 12bit
+        """
+        # TODO 未測試
+        number = hex(number)
+        
+        reqSubHeader = { 'Command_No': (0x79, 0x00),
+                    'Instance': [0xcf, 0x9],
+                    'Attribute': 1,
+                    'Service':  0x0E,
+                    'Padding': (0, 0)}
+        reqData = []
+        
+        Ans_packet = self.sendCmd( reqSubHeader, reqData)
+        data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
+        print(data)
+        
 #------------------------------------------------------------------------------ Robot Move Cammand-----------------------------------------------------------------------------------------
-    def MoveCMD_data(self, speedType, speed, coordinateType, coordinate):
+    def MoveCMD_data(self, moveType, speed, coordinateType, coordinate, Type= 4, Expanded_type= 0, Tool_No=5, User_coordinate=0):
 
-        # TODO : 參數未完成
+        # TODO : 參數已完成，待測驗。
         """Move Joint Angle(Point to Point)
         - Args: data use  Pack_MoveCMD_Packet(fun.)!!!
-        - speedType:
+        - moveType:
             - 0: Link operation(0.01%)
             - 1: V(Cartesian operation)(0.1 mm/s)
             - 2: VR(Cartesian operation)(0.1 degree/s)
-        - coordinate:
+        - coordinateType:
             - 16: Base coordinate
             - 17: Robot coordinate
             - 18: User coordinate
@@ -271,16 +299,16 @@ class MotomanUDP:
 
         Movedata ={"Robot": 1,
            "Station": 1,
-           "speedType": speedType,
+           "moveType": moveType,
            "speed": speed,
            "coordinateType": coordinateType,
            "coordinate":[coordinate[0], coordinate[1], coordinate[2], coordinate[3], coordinate[4], coordinate[5]],
            "Reservation1":0,
            "Reservation2":0,
-           "Type": 0,
-           "Expanded type": 0,
-           "Tool No": 5,
-           "User coordniate": 0,
+           "Type": Type,
+           "Expanded type": Expanded_type,
+           "Tool No": Tool_No,
+           "User coordniate": User_coordinate,
            "Base axis": [0, 0, 0],
            "Station axis": [0, 0, 0, 0, 0, 0]}
         
@@ -301,7 +329,7 @@ class MotomanUDP:
         """
         Robot = struct.pack('I', Movedata["Robot"])
         Station= struct.pack('I', Movedata["Station"])
-        speedType= struct.pack('I', Movedata["speedType"])
+        moveType= struct.pack('I', Movedata["moveTvype"])
         speed= struct.pack('I', Movedata["speed"])
         coordinateType= struct.pack('I', Movedata["coordinateType"])
         coordinate_x= self.signDecide(Movedata["coordinate"][0], 1000)
@@ -326,7 +354,7 @@ class MotomanUDP:
         Station_axis_5= struct.pack('I', Movedata["Station axis"][4])
         Station_axis_6= struct.pack('I', Movedata["Station axis"][5])
         # Move command data 
-        MovePacket = Robot+Station+speedType+speed+coordinateType+coordinate_x+coordinate_y+coordinate_z\
+        MovePacket = Robot+Station+moveType+speed+coordinateType+coordinate_x+coordinate_y+coordinate_z\
                 +coordinate_Rx+coordinate_Ry+coordinate_Rz+Reservation1+Reservation2+Type+Expanded_type\
                 +Tool_No+User_coordniate+Base_axis_1+Base_axis_2+Base_axis_3+Station_axis_1+Station_axis_2\
                 +Station_axis_3+Station_axis_4+Station_axis_5+Station_axis_6
@@ -344,15 +372,43 @@ class MotomanUDP:
         reqData = data
 
         Ans_packet = self.sendCmd(reqSubHeader, reqData)
+        status = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
 
-    def moveMH(self):
-        # TODO 參數輸入未完成
+        return status
+
+    def moveMH(self, moveType, speed, coordinateType, coordinate):
         """Move Command
         Use me!!! 
+        - moveType :
+            - 0: Link operation(0.01%)
+            - 1: V(Cartesian operation)(0.1 mm/s)
+            - 2: VR(Cartesian operation)(0.1 degree/s)
+        - speed:
+            - 0: unit (0.01%)
+            - 1: unit (0.1 mm/s)
+            - 2: unit (0.1 degree/s)
+        - coordinateType:
+            - 16: Base coordinate
+            - 17: Robot coordinate
+            - 18: User coordinate
+            - 19: Tool coordinate
+        - coordinate : [x, y, z, Rx, Ry, Rz] -list
+            - x  unit(μm) 
+            - y  unit(μm)
+            - z  unit(μm)
+            - Rx unit(0.0001 degree)
+            - Ry unit(0.0001 degree)
+            - Rz unit(0.0001 degree)
+        - Type : Please read the manual!
+        - Expanded type : Please read the manual!
+        - Tool No.: 
+            - 5: default
+        - User_coordinate:
+            - 0: default
         """
         # 參數
         # 填寫參數，並轉字典形式
-        dict_data = self.MoveCMD_data(speedType, speed, coordinateType, coordinate)
+        dict_data = self.MoveCMD_data(moveType, speed, coordinateType, coordinate)
         # 把字典打包封包
         Movedata_packet = self.Pack_MoveCMD_Packet(dict_data)
         # 加入標題、子標題並完成封包後寄出
@@ -368,7 +424,7 @@ udp = MotomanUDP()
 # udp.ReadPos()
 # udp.ReadIO(255) 
 
-# 未完成與測試
+# 未完成測試
 udp.moveMH()
 
 
@@ -379,30 +435,9 @@ start = [16, 4, 5, 0, 0, 958.58, -102.274, -164.748, -165.2922, -7.1994, 17.5635
 end = [16, 4, 5, 0, 0, 956.709, 23.919, -164.373, -165.2942, -7.2005, 17.5837, 0, 0]
 """
 
-def signDecide(number, rate):
-    """判斷正負符號並編碼成Bytes型別
-    """
-    if number < 0:
-        ans = struct.pack('i', int(number*rate))
-    else:
-        ans = struct.pack('I', int(number*rate))
 
-    return ans
 
-# Movedata ={"Robot": 1,
-#            "Station": 1,
-#            "speedType": 0,
-#            "speed": 5,
-#            "coordinateType": 19,
-#            "coordinate":[485.364, -1.213, 234.338, 179.984, 20.2111, 1.6879],
-#            "Reservation1":0,
-#            "Reservation2":0,
-#            "Type": 0,
-#            "Expanded type": 0,
-#            "Tool No": 5,
-#            "User coordniate": 0,
-#            "Base axis": [0, 0, 0],
-#            "Station axis": [0, 0, 0, 0, 0, 0]}
+
 
 # Robot = struct.pack('I', Movedata["Robot"])
 # Station= struct.pack('I', Movedata["Station"])

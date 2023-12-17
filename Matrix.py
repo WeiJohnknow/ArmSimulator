@@ -6,39 +6,12 @@ d2r = np.deg2rad
 r2d = np.rad2deg
 class Matrix4x4:
     def __init__(self):
-        
-        self.org_pos = np.eye(4)
+        pass
 
-    # def RotaX(self,deg):
-    #     rad = d2r(deg)
-    #     rot = np.eye(4)
-    #     rot[1, 1] = c(rad)
-    #     rot[2, 1] = s(rad)
-    #     rot[1, 2] = -s(rad)
-    #     rot[2, 2] = c(rad)
-
-    #     return rot
-
-    # def RotaY(self, deg):
-    #     rad = d2r(deg)
-    #     rot = np.eye(4)
-    #     rot[0, 0] = c(rad)
-    #     rot[2, 0] = -s(rad)
-    #     rot[0, 2] = s(rad)
-    #     rot[2, 2] = c(rad)
-
-    #     return rot
-
-    # def RotaZ(self, deg):
-    #     rad = d2r(deg)
-    #     rot = np.eye(4)
-    #     rot[0, 0] = c(rad)
-    #     rot[1, 0] = s(rad)
-    #     rot[0, 1] = -s(rad)
-    #     rot[1, 1] = c(rad)
-
-    #     return rot
-    def RotaX(self,rad):
+    def RotaX(self, rad):
+        """
+        Unit : radian
+        """
         rot = np.eye(4)
         rot[1, 1] = c(rad)
         rot[2, 1] = s(rad)
@@ -48,6 +21,9 @@ class Matrix4x4:
         return rot
 
     def RotaY(self, rad):
+        """
+        Unit : radian
+        """
         rot = np.eye(4)
         rot[0, 0] = c(rad)
         rot[2, 0] = -s(rad)
@@ -57,6 +33,9 @@ class Matrix4x4:
         return rot
 
     def RotaZ(self, rad):
+        """
+        Unit : radian
+        """
         rot = np.eye(4)
         rot[0, 0] = c(rad)
         rot[1, 0] = s(rad)
@@ -66,6 +45,9 @@ class Matrix4x4:
         return rot
 
     def RotaXYZ(self, rx, ry, rz):
+        """
+        Fixed Angle
+        """
         Rx = self.RotaX(rx)
         Ry = self.RotaY(ry)
         Rz = self.RotaZ(rz)
@@ -83,6 +65,7 @@ class Matrix4x4:
         return Trans
         
     def EulAngle_ZYX(self, TransformationMat): 
+        
         #fixed angle xyz =>euler use zyx method
 
         r11 = TransformationMat[0,0]
@@ -116,6 +99,9 @@ class Matrix4x4:
         return q
 
     def MatToAngle(self, coord):
+        """
+        Convert Transformation matrix(4x4) to Pose matrix(6x1)
+        """
         # Use Euler Angle ZYX
         q = np.zeros(shape=(6))
         r11 = coord[0,0]#Xx
@@ -150,9 +136,9 @@ class Matrix4x4:
     
 
     def AngletoMat(self, inputMat):
-        '''
-        Matrix_6X1  to Matrix_4X4
-        '''
+        """
+        Convert matrix(6x1) to Pose Transformation matrix(4x4)
+        """
         coord = np.eye(4)
         Buffer = np.eye(3)
         coord[0,3] = inputMat[0,0] 
@@ -169,11 +155,87 @@ class Matrix4x4:
 
 
         return coord
+    
+
+    def RotaMat_To_Quaternion(self, Mat3x3):
+        """convert Quaternion and Rotation Matrix
+
+        Args:
+        - Rotation Matrix 3x3 .
+
+        Return: 
+        - q = a + bi + cj + dk 
+        """
+
+        sin = np.sin
+        cos = np.cos
+        acos = np.arccos
+
+        θ = acos((Mat3x3[0, 0]+Mat3x3[1, 1]+Mat3x3[2, 2]-1)/2)
+        if sin(θ) != 0:
+            kx = (Mat3x3[2, 1] - Mat3x3[1, 2]) / (2*sin(θ))
+            ky = (Mat3x3[0, 2] - Mat3x3[2, 0]) / (2*sin(θ))
+            kz = (Mat3x3[1, 0] - Mat3x3[0, 1]) / (2*sin(θ))
+        else:
+            kx = 0
+            ky = 0
+            kz = 0
+
+        a = cos(θ/2)
+        b = kx * sin(θ/2)
+        c = ky * sin(θ/2)
+        d = kz * sin(θ/2)
+
+        quaternion = np.array([a, b, c, d])
+
+        return quaternion
+    
+    def Quaternion_To_RotaMat(self, quaternion):
+        """
+        Convert quaternion to rotation matrix.
+
+        Parameters:
+        - q: 1D NumPy array representing the quaternion [a, b, c, d].
+
+        Returns:
+        - 3x3 NumPy array representing the rotation matrix.
+        """
+
+        a, b, c, d = quaternion
+
+        rotation_matrix = np.array([
+            [a**2 + b**2 - c**2 - d**2, 2 * (b*c - a*d), 2 * (b*d + a*c)],
+            [2 * (b*c + a*d), a**2 - b**2 + c**2 - d**2, 2 * (c*d - a*b)],
+            [2 * (b*d - a*c), 2 * (c*d + a*b), a**2 - b**2 - c**2 + d**2]])
+
+        return rotation_matrix
 
 
 Mat = Matrix4x4()
-# test1 = Mat.RotaXYZ(pi/2,pi/4,pi/2)
-# print(test1)
+world_coordinate = np.eye(4)
+Ap = world_coordinate
 
-# test2 = Mat.EulAngle_ZYX(test1)
-# print(test2)
+# deg = 90
+# for i in range(2):
+    
+#     q = Mat.RotaMat_To_Quaternion(Mat.RotaZ(d2r(deg)))
+#     print(q)
+#     r = Mat.Quaternion_To_RotaMat(q)
+#     print(r)
+#     deg += 1
+
+# 四元數差值
+Now = np.eye(3)
+Goal= np.array([[ 0, -1,  0],
+                       [ 1,  0,  0],
+                       [ 0,  0,  1]])
+qNow = Mat.RotaMat_To_Quaternion(Now)
+qGoal = Mat.RotaMat_To_Quaternion(Goal)
+dw = (qGoal[0]-qNow[0])/100
+dk = (qGoal[3]-qNow[3])/100
+
+print(qNow)
+print(qGoal)
+print(dw)
+print(dk)
+

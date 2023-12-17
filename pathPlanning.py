@@ -1,10 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from Toolbox import CsvTool
+from dataBase import dataBase
+from Matrix import Matrix4x4
 
 class PathPlanning:
     def __init__(self):
-        self.Csv = CsvTool()
+        self.dB = dataBase()
+        self.Mat = Matrix4x4()
         
     
     def TP_434(self, θ1, V1, A1, θ2, θ3, θ4, V4, A4, t1, t2, t3):
@@ -386,11 +388,11 @@ class PathPlanning:
 
         return AccList, VelList, SList, TimeList
     
-    def MatrixPathPlanning(self, GoalEnd, NowEnd):
-        """
-        NowEnd to GoalEnd = D
-        D is Translation Matrix
-        code Ref. 2023hurocup file robot.py fun.GetDmat
+    def MatrixPathPlanning(self, filePath, GoalEnd, NowEnd, allTime, startTime=0, sampleTime = 0.04):
+        """Homogeneous matrix interpolation method
+        - Ref. 2023hurocup file robot.py fun.GetDmat
+        - return:
+            dshape: n*4*4 \n 
         """ 
         sin = np.sin
         cos = np.cos
@@ -419,12 +421,16 @@ class PathPlanning:
         
         Δx = GoalEnd[0,3] - NowEnd[0,3]
         Δy = GoalEnd[1,3] - NowEnd[1,3]
-        Δz = GoalEnd[2,3] - NowEnd[2,3]        
-        sampleInterval = 0.001
-        TBuffer = np.zeros(((int(1/sampleInterval),4,4)))
-        # D = np.eye(4)
-        for λ_ in range(int((1/sampleInterval))):
-            λ =  λ_/(1/sampleInterval)
+        Δz = GoalEnd[2,3] - NowEnd[2,3]   
+        
+        sampleInterval = allTime / sampleTime
+        # Create Time Point     
+        timeData = np.arange(startTime, allTime+sampleTime, sampleTime)
+
+        TBuffer = np.zeros(((int(sampleInterval)+1,4,4)))
+        
+        for λ_ in range(int(sampleInterval)+1):
+            λ = λ_ / int(sampleInterval)
             V = (1-cos(θ*λ))
             
             # D[0,0] = kx**2*V+cos(θ*λ)
@@ -439,19 +445,70 @@ class PathPlanning:
             # D[3,0] = Δx*λ
             # D[3,1] = Δy*λ
             # D[3,2] = Δz*λ
-            D = np.array(([ [kx**2*V+cos(θ*λ), kx*ky*V-kz*sin(θ*λ), kx*kz*V+ky*sin(θ*λ), Δx*λ],
-                                    [kx*ky*V+kz*sin(θ*λ), ky**2*V+cos(θ*λ), ky*kz*V-kx*sin(θ*λ), Δy*λ],
-                                    [kx*kz*V-ky*sin(θ*λ), ky*kz*V+kx*sin(θ*λ), kz**2*V+cos(θ*λ), Δz*λ],
-                                    [0, 0, 0, 1]]))
-            # D[np.isnan(D)] = 0.0
-            T = NowEnd @ D
-            TBuffer[λ_] = T
+            # D = np.array(([  [kx**2*V+cos(θ*λ), kx*ky*V-kz*sin(θ*λ), kx*kz*V+ky*sin(θ*λ), Δx*λ],
+            #                         [kx*ky*V+kz*sin(θ*λ), ky**2*V+cos(θ*λ), ky*kz*V-kx*sin(θ*λ), Δy*λ],
+            #                         [kx*kz*V-ky*sin(θ*λ), ky*kz*V+kx*sin(θ*λ), kz**2*V+cos(θ*λ), Δz*λ],
+            #
+            #                          [0, 0, 0, 1]]))
             
+            # Transformation matrix
+            D_ = np.array(([ [kx**2*V+cos(θ*λ), kx*ky*V-kz*sin(θ*λ), kx*kz*V+ky*sin(θ*λ), D[0,3]*λ],
+                                    [kx*ky*V+kz*sin(θ*λ), ky**2*V+cos(θ*λ), ky*kz*V-kx*sin(θ*λ), D[1,3]*λ],
+                                    [kx*kz*V-ky*sin(θ*λ), ky*kz*V+kx*sin(θ*λ), kz**2*V+cos(θ*λ), D[2,3]*λ],
+                                    [0, 0, 0, 1]]))
+            
+            # T 是 NowEnd ➜ GoalEnd 過程的插值矩陣(軌跡點)
+            T = NowEnd @ D_ 
+            TBuffer[λ_] = T
         
-        return TBuffer
+        # Save data
+        self.dB.Save(TBuffer, timeData,filePath)
+
+        return TBuffer, timeData
     
-    
+    def QuaternionsInterpolation(self, GoalEnd, NowEnd, Alltime, SampleTime=0.03):
+        """Quaternions interpolation method
+
+        args:
+            - GoalEnd: Homogeneous matrix(4x4)
+            - NowEnd:  Homogeneous matrix(4x4)
+        """
         
+        # 四元數差值
+        qNow = self.Mat.RotaMat_To_Quaternion(GoalEnd)
+        qGoal = self.Mat.RotaMat_To_Quaternion(NowEnd)
+
+        SampleInterval = Alltime / SampleTime
+
+        dw = (qGoal[0]-qNow[0])/SampleInterval
+        di = (qGoal[1]-qNow[1])/SampleInterval
+        dj = (qGoal[2]-qNow[2])/SampleInterval
+        dk = (qGoal[3]-qNow[3])/SampleInterval
+        if dw != 0:
+            wTrajectory = np.arange(qNow[0], qGoal[0], dw)
+        else:
+            wTrajectory = 0
+        if di != 0:
+            iTrajectory = np.arange(qNow[1], qGoal[1], di)
+        else:
+            iTrajectory = 0
+        if dj != 0:
+            jTrajectory = np.arange(qNow[2], qGoal[2], dj)
+        else:
+            jTrajectory = 0
+        if dk != 0:
+            kTrajectory = np.arange(qNow[3], qGoal[3], dk)
+        else:
+            kTrajectory = 0
+
+        Trajectory = {'w': wTrajectory, 
+                      'i': iTrajectory,
+                      'j': jTrajectory,
+                      'k': kTrajectory}
+        
+        self.Mat.Quaternion_To_RotaMat(Trajectory)
+
+
 
     def main(self):
         # 4-3-4
@@ -463,8 +520,7 @@ class PathPlanning:
         t1, t2, t3 = 1, 1, 1
         TimeList, PosList , VelList, AccList, samplePoint = self.TrajectoryPlanning_434\
         (θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t1, t2, t3)
-        self.Csv.SaveCsv(PosList, "Trajectory_Point/TrajectoryPlan434_3.csv")
-        data = self.Csv.LoadCsv("Trajectory_Point/TrajectoryPlan434_3.csv")
+
 
         # # Matrix PathPlan test
         # NowEnd = np.array([[-1,0,0,10],

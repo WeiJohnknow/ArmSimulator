@@ -12,6 +12,7 @@ from Kinematics import *
 from MotomanEthernet import *
 import csv
 from Toolbox import TimeTool, CsvTool
+from datetime import datetime
 
 class Simulator:
     def __init__(self):
@@ -44,6 +45,7 @@ class Simulator:
         self.mh = MotomanConnector()
         self.Time = TimeTool()
         self.Csv = CsvTool()
+        self.dB = dataBase()
 
     def Pygameinit(self):
         # glutInit(sys.argv)
@@ -175,8 +177,8 @@ class Simulator:
                 glVertex3fv(vertices[vertex])
         glEnd()
 
-    def draw_Arm(self, BasePoint, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, EndEffector):
-        length = 1
+    def draw_Arm(self, BasePoint, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, EndEffector, length):
+        # length = 1
         self.draw_axis(BasePoint, length)
         self.draw_axis(Joint1, length)
         self.draw_axis(Joint2, length)
@@ -790,13 +792,27 @@ class Simulator:
 
         # 矩陣軌跡法
         NowEnd = np.eye(4)
-        NowEnd = NowEnd @ Mat.TransXYZ(6,0,-2) @ Mat.RotaX(d2r(-180)) 
+        NowEnd = NowEnd @ Mat.TransXYZ(4.85,0,2.34) @ Mat.RotaX(d2r(-180))   
         GoalEnd = np.eye(4)
-        GoalEnd = GoalEnd @ Mat.TransXYZ(6,4,-2) @ Mat.RotaX(d2r(-180)) 
-        PosBuffer4X4 = self.Plan.MatrixPathPlanning(GoalEnd, NowEnd)
-        θ = np.zeros((len(PosBuffer4X4),6,1))
-        for i in range(len(PosBuffer4X4)):
-            θ[i] = self.Kin.IK_4x4(PosBuffer4X4[i], θ_Buffer)
+        GoalEnd = GoalEnd @ Mat.TransXYZ(9,-4,z=-2) @ Mat.RotaX(d2r(-170)) 
+        # 矩陣差值法
+        alltime = 6
+        sampleTime = 0.03
+        startTime = 0
+        PosBuffer4X4 = self.Plan.MatrixPathPlanning("dataBase\MatrixPathPlanning.csv", GoalEnd, NowEnd, alltime, startTime, sampleTime)
+        # self.Plan.QuaternionsInterpolation(GoalEnd, NowEnd, 5)
+        
+        # 由資料庫取得路徑資訊
+        # pathData = self.dB.Load()
+        path = self.dB.LoadMatrix4x4("dataBase\MatrixPathPlanning.csv")
+        θ = np.zeros((len(path),6,1))
+        # 取出資料後放入IK，將coordinate data ➔ Joint Angle data
+        # for i in range(len(PosBuffer4X4)):
+        #     θ[i] = self.Kin.IK_4x4(PosBuffer4X4[i], θ_Buffer)
+        for i in range(len(path)):
+            i_ = round(i*sampleTime,2)
+            θ[i] = self.Kin.IK_4x4(path[i_], θ_Buffer)
+            
 
 
         
@@ -1111,7 +1127,7 @@ class Simulator:
                 self.draw_axis(GoalEnd,1)
                 
             self.draw_Matrix4X4(EndEffector, 550)
-            self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector)
+            self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector, 1)
             self.draw_Trajectory(EndEffector, Mainloopiter)
 
 

@@ -52,7 +52,7 @@ class ControlMA1440:
         OpenTime1 = self.time.ReadNowTime()
         self.mh.connectMH()
         OpenTime2 = self.time.ReadNowTime()
-
+        print(self.mh.getJointAnglesMH())
         # Servo ON
         servoONTime1 = self.time.ReadNowTime()
         self.mh.servoMH(True)

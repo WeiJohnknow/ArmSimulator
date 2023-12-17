@@ -54,10 +54,12 @@ class UdpPacket_Req(UdpPacket):
         # Prepare request packet
         # chr(args)  把args轉為Unicode 
         if self.cmdNo[0] > int(0x7F):
-            cmdNo_new = []
-            cmdNo_new[0] = 0x7F
-            cmdNo_new[1] = self.cmdNo[0]- 0x7f
-            print('cmdBNo. 溢位(>0x7F),需另作調整')
+            #TODO 尚未測試
+            # Command 溢位處理
+            # cmdNo_new = [0,0]
+            # cmdNo_new[0] = self.cmdNo[0]- 0x7f
+            # cmdNo_new[1] = 0x7F
+            
             l_str = (self.identifier +                  # Identifier 4 Byte Fixed to “YERC”
                     chr( self.headSize[0] ) +           #Header part size 2Byte Size of header part (fixed to 0x20)
                     chr( self.headSize[1] ) +
@@ -87,8 +89,8 @@ class UdpPacket_Req(UdpPacket):
                     chr( self.padding[1] )
                 )
             
-            pass
-        if len(self.inst) > 2:
+            
+        elif len(self.inst) > 2:
             l_str = (self.identifier +                  # Identifier 4 Byte Fixed to “YERC”
                     chr( self.headSize[0] ) +           #Header part size 2Byte Size of header part (fixed to 0x20)
                     chr( self.headSize[1] ) +
@@ -149,15 +151,15 @@ class UdpPacket_Req(UdpPacket):
                 )
         
 
-            # 判斷資料型態
-            if (isinstance(self.data, str)):
-                #data is string
-                l_str = (l_str + self.data)
+        # 判斷資料型態
+        if (isinstance(self.data, str)):
+            #data is string
+            l_str = (l_str + self.data)
 
-            else:
-                for i in range(self.dataSize[0]):
-                    l_str = (l_str +
-                        chr(self.data[i]) )
+        else:
+            for i in range(self.dataSize[0]):
+                l_str = (l_str +
+                    chr(self.data[i]) )
 
 
         return (l_str)

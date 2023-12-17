@@ -1,29 +1,4 @@
 
-
-# UDP Packet 
-
-def pack_Pocket():
-
-    pass
-# Packet Format
-
-# Request Packet(Read Control)
-Identifier = 'YERC'
-Data_size = [0x0020, 0x0000]
-Reserve_1 = [3, 1, 0x00, 0x00]
-Block_No =  [0, 0, 0, 0]
-Reserve_2 = '99999999'
-Sub_header = [0x0072, 0x0001, 0x00, 0x01, 0x0000]
-
-# 定義格式
-format_string = '>4sHHBBII8sHHHH'
-# chr(65)  把65轉成Unicode = 'A' 
-chr(Identifier)
-
-# 轉UTF-8 
-# text_data = 'YERC'
-# utf8_data = text_data.encode('utf-8')
-
 """
 ASCII（American Standard Code for Information Interchange）:
 
@@ -59,3 +34,161 @@ UTF-8（Unicode Transformation Format-8）:
 字節串（bytes）是由字節構成的
 
 """
+# packet format
+identifier = 'YERC'        
+headSize = [0x20, 0x00]    
+dataSize = [0x10, 0x20]    
+reserve1 = 3               
+procDiv = 1          
+ACK = 0                    
+reqID = 0                                                                                                
+blockNo = [0, 0, 0, 0]    
+reserve2 = '99999999'      
+
+# Hold / Servo On/off Command 
+cmdNo = [0x83, 0x00]
+inst = [2, 0]
+attr = 1
+service = 0x10
+padding = [0, 0]
+
+Data_part = [1,0,0,0]
+Data_partSize = len(Data_part)
+
+
+req_UDP_packet = (identifier 
+            +chr(headSize[0]) 
+            +chr(headSize[1])
+            +chr(dataSize[0]) 
+            +chr(dataSize[1]) 
+            +chr(reserve1)
+            +chr(procDiv) 
+            +chr(ACK) 
+            +chr(reqID)
+            +chr(blockNo[0]) 
+            +chr(blockNo[1]) 
+            +chr(blockNo[2]) 
+            +chr(blockNo[3])
+            +reserve2 
+            +chr( cmdNo[0] ) 
+            +chr( cmdNo[1] )
+            +chr( inst[0] ) 
+            +chr( inst[1] ) 
+            +chr( attr ) 
+            +chr( service ) 
+            +chr( padding[0] ) 
+            +chr( padding[1] ))
+for i in range(Data_partSize):
+    All_req_UDP_packet = req_UDP_packet + chr(Data_part[i])
+
+print(All_req_UDP_packet)
+# packet_str = str(UDP_packet)
+packet_encode = All_req_UDP_packet.encode("utf-8")
+print(packet_encode)
+packet_decode = packet_encode.decode("utf-8")
+print(packet_decode)
+
+# Ans Packet
+# ans_UDP_packet = (packet_decode[0:4] 
+#             +ord(packet_decode[4]) 
+#             +ord(packet_decode[5])
+#             +ord(packet_decode[6]) 
+#             +ord(packet_decode[7]) 
+#             +ord(packet_decode[8])
+#             +ord(packet_decode[9]) 
+#             +ord(packet_decode[10]) 
+#             +ord(packet_decode[11])
+#             +ord(packet_decode[12]) 
+#             +ord(packet_decode[13]) 
+#             +ord(packet_decode[14]) 
+#             +ord(packet_decode[15])
+#             +packet_decode[16:24] 
+#             +ord( packet_decode[24] ) 
+#             +ord( packet_decode[25] )
+#             +ord( packet_decode[26] ) 
+#             +ord( packet_decode[27] ) 
+#             +ord( packet_decode[28] ) 
+#             +ord( packet_decode[29] ) 
+#             +ord( packet_decode[30] ) 
+#             +ord( packet_decode[31] ))
+# print(ans_UDP_packet)
+
+Ans_identifier = packet_decode[0:4]
+Ans_headSize0 = ord(packet_decode[4])
+Ans_headSize1 = ord(packet_decode[5])
+Ans_dataSize0 =  ord(packet_decode[6])
+Ans_dataSize1 =  ord(packet_decode[7])
+Ans_reserve1=  ord(packet_decode[8])
+Ans_procDiv =  ord(packet_decode[9])
+Ans_ACK =  ord(packet_decode[10])
+Ans_reqID =  ord(packet_decode[11])
+Ans_blockNo=  ord(packet_decode[12])
+Ans_blockNo=  ord(packet_decode[13])
+Ans_blockNo=  ord(packet_decode[14])
+Ans_blockNo=  ord(packet_decode[15])
+Ans_reserve2=  packet_decode[16:24]
+Ans_service =  ord( packet_decode[24] ) 
+Ans_status =  ord( packet_decode[25] ) 
+Ans_add_status_size =  ord( packet_decode[26] ) 
+Ans_padding1 =  ord( packet_decode[27] ) 
+
+Ans_add_status0=  ord( packet_decode[28] ) 
+Ans_add_status1=  ord( packet_decode[29] )  
+
+Ans_padding0=  ord( packet_decode[30] ) 
+Ans_padding1=  ord( packet_decode[31] ) 
+print('')
+
+# 有符整數實驗 8bit 
+DEC_2 = 160
+BIN_2 = bin(DEC_2)
+HEX_2 = hex(DEC_2)
+#　16 轉 10 進制
+HEX_2ToDEC_2 = int(HEX_2, 16)
+print(BIN_2)
+print(HEX_2)
+print(HEX_2ToDEC_2)
+print(format(DEC_2, '08b'))
+print(format(DEC_2, '08X'))
+
+
+int_list = [55, 251, 255, 255]
+
+# 32bit 有符整數換算 
+result = (int_list[3] << 24) | (int_list[2] << 16) | (int_list[1] << 8) | int_list[0]
+
+# 判斷是否為負數
+if result & (1 << 31):
+    result -= 1 << 32
+
+print(result*0.01)
+
+
+'''
+1.     16, 0, 0, 0,      
+2.     4, 0, 0, 0, 
+3.     5, 0, 0, 0, 
+4.     0, 0, 0, 0, 
+5.     0, 0, 0, 0, 
+6.     147, 103, 7, 0, 
+7.     55, 251, 255, 255, 
+8.     82, 147, 3, 0, 
+9.     160, 118, 27, 0, 
+10.    3, 22, 3, 0, 
+11.    246, 65, 0, 0, 
+12.    0, 0, 0, 0, 
+13.    0, 0, 0, 0
+'''
+
+
+
+
+
+
+
+
+
+
+
+
+

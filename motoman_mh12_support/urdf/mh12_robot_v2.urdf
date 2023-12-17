@@ -22,9 +22,9 @@
   <link name="base_link">
     <visual>
       <geometry>
-        <mesh filename="package://motoman_mh12_support/meshes/visual/mh12_base_link.stl" scale="1 1 1"/>
+        <mesh filename="package://motoman_mh12_support/meshes/visual/mh12_base_link.stl" scale="1.31 1.31 1.31"/>
       </geometry>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="0 0 -0.5895" rpy="0 0 0"/>
       <material name="material_yaskawa_blue"/>
     </visual>
     <collision>
@@ -37,7 +37,7 @@
   <link name="link_1_s">
     <visual>
       <geometry>
-        <mesh filename="package://motoman_mh12_support/meshes/visual/mh12_link_1_s.stl" scale="1 1 1"/>
+        <mesh filename="package://motoman_mh12_support/meshes/visual/mh12_link_1_s.stl" scale="1.31 1.31 1.31"/>
       </geometry>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <material name="material_yaskawa_blue"/>
@@ -52,9 +52,9 @@
   <link name="link_2_l">
     <visual>
       <geometry>
-        <mesh filename="package://motoman_mh12_support/meshes/visual/mh12_link_2_l.stl" scale="1 1 1"/>
+        <mesh filename="package://motoman_mh12_support/meshes/visual/mh12_link_2_l.stl" scale="1.31 1.31 1.31"/>
       </geometry>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="0.02 0 0" rpy="0 0.02 0"/>
       <material name="material_yaskawa_blue"/>
     </visual>
     <collision>
@@ -67,9 +67,9 @@
   <link name="link_3_u">
     <visual>
       <geometry>
-        <mesh filename="package://motoman_mh12_support/meshes/visual/mh12_link_3_u.stl" scale="1 1 1"/>
+        <mesh filename="package://motoman_mh12_support/meshes/visual/mh12_link_3_u.stl" scale="1.31 1.31 1.31"/>
       </geometry>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="0.05 0 0.2" rpy="0 0 0"/>
       <material name="material_yaskawa_blue"/>
     </visual>
     <collision>
@@ -82,9 +82,9 @@
   <link name="link_4_r">
     <visual>
       <geometry>
-        <mesh filename="package://motoman_mh12_support/meshes/visual/mh12_link_4_r.stl" scale="1 1 1"/>
+        <mesh filename="package://motoman_mh12_support/meshes/visual/mh12_link_4_r.stl" scale="1.31 1.31 1.31"/>
       </geometry>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="0.25 0 0.25" rpy="0 0 0"/>
       <material name="material_yaskawa_blue"/>
     </visual>
     <collision>
@@ -97,9 +97,9 @@
   <link name="link_5_b">
     <visual>
       <geometry>
-        <mesh filename="package://motoman_mh12_support/meshes/visual/mh12_link_5_b.stl" scale="1 1 1"/>
+        <mesh filename="package://motoman_mh12_support/meshes/visual/mh12_link_5_b.stl" scale="1.31 1.31 1.31"/>
       </geometry>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="0.2 0 -0.1" rpy="0 0 0"/>
       <material name="material_yaskawa_blue"/>
     </visual>
     <collision>
@@ -112,7 +112,7 @@
   <link name="link_6_t">
     <visual>
       <geometry>
-        <mesh filename="package://motoman_mh12_support/meshes/visual/mh12_link_6_t.stl" scale="1 1 1"/>
+        <mesh filename="package://motoman_mh12_support/meshes/visual/mh12_link_6_t.stl" scale="1.31 1.31 1.31"/>
       </geometry>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <material name="material_yaskawa_blue"/>
@@ -127,7 +127,7 @@
   <link name="tool0">
     <visual>
       <geometry>
-        <mesh filename="package://motoman_mh12_support/meshes/visual/mh12_link_6_t.stl" scale="1 1 1"/>
+        <mesh filename="package://motoman_mh12_support/meshes/visual/mh12_link_6_t.stl" scale="1.31 1.31 1.31"/>
       </geometry>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <material name="material_yaskawa_blue"/>
@@ -143,7 +143,7 @@
   <joint name="joint_1_s" type="revolute">
     <parent link="base_link"/>
     <child link="link_1_s"/>
-    <origin xyz="0 0 0.450" rpy="0 0 0"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
     <limit lower="-2.9670" upper="2.9670" effort="648.27" velocity="3.8397"/>
   </joint>

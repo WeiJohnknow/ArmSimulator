@@ -1,4 +1,4 @@
-#
+#%%
 from IPython.display import display
 from sympy import *
 import sympy
@@ -192,5 +192,31 @@ _0T4 = np.array([[cθ1*cθ2*cθ3 - sθ1*sθ3, -cθ1*sθ2, cθ1*cθ2*sθ3 + cθ3*
                  [cθ3*sθ2, cθ2 ,sθ2*sθ3 ,sθ2],
                  [-cθ1*sθ3 - cθ2*cθ3*sθ1, sθ1*sθ2, cθ1*cθ3 - cθ2*sθ1*sθ3, -cθ2*sθ1 - 2*sθ1 + 10],
                  [0, 0, 0, 1]])
+
+# %%
+cosθ, sinθ, ux, uy, uz = symbols("cosθ sinθ ux uy uz")
+u = np.array(([ux],
+              [uy],
+              [uz],
+              [1]))
+
+Rotx = np.array(([1,    0,     0, 0],
+                 [0, cosθ, -sinθ, 0],
+                 [0, sinθ,  cosθ, 0],
+                 [0,    0,     0, 1]))
+                 
+Roty = np.array(([ cosθ, 0, sinθ, 0],
+                 [    0, 1,    0, 0],
+                 [-sinθ, 0, cosθ, 0],
+                 [    0, 0,    0, 1]))
+
+Rotz = np.array(([cosθ, -sinθ, 0, 0],
+                 [sinθ,  cosθ, 0, 0],
+                 [   0,     0, 1, 0],
+                 [   0,     0, 0, 1]))
+
+display(Rotx @ Roty @ Rotz @ u)
+
+
 
 # %%

@@ -57,10 +57,13 @@ class DxFastEthServer():
         # 轉為字串
         req_str = str(req_packet)
         # 字串轉bytes                               #string representation of the packet
-        req_str = req_str.encode("utf-8")
+        # req_str = req_str.encode("utf-8")
         # 'YERC \x00\x04\x00\x03\x01\x00\x00\x00\x00\x00\x0099999999\x83\x00\x02\x00\x01\x10\x00\x00\x01\x00\x00\x00'
-        
-        ans_str = self.socketSndRcv(req_str)
+        req_servoON = b'YERC \x00\x04\x00\x03\x01\x00\x00\x00\x00\x00\x0099999999\x83\x00\x02\x00\x01\x10\x00\x00\x01\x00\x00\x00'
+        req_servoOFF = b'YERC \x00\x04\x00\x03\x01\x00\x00\x00\x00\x00\x0099999999\x83\x00\x02\x00\x01\x10\x00\x00\x02\x00\x00\x00'
+        test =         b'YERC \x00\x04\x00\x03\x00\x00\x00\x00\x00\x0099999999\x83\x83\x02\x00\x01\x10\x00\x00\x01\x00\x00\x00'
+        req_ReadIO = 1
+        ans_str = self.socketSndRcv( test)
         
         
 
@@ -68,8 +71,8 @@ class DxFastEthServer():
             return None
 
 
-        a = array.array('B', req_str)
-        b = array.array('B', ans_str)
+        # a = array.array('B', req_str)
+        # b = array.array('B', ans_str)
 
         ansPacket = UdpPacket_Ans(ans_str, procDiv)                  #create answer packet from answer string
         return ansPacket
@@ -362,6 +365,7 @@ class DxFastEthServer():
         """Read Postion
         type : JointAngle(1) or Coordinate(101) 
         """
+        # TODO:資料包解碼後資料換算 尚未測試。
         reqSubHeader = { 'cmdNo': (0x75, 0x00),
                     'inst': [101, 0],
                     'attr': 0,
@@ -393,18 +397,25 @@ class DxFastEthServer():
             AnsData[5,0] = self.Cvt_SignInt(ansPacket[40:44])*0.001
 
             return AnsData
-
-
         
-    
     def ReadIO(self):
         # 測試未完成  1Byte 不能超過127 會format error
+
+        
+        high = 2001 >> 8
+        Low = 2001 - (high << 8)
+
+        # 有號 無號 映射
+        if Low > 127:
+            Low = -(255 - (Low-1))
+
+
         reqSubHeader = { 'cmdNo': (0x78, 0x00),
-                    'inst': [127, 1],
+                    'inst': [0xE9,0x3],
                     'attr': 1,
                     'service':  0x0E,
                     'padding': (0, 0) }
-        reqData = [127]
+        reqData = []
 
         ansPacket = self.sendCmd(reqSubHeader, reqData)
 
@@ -454,14 +465,13 @@ if __name__ == '__main__':
 
     # Read Position
     Bf = Time.ReadNowTime()
-    NowPos = dx.ReadPos()
-    print('Mat6x1 :', NowPos)
+    # NowPos = dx.ReadPos()
+    # print('Mat6x1 :', NowPos)
     # dx.readVar( 1, 4)
-    # dx.ReadIO()
+    dx.ReadIO()
     Af = Time.ReadNowTime()
     timeerr = Af - Bf
     print('Cost time :', timeerr)
-
 
 
     # print ("---------------Write/Read  variables")

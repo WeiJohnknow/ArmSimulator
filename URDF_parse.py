@@ -9,6 +9,11 @@ from OpenGL.GLU import *
 from OpenGL.GLUT import *
 from OpenGL.GL.shaders import compileProgram, compileShader
 import stl
+from Kinematics import Kinematics
+from Simulator import Simulator
+from Matrix import Matrix4x4
+
+d2r = np.deg2rad
 
 # 定义顶点着色器和片元着色器
 vertex_shader = """
@@ -234,25 +239,26 @@ def draw_floor_with_color(vertices, normals, colors):
     glDisableClientState(GL_COLOR_ARRAY)
 
 # 定義地板的頂點和法向量
-def create_floor_grid(rows, cols, size):
+def create_floor_grid(rows, cols, size, height=0):
     vertices = []
     normals = []
     colors = []
     
+    
     for row in range(-rows,rows):
         for col in range(-cols,cols):
-            vertices.append([col * size,  row * size,0])
-            vertices.append([(col+1) * size, row * size,0])
-            vertices.append([(col+1) * size, (row+1) * size,0])
-            vertices.append([col * size,  row * size,0])
-            vertices.append([(col+1) * size, (row+1) * size,0])
-            vertices.append([col * size, (row+1) * size,0])
-            normals.append([0, 0, 1.0])
-            normals.append([0, 0, 1.0])
-            normals.append([0, 0, 1.0])
-            normals.append([0, 0, 1.0])
-            normals.append([0, 0, 1.0])
-            normals.append([0, 0, 1.0])
+            vertices.append([col * size,  row * size, height])
+            vertices.append([(col+1) * size, row * size, height])
+            vertices.append([(col+1) * size, (row+1) * size, height])
+            vertices.append([col * size,  row * size, height])
+            vertices.append([(col+1) * size, (row+1) * size, height])
+            vertices.append([col * size, (row+1) * size, height])
+            normals.append([0, 0, 1])
+            normals.append([0, 0, 1])
+            normals.append([0, 0, 1])
+            normals.append([0, 0, 1])
+            normals.append([0, 0, 1])
+            normals.append([0, 0, 1])
             
             # 黑白交替的顏色
             color = [1.0,1.0,1.0,0.5] if (row + col) % 2 == 0 else [0.5,0.5,0.5,0.5]
@@ -296,7 +302,13 @@ def create_floor_grid(rows, cols, size):
 
 def draw_urdf(links, joints,view,projection):
     glPushMatrix()  # 保存当前模型视图矩阵
-
+    S = np.eye(4)
+    L = np.eye(4)
+    U = np.eye(4)
+    R = np.eye(4)
+    B = np.eye(4)
+    T = np.eye(4)
+    
     H_ = np.eye(4)
     #test
     for joint_name, joint_info in joints.items():
@@ -334,11 +346,22 @@ def draw_urdf(links, joints,view,projection):
         draw_object(parent_mesh['vao'],parent_mesh['lens'],H__.T,view,projection)
         # draw_stl_with_color(parent_mesh['vertices'],parent_mesh['normals'],parent_mesh['colors'] )
         glPopMatrix()  # 恢复到链接前的模型视图矩阵
-
-        if joint_name=='j6':
+        if joint_name=='joint_1_s':
+            S = H_
+        elif joint_name=='joint_2_l':
+            L = H_
+        elif joint_name=='joint_3_u':
+            U = H_
+        elif joint_name=='joint_4_r':
+            R = H_
+        elif joint_name=='joint_5_b':
+            B = H_
+        elif joint_name=='joint_6_t':
             glPushMatrix()  # 保存当前链接的模型视图矩阵
-
+            
             H__ =H_ @ rpy_to_homogeneous(child_origin['xyz'],child_origin['rpy'])
+            T = H__
+            
             # glLoadMatrixf(H__.T)
             draw_object(child_mesh['vao'],child_mesh['lens'],H__.T,view,projection)
             # draw_stl_with_color(child_mesh['vertices'],child_mesh['normals'],child_mesh['colors'] )
@@ -372,6 +395,7 @@ def draw_urdf(links, joints,view,projection):
         # 然后将子链接的模型绘制到关节坐标系中
 
     glPopMatrix()  # 恢复到最初的模型视图矩阵
+    return S, L, U, R, B, T
 
 def rpy_to_homogeneous(xyz,rpy):
 
@@ -406,9 +430,16 @@ def rpy_to_homogeneous(xyz,rpy):
     H[1,3] = Py
     H[2,3] = Pz
     return H
-# 主循环
+
+
+
 def main(urdf_file):
     global shader_program
+
+    Sim = Simulator()
+    Kin = Kinematics()
+    Mat = Matrix4x4()
+
     pygame.init()
     display = (800, 600)
     pygame.display.set_mode(display, DOUBLEBUF | OPENGL)
@@ -416,7 +447,7 @@ def main(urdf_file):
         compileShader(vertex_shader, GL_VERTEX_SHADER),
         compileShader(fragment_shader, GL_FRAGMENT_SHADER)
     )
-    floor_vao,floor_lens,floor_vertices, floor_normals, floor_colors = create_floor_grid(20, 20, 0.5)
+    floor_vao,floor_lens,floor_vertices, floor_normals, floor_colors = create_floor_grid(20, 20, 0.5,-0.45)
     links, joints = parse_urdf(urdf_file)
 
     glEnable(GL_BLEND)
@@ -424,10 +455,25 @@ def main(urdf_file):
     glEnable(GL_DEPTH_TEST)
     glDepthFunc(GL_LESS)
 
+    θ_Buffer = d2r(np.zeros((6,1)))
+    # θ_Buffer[0, 0] =  d2r(-1.6671311132785285)
+    # θ_Buffer[1, 0] =  d2r(-38.81651799446324)
+    # θ_Buffer[2, 0] =  d2r(-41.087751371115175)
+    # θ_Buffer[3, 0] =  d2r(-0.0020620682544592226)
+    # θ_Buffer[4, 0] =  d2r(-76.44358294225668)
+    # θ_Buffer[5, 0] =  d2r(1.071035847811744)
+    
 
     camera_alpha = 45
     camera_angle = 0.0  # 旋轉角度
     camera_dis = 2.0
+
+    joints['joint_1_s']['rad'] = θ_Buffer[0, 0]
+    joints['joint_2_l']['rad'] = θ_Buffer[1, 0]
+    joints['joint_3_u']['rad'] = θ_Buffer[2, 0]
+    joints['joint_4_r']['rad'] = θ_Buffer[3, 0]
+    joints['joint_5_b']['rad'] = θ_Buffer[4, 0]
+    joints['joint_6_t']['rad'] = θ_Buffer[5, 0]
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -436,9 +482,9 @@ def main(urdf_file):
         
         keys = pygame.key.get_pressed()
         
-        if keys[pygame.K_q]:
+        if keys[pygame.K_a]:
             camera_angle += 1  # 旋轉攝影機角度
-        if keys[pygame.K_e]:
+        if keys[pygame.K_d]:
             camera_angle -= 1  # 旋轉攝影機角度
         
         if keys[pygame.K_w]:
@@ -453,34 +499,41 @@ def main(urdf_file):
 
         
         if keys[pygame.K_4]:
-            joints['j1']['rad'] += 0.01
+            joints['joint_1_s']['rad'] += 0.01
+            θ_Buffer[0, 0] += 0.01
         if keys[pygame.K_r]:
-            joints['j1']['rad'] -= 0.01
-
+            joints['joint_1_s']['rad'] -= 0.01
+            θ_Buffer[0, 0] -= 0.01
         if keys[pygame.K_5]:
-            joints['j2']['rad'] += 0.01
+            joints['joint_2_l']['rad'] += 0.01
+            θ_Buffer[1, 0] += 0.01
         if keys[pygame.K_t]:
-            joints['j2']['rad'] -= 0.01
-        
+            joints['joint_2_l']['rad'] -= 0.01
+            θ_Buffer[1, 0] -= 0.01
         if keys[pygame.K_6]:
-            joints['j3']['rad'] += 0.01
+            joints['joint_3_u']['rad'] += 0.01
+            θ_Buffer[2, 0] += 0.01
         if keys[pygame.K_y]:
-            joints['j3']['rad'] -= 0.01
-        
+            joints['joint_3_u']['rad'] -= 0.01
+            θ_Buffer[2, 0] -= 0.01
         if keys[pygame.K_7]:
-            joints['j4']['rad'] += 0.01
+            joints['joint_4_r']['rad'] += 0.01
+            θ_Buffer[3, 0] += 0.01
         if keys[pygame.K_u]:
-            joints['j4']['rad'] -= 0.01
-
+            joints['joint_4_r']['rad'] -= 0.01
+            θ_Buffer[3, 0] -= 0.01
         if keys[pygame.K_8]:
-            joints['j5']['rad'] += 0.01
+            joints['joint_5_b']['rad'] += 0.01
+            θ_Buffer[4, 0] += 0.01
         if keys[pygame.K_i]:
-            joints['j5']['rad'] -= 0.01
-        
+            joints['joint_5_b']['rad'] -= 0.01
+            θ_Buffer[4, 0] -= 0.01
         if keys[pygame.K_9]:
-            joints['j6']['rad'] += 0.01
+            joints['joint_6_t']['rad'] += 0.01
+            θ_Buffer[5, 0] += 0.01
         if keys[pygame.K_o]:
-            joints['j6']['rad'] -= 0.01
+            joints['joint_6_t']['rad'] -= 0.01
+            θ_Buffer[5, 0] -= 0.01
 
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
@@ -498,6 +551,7 @@ def main(urdf_file):
         # projection_np = np.array(projection).T  # glm矩阵和NumPy矩阵的存储顺序不同，所以需要转置
         # view_np = np.array(view).T
         
+        
        
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
@@ -505,7 +559,18 @@ def main(urdf_file):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         # 繪製地板
         # draw_floor_with_color(floor_vertices, floor_normals, floor_colors)
-        draw_urdf(links, joints,view,projection)
+
+
+        # mh12 kinematics
+        world_croodinate = np.eye(4) @ Mat.TransXYZ(0, 0, -0.45)
+        Base, S, L, U, R, B, T, Endeffector = Kin.Mh12_FK(world_croodinate, θ_Buffer[0,0], θ_Buffer[1,0], θ_Buffer[2, 0], θ_Buffer[3, 0], θ_Buffer[4, 0], θ_Buffer[5, 0])
+        Sim.draw_Arm(Base,  S, L, U, R, B, T, Endeffector, 0.1)
+        # Sim.draw_axis(world_croodinate, 0.2)
+
+        
+        Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis = draw_urdf(links, joints,view,projection)
+        
+        
 
         glPushMatrix()
         draw_object(floor_vao,floor_lens,np.eye(4).T,view,projection)
@@ -514,6 +579,6 @@ def main(urdf_file):
         pygame.time.wait(10)
 
 if __name__ == "__main__":
-    urdf_file = 'motoman_mh12_support/urdf/mh12_robot.urdf'
+    urdf_file = 'motoman_mh12_support/urdf/mh12_robot_v2.urdf'
     # urdf_file = "your_robot.urdf"  # 替换为您的URDF文件路径
     main(urdf_file)

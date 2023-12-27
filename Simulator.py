@@ -792,9 +792,11 @@ class Simulator:
 
         # 矩陣軌跡法
         NowEnd = np.eye(4)
-        NowEnd = NowEnd @ Mat.TransXYZ(4.85,0,2.34) @ Mat.RotaX(d2r(-180))   
+        # NowEnd = NowEnd @ Mat.TransXYZ(4.85364,-00.1213,2.34338) @ Mat.RotaXYZ(d2r(179.984), d2r(20.2111), d2r(21.6879))  
+        NowEnd = NowEnd @ Mat.TransXYZ(4.85,0,2.34) @ Mat.RotaXYZ(d2r(-180), d2r(20.2111), d2r(21.6879))
         GoalEnd = np.eye(4)
-        GoalEnd = GoalEnd @ Mat.TransXYZ(9,-4,z=-2) @ Mat.RotaX(d2r(-170)) 
+        # GoalEnd = GoalEnd @ Mat.TransXYZ(9.5858,-1.02274,z=-1.64748) @ Mat.RotaXYZ(d2r(-165.2922), d2r(-7.1994), d2r(17.5635))
+        GoalEnd = GoalEnd @ Mat.TransXYZ(9,-4,z=-2) @ Mat.RotaXYZ(d2r(-165.2922), d2r(-7.1994), d2r(17.5635))  
         # 矩陣差值法
         alltime = 6
         sampleTime = 0.03
@@ -812,13 +814,35 @@ class Simulator:
         for i in range(len(path)):
             i_ = round(i*sampleTime,2)
             θ[i] = self.Kin.IK_4x4(path[i_], θ_Buffer)
+            # TODO θ[i]未加入時間標籤 ，模擬器未加入系統時間模擬
             
+        # 此為存取JointAngle data
+        # TODO 此功能待完成 輸入資料shape需調整 以下基礎code 以整併進dataBase
+        self.dB.Save(θ, 0, "dataBase\MatrixPathPlanning_JointAngle_.csv")
+        # import pandas as pd
+        # df = pd.DataFrame(columns=['S', 'L', 'U', 'R', 'B', 'T'])
+
+        # # list用於儲存 Matrix(1x16) 的數據 
+        # data_list = []
+        # for dataIndex in range(θ.shape[0]):
+        #     data1x6 = θ[dataIndex].copy()
+        #     data_list.append(data1x6.flatten())
+
+        # # 把list中的所有數據一次性加到 DataFrame 中
+        # df = pd.concat([df, pd.DataFrame(data_list, columns=df.columns)], ignore_index=True)
+
+        # # 如果 CSV 文件不存在，直接写入；否则追加
+        # mode = 'w' if not os.path.exists("dataBase\MatrixPathPlanning_JointAngle_.csv") else 'a'
+        # df.to_csv("dataBase\MatrixPathPlanning_JointAngle.csv", mode=mode, index=False)
+
+        
 
 
         
 
         # 迴圈疊代次數
         Mainloopiter = 0
+        sysTime = self.Time.ReadNowTime()
         # iter1 = 0
         # iter2 = 0
         # iter3 = 0
@@ -830,6 +854,7 @@ class Simulator:
         cameraθ = 45
         cameraφ = 0
         while True:
+            tb = self.Time.ReadNowTime()
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -1131,12 +1156,16 @@ class Simulator:
             self.draw_Trajectory(EndEffector, Mainloopiter)
 
 
+
             
             
 
             Mainloopiter += 1
             pygame.display.flip()
             pygame.time.wait(10)
+            ta = self.Time.ReadNowTime()
+            time_err = self.Time.TimeError(tb, ta)
+            print(time_err)
 
     
 if __name__ == "__main__":

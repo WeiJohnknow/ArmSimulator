@@ -1,6 +1,8 @@
 import struct
 import socket
-
+import pandas as pd
+from Toolbox import TimeTool
+import time
 
 class UDP_packet:
     def __init__(self, Sub_header, data=[]) -> None:
@@ -114,12 +116,31 @@ class UDP_packet:
             print('udp ok!!')
             return data
         
+        elif status == '0x8':
+            Error = ['Error code: 0x08','Requested command is not defined!!']
+            return Error
+        
         elif status == "0x1f":
             add_status[0] = hex(Ans_packet[28])
             add_status[1] = hex(Ans_packet[29])
 
             if add_status[0] == '0xa7' and  add_status[1] == '0xe4':
-                Error = ['E4A7','Packet format error!!']
+                Error = ['Error code: E4A7','Packet format error!!']
+                return Error
+            elif add_status[0] == '0x1' and add_status[1] == '0xa0':
+                Error = ['Error code: A001','Instance error!!']
+                return Error
+            elif add_status[0] == '0x80' and add_status[1] == '0x20':
+                Error = ['Error code: 2080','Incorrect mode!!']
+                return Error
+            elif add_status[0] == '0xa' and add_status[1] == '0xb0':
+                Error = ['Error code: B00A','Operating speed is not setting!!']
+                return Error
+            elif add_status[0] == '0x70' and add_status[1] == '0x20':
+                Error = ['Error code: 2070','Servo OFF!!']
+                return Error
+            elif add_status[0] == '0x10' and add_status[1] == '0x20':
+                Error = ['Error code: 2010','Manipulator operating!!']
                 return Error
             else:
                 return add_status
@@ -146,6 +167,9 @@ class MotomanUDP:
         # IP and Port
         self.UDP_IP = ip
         self.UDP_PORT = 10040
+
+        # Tool
+        self.Time = TimeTool()
 
     def sendCmd(self, reqSubHeader, reqData, procDiv=1):
         # Make Request Packet
@@ -193,7 +217,7 @@ class MotomanUDP:
         Ans_packet = self.sendCmd( reqSubHeader, reqData)
         data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
         result = self.Cvt_SignInt( data)
-        print(result)
+        # print(result)
         coordinate = [result[5], result[6], result[7], result[8], result[9], result[10]]
         return result, coordinate
      
@@ -228,28 +252,64 @@ class MotomanUDP:
     
     def ReadIO(self, number):
         # TODO Instance高、低位元輸入還未完成
-        number = hex(number)
+        number_hex = hex(number)
+
+        # 移除 '0x' 前綴並填充零，確保至少有兩個字元
+        number_hex = number_hex[2:].zfill(4)
+
+        # 將十六進位表示法分為高位元和低位元
+        high_byte = int(number_hex[:2], 16)
+        low_byte = int(number_hex[2:], 16)
         
         reqSubHeader = { 'Command_No': (0x78, 0x00),
-                    'Instance': [0xcf, 0x9],
-                    'Attribute': 1,
-                    'Service':  0x0E,
-                    'Padding': (0, 0)}
+                        'Instance': [low_byte, high_byte],
+                        'Attribute': 1,
+                        'Service':  0x0E,
+                        'Padding': (0, 0)}
         reqData = []
         
         Ans_packet = self.sendCmd( reqSubHeader, reqData)
         data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
-        print(data)
+        return data
+    
+    def WriteIO(self, Pin, data):
+        # TODO Instance高、低位元輸入還未完成
+        Pin_hex = hex(Pin)
+
+        # 移除 '0x' 前綴並填充零，確保至少有兩個字元
+        Pin_hex = Pin_hex[2:].zfill(4)
+
+        # 將十六進位表示法分為高位元和低位元
+        high_byte = int(Pin_hex[:2], 16)
+        low_byte = int(Pin_hex[2:], 16)
+        
+        reqSubHeader = {'Command_No': (0x78, 0x00),
+                        'Instance': [low_byte, high_byte],
+                        'Attribute': 1,
+                        'Service':  0x10,
+                        'Padding': (0, 0)}
+        reqData = [data]
+        
+        Ans_packet = self.sendCmd( reqSubHeader, reqData)
+        data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
+        return data
     
     def ReadRegister(self, number):
         """
         - number : 12bit
         """
         # TODO 未測試
-        number = hex(number)
+        number_hex = hex(number)
+
+        # 移除 '0x' 前綴並填充零，確保至少有兩個字元
+        number_hex = number_hex[2:].zfill(4)
+
+        # 將十六進位表示法分為高位元和低位元
+        high_byte = int(number_hex[:2], 16)
+        low_byte = int(number_hex[2:], 16)
         
         reqSubHeader = { 'Command_No': (0x79, 0x00),
-                    'Instance': [0xcf, 0x9],
+                    'Instance': [low_byte, high_byte],
                     'Attribute': 1,
                     'Service':  0x0E,
                     'Padding': (0, 0)}
@@ -257,7 +317,7 @@ class MotomanUDP:
         
         Ans_packet = self.sendCmd( reqSubHeader, reqData)
         data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
-        print(data)
+        return data
         
 #------------------------------------------------------------------------------ Robot Move Cammand-----------------------------------------------------------------------------------------
     def MoveCMD_data(self, moveType, speed, coordinateType, coordinate, Type= 4, Expanded_type= 0, Tool_No=5, User_coordinate=0):
@@ -298,7 +358,7 @@ class MotomanUDP:
         #    "Station axis": [0, 0, 0, 0, 0, 0]}
 
         Movedata ={"Robot": 1,
-           "Station": 1,
+           "Station": 0,
            "moveType": moveType,
            "speed": speed,
            "coordinateType": coordinateType,
@@ -327,10 +387,12 @@ class MotomanUDP:
     def Pack_MoveCMD_Packet(self, Movedata):
         """
         """
+        # TODO speed 改浮點數後尚未測試
         Robot = struct.pack('I', Movedata["Robot"])
         Station= struct.pack('I', Movedata["Station"])
-        moveType= struct.pack('I', Movedata["moveTvype"])
+        moveType= struct.pack('I', Movedata["moveType"])
         speed= struct.pack('I', Movedata["speed"])
+        # speed= struct.pack('f', Movedata["speed"])
         coordinateType= struct.pack('I', Movedata["coordinateType"])
         coordinate_x= self.signDecide(Movedata["coordinate"][0], 1000)
         coordinate_y= self.signDecide(Movedata["coordinate"][1], 1000)
@@ -371,7 +433,12 @@ class MotomanUDP:
                     'Padding': (0, 0)}
         reqData = data
 
+        tb = Time.ReadNowTime()
         Ans_packet = self.sendCmd(reqSubHeader, reqData)
+        ta = Time.ReadNowTime()
+        cmd_cost = Time.TimeError(tb,ta)
+        print("Write Move Command cost time: ", cmd_cost)
+
         status = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
 
         return status
@@ -412,20 +479,76 @@ class MotomanUDP:
         # 把字典打包封包
         Movedata_packet = self.Pack_MoveCMD_Packet(dict_data)
         # 加入標題、子標題並完成封包後寄出
-        self.MoveCMD_req(Movedata_packet)
-    
+        status = self.MoveCMD_req(Movedata_packet)
 
-        
+        return status
+    
+    def arconMH(self):
+        """ARC ON
+        - Network input: #27012 and # 27013 ON.
+        Ans = 8 + 4
+        """
+        udp.WriteIO(2701, 12)
+
+    def arcoffMH(self):
+        """ARC OFF
+        - Network input: #2701X 賦歸 
+        """
+        udp.WriteIO(2701, 0)
+
+    def wireout(self):
+        """WIRE INCHING(送線)
+        - Network input: #27010 ON.
+        """
+        udp.WriteIO(2701, 1)
+
+    def wireback(self):
+        """WIRE RETRACT(收線)
+        - Network input: #27011 ON.
+        """
+        udp.WriteIO(2701, 2)
+
+    def arcon_wireout(self):
+        """ARC ON
+        - Network input: 
+            - ArcON : #27012 and # 27013 ON.
+            - wireout : #27010 ON.
+        Ans = 8 + 4 + 1
+        """
+        udp.WriteIO(2701, 13)
 
 # UDP test
 udp = MotomanUDP()
-# udp.ServoMH(0)
-# Error = udp.ServoMH(2)
-# udp.ReadPos()
-# udp.ReadIO(255) 
+Time = TimeTool()
 
-# 未完成測試
-udp.moveMH()
+# 測試完成區
+# data = udp.ReadIO(2701)
+
+# 遠端起弧測試
+# 送線
+# udp.WriteIO(2701, 1)
+# 收線
+# udp.WriteIO(2701, 2)
+# 起弧
+# udp.WriteIO(2701, 12)
+# time.sleep(1)
+# IO狀態賦歸
+udp.WriteIO(2701, 0)
+
+
+
+# result, coordinate = udp.getcoordinateMH()
+
+
+# 待測試區
+coord = [485.364, -1.213, 234.338, 179.984, 20.2111, 1.6879]
+# TODO speed送float時 編碼有問題
+# Error = udp.ServoMH(1)
+# TODO 運轉中可能無法重複送MOVE指令
+status = udp.moveMH(1,10, 17, coord)
+print(status)
+# Error = udp.ServoMH(2)
+# print(status)
 
 
 

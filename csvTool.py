@@ -38,34 +38,51 @@ class csvTool:
     
     def analyze(self):
         # 指定三個 CSV 檔案路徑
-        file1_path = 'Data1122\RealMat4X4\Mat4X4GUN_Welding_3.csv'   
-        file2_path = 'Data1122\SimularMat4X4\Mat4X4GUN_Welding_3.csv'
+        file1_path = 'dataBase/io_data_1.csv'   
+        # file2_path = 'Data1122\SimularMat4X4\Mat4X4GUN_Welding_3.csv'
         # file3_path = 'Data1122\ErrorMat4X4\Mat4X4errorGUN_Welding_2.csv'
 
         # 讀取 CSV 檔案
         df1 = pd.read_csv(file1_path)
-        df2 = pd.read_csv(file2_path)
+        # df2 = pd.read_csv(file2_path)
         # df3 = pd.read_csv(file3_path)
 
         # 獲取 'Pz' 列的數據
-        Pz_data1 = df1['Pz']
-        Pz_data2 = df2['Pz']
+        Pz_data1 = df1['io_2511']
+
+        # Pz_data2 = df2['Pz']
          
         # Pz_data3 = df3['Px']
 
         # 繪製折線圖
-        plt.plot(Pz_data1, label='Real')
-        plt.plot(Pz_data2, label='Simulator')
+        plt.plot(Pz_data1, label='Digital output')
+        # plt.plot(Pz_data2, label='Simulator')
         # plt.plot(Pz_data3, label='Back 3')
 
         # 添加標題和標籤
-        plt.title('Pz RowData 3')
+        plt.title('Digital output(Pin 2511)')
         plt.xlabel('Count')
-        plt.ylabel('Pz(m)')
+        plt.ylabel('I/O value')
 
         plt.grid(True)
         # 顯示圖例
         plt.legend()
+
+        # 長條圖
+        # 計算每個值的出現次數
+        # value_counts = df1['io_3511'].value_counts()
+
+        # # 繪製長條圖
+        # plt.bar(value_counts.index, value_counts.values)
+
+        # # 在每個長條的頂端標出數值
+        # for i, value in enumerate(value_counts.values):
+        #     plt.text(value_counts.index[i], value + 0.1, str(value), ha='center', va='bottom')
+
+        # # 添加標題和標籤
+        # plt.title('出現次數長條圖')
+        # plt.xlabel('Count')
+        # plt.ylabel('次數')
 
         # 顯示圖表
         plt.show()

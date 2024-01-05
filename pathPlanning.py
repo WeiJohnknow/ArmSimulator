@@ -473,7 +473,7 @@ class PathPlanning:
             - GoalEnd: Homogeneous matrix(4x4)
             - NowEnd:  Homogeneous matrix(4x4)
         """
-        
+        # TODO 已完成Rotation Matrix， 但Homogeneous Transformation matrix未完成
         # 四元數差值
         qNow = self.Mat.RotaMat_To_Quaternion(GoalEnd)
         qGoal = self.Mat.RotaMat_To_Quaternion(NowEnd)
@@ -514,13 +514,20 @@ class PathPlanning:
         # 4-3-4
         rate = 0.25
         θinit, Vinit, Ainit, Vfinal, Afinal = 0, 0, 0, 0, 0
-        θfinal = 50
-        θlift_off = 50*rate
-        θset_down = 50*(1-rate)
+        θfinal = 60
+        θlift_off = θfinal*rate
+        θset_down = θfinal*(1-rate)
         t1, t2, t3 = 1, 1, 1
         TimeList, PosList , VelList, AccList, samplePoint = self.TrajectoryPlanning_434\
         (θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t1, t2, t3)
-
+        plt.plot(TimeList,AccList, label='Acc')
+        plt.plot(TimeList,VelList, label='Vel')
+        plt.plot(TimeList,PosList, label='S')
+        plt.title('4-3-4 motion planning')
+        plt.xlabel('time')
+        plt.ylabel('Unit')
+        # plt.tight_layout()
+        plt.show()
 
         # # Matrix PathPlan test
         # NowEnd = np.array([[-1,0,0,10],

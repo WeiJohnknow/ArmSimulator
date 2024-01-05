@@ -348,7 +348,7 @@ PosBuffer4X4 = Plan.MatrixPathPlanning("dataBase/test.csv", GoalEnd, NowEnd, all
 path_dict_4X4, path_df_4X4, path_np_4X4, path_np_6X1 = dB.LoadMatrix4x4("dataBase/test.csv")
 dB.Save(path_np_6X1, 0, "dataBase/test_PoseMatrix.csv")
 
-# # 轉換 pose matrix (6*1)
+# # 轉換 pose matrix (6*1)d
 # test = Mat.MatToAngle(path_np_4X4[0]) 
 # print(test)
 

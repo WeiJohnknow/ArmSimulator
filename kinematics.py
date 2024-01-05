@@ -144,7 +144,15 @@ class Kinematics:
         """
         WorldCoordinate = np.eye(4)
 
+        # 模擬器倍率
         Unit = 0.01
+
+        # 真實倍率
+        # Unit = 1
+
+        # urdf解釋器scale
+        # Unit = 0.00078
+        
         WtoB = Mat.TransXYZ(0, 0, -450*Unit)
         Base = WorldCoordinate @ WtoB
         
@@ -417,6 +425,20 @@ class Kinematics:
             J[:,i] = Dmat[:3,:].T.reshape(-1)
             # print("test")
 
+            # # 算Jacbian matrix det(用SVD)
+            # _, s, _ = np.linalg.svd(J)
+            # # 計算行列式
+            # determinant = np.prod(s)
+            # print("det(J)", determinant)
+            # if determinant == 0:
+            #     print("奇異點")
+
+            # 計算rank
+            # rank = np.linalg.matrix_rank(J)
+            # # print("rank(J)", rank)
+            # if rank < 6:
+            #     print("rank<6")
+
         return J
 
     def IK_4x4(self, Goal_4x4, θ_Buffer):
@@ -434,7 +456,7 @@ class Kinematics:
 
             V_4x4 = Goal_4x4 - Now_End
             error = np.sqrt(np.sum(V_4x4** 2))
-            print("error " , error) 
+            # print("error " , error) 
 
             # 收斂條件
             if error  < 0.001:
@@ -451,6 +473,25 @@ class Kinematics:
             θ_Buffer += w * test
             # θ_Buffer = Normdeg(θ_Buffer)
             # print(θ_Buffer)
+
+        """
+        奇異點判定:
+        1. rank小於matrix本身之row或column
+        2.非對稱矩陣使用SVD(奇異值分解)，若奇異值等於0，則為奇異點
+        """  
+
+        # 算Jacbian matrix det(用SVD)
+        _, s, _ = np.linalg.svd(J)
+        # 計算行列式
+        determinant = np.prod(s)
+        # print("det(J)", determinant)
+        if determinant == 0:
+            print("SVD =  0, 是奇異點")
+
+        rankJ = np.linalg.matrix_rank(J)
+        # print("rank :", rankJ)
+        if rankJ < 6:
+            print("有可能是 奇異點")
 
         print("iter :", iter)
         # normθ = norm_deg(θ)

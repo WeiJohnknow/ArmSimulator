@@ -100,7 +100,7 @@ class Matrix4x4:
 
     def MatToAngle(self, coord):
         """
-        Convert Transformation matrix(4x4) to Pose matrix(6x1)
+        Convert Transformation matrix(4x4) to Pose matrix(1x6)
         """
         # Use Euler Angle ZYX
         q = np.zeros(shape=(6))
@@ -224,18 +224,18 @@ Ap = world_coordinate
 #     print(r)
 #     deg += 1
 
-# 四元數差值
-Now = np.eye(3)
-Goal= np.array([[ 0, -1,  0],
-                       [ 1,  0,  0],
-                       [ 0,  0,  1]])
-qNow = Mat.RotaMat_To_Quaternion(Now)
-qGoal = Mat.RotaMat_To_Quaternion(Goal)
-dw = (qGoal[0]-qNow[0])/100
-dk = (qGoal[3]-qNow[3])/100
+# # 四元數差值
+# Now = np.eye(3)
+# Goal= np.array([[ 0, -1,  0],
+#                        [ 1,  0,  0],
+#                        [ 0,  0,  1]])
+# qNow = Mat.RotaMat_To_Quaternion(Now)
+# qGoal = Mat.RotaMat_To_Quaternion(Goal)
+# dw = (qGoal[0]-qNow[0])/100
+# dk = (qGoal[3]-qNow[3])/100
 
-print(qNow)
-print(qGoal)
-print(dw)
-print(dk)
+# print(qNow)
+# print(qGoal)
+# print(dw)
+# print(dk)
 

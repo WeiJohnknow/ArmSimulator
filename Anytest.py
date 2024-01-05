@@ -297,109 +297,127 @@ from Matrix import Matrix4x4
 #     time.sleep(0.03)
 
 #%%
-import threading
+# import keyboard
+
+# while True:
+#     try:
+#         # 检测是否按下 'esc' 键
+#         if keyboard.is_pressed('esc'):
+#             print('You pressed "ESC". Exiting...')
+#             break
+#         print("Pass")
+#         # 在这里添加其他键盘事件的检测
+#     except KeyboardInterrupt:
+#         break
+#%%
+from PathPlanning import PathPlanning
+from Matrix import Matrix4x4
+from dataBase import dataBase
+from Toolbox import TimeTool
+from Kinematics import Kinematics
 import time
 
-# flag
-flagMOVE_0 = False
-flagMOVE_1 = False
-flagMOVE_2 = False
-flagMOVE_3 = False
-flagMOVE_4 = False
-flagMOVE_5 = False
-flagArcon = False
-flagWireout = False
-flagWireback = False
+Plan = PathPlanning()
+Mat = Matrix4x4()
+dB = dataBase()
+Time = TimeTool()
+Kin = Kinematics()
 
-# Data sequence index value extracted from the database
-dataIndex = 0
-sysTimer = 0
+d2r = np.deg2rad
+r2d = np.rad2deg
 
-# data
-NextPos = []
+NowEnd = np.eye(4)  
+GoalEnd = np.eye(4)
+
+"""
+weldstart = [955.410, -102.226, -166.726, -165.2919, -7.1991, 17.5642]
+weldend = [955.404, 14.865, -166.749, -165.2902, -7.1958, 17.5569]
+"""
+
+NowEnd = NowEnd @ Mat.TransXYZ(4.85,0,2.34) @ Mat.RotaXYZ(d2r(-180), d2r(20.2111), d2r(21.6879))
+GoalEnd = GoalEnd @ Mat.TransXYZ(9,-4,z=-2) @ Mat.RotaXYZ(d2r(-165.2922), d2r(-7.1994), d2r(17.5635))   
+
+# 矩陣差值法
+alltime = 6
+sampleTime = 0.03
+startTime = 0
+PosBuffer4X4 = Plan.MatrixPathPlanning("dataBase/test.csv", GoalEnd, NowEnd, alltime, startTime, sampleTime)
 
 
-def sendMoveCMD():
-    """到達上一時刻的目標位置後，寄送下一刻的MOVE CMD
-    - Flag: MOVE(only one)
-    """
-    global flagMOVE_0, flagMOVE_1, flagMOVE_2, flagMOVE_3, flagMOVE_4, dataIndex, flagArcon, flagWireout, flagWireback, NextPos
-    
-    if flagMOVE_0 is True:
-        print("Robot GO to 預起弧點")
-        time.sleep(0.03)
-        flagMOVE_0 = False
+# 由資料庫取得路徑資訊
+path_dict_4X4, path_df_4X4, path_np_4X4, path_np_6X1 = dB.LoadMatrix4x4("dataBase/test.csv")
+dB.Save(path_np_6X1, 0, "dataBase/test_PoseMatrix.csv")
 
-    elif flagMOVE_1 is True:
-        print("Robot GO to 起弧點")
-        time.sleep(0.03)
-        flagMOVE_1 = False
+# # 轉換 pose matrix (6*1)
+# test = Mat.MatToAngle(path_np_4X4[0]) 
+# print(test)
 
-    elif flagMOVE_2 is True:
-        print("Robot GO to 收弧點")
-        time.sleep(0.03)
-        flagMOVE_2 = False
-    
-    elif flagMOVE_3 is True:
-        print("Robot GO to 預回點")
-        time.sleep(0.03)
-        flagMOVE_3 = False
+# IK : coordinate To Joint angle
+NowJA = np.zeros((6, 1))
+JointAngle = np.zeros((len(path_np_4X4), 6, 1))
+for i in range(len(path_np_4X4)):
+    JointAngle[i] = Kin.IK_4x4(path_np_4X4[i], NowJA) 
+dB.Save(JointAngle, 0, "dataBase/test_JointAngle.csv")
+print("test") 
 
-    elif flagMOVE_4 is True:
-        print("Robot GO to 回原點")
-        time.sleep(0.03)
-        flagMOVE_4 = False
+# # main
+# startTime = Time.ReadNowTime()
+# startNode = 0
+# while True:
+#     nowTime = Time.ReadNowTime()
+#     Systime, node =  Time.sysTime(startTime, startNode, nowTime, sampleTime)
 
-    else:
-        time.sleep(0.01)
-        print("pass")
+#     if node >= len(pathData):
+#         print("軌跡完成，總花費時間: ", Systime/(1000*1000), "s")
+#         break
 
-def readNowPosCMD():
-    """無限讀取位置，當位置在預定目標位置上時，提醒可以送下一個目標位置指令
-    """
-    global flagMOVE_0, flagMOVE_1, flagMOVE_2, flagMOVE_3, flagMOVE_4, dataIndex, sysTimer, flagArcon, flagWireout, flagWireback, NextPos
-    print(sysTimer)
-    # TODO 有問題
-    if sysTimer == 0:
-        flagMOVE_0 = True
-        print("Go to 預起弧點") 
+#     cmd = pathData[node]
+#     print("Now cmd pos: ", cmd)
 
-    elif round(sysTimer, 2) == 10:
-        flagMOVE_1 = True
-        print("Go to 起弧點")
-    
-    elif round(sysTimer, 2) == 50:
-        flagMOVE_2 = True
-        print("Go to 收弧點")
-    
-    elif round(sysTimer, 2) == 60:
-        flagMOVE_3 = True
-        print("Go to 預回原點")
-    
-    elif round(sysTimer, 2) == 70:
-        flagMOVE_4 = True
-        print("Go to 回原點")
 
-    else:
-        time.sleep(0.025)
-        print("readNowpos cmd")
-    
 
-while True:
-    
-    # Create a new thread
-    sendcmd = threading.Thread(target=sendMoveCMD)
-    readcmd = threading.Thread(target=readNowPosCMD)
 
-    # Start the thread
-    sendcmd.start()
-    readcmd.start()
+#%%
+# import pandas as pd
 
-    # Wait for the thread to finish (optional)
-    sendcmd.join()
-    readcmd.join()
+# # 创建一个DataFrame
+# data = {'Name': ['Alice', 'Bob', 'Charlie'],
+#         'Age': [25, 30, 35],
+#         'City': ['New York', 'San Francisco', 'Los Angeles']}
+# df = pd.DataFrame(data)
 
-    sysTimer += 0.1
-    if sysTimer >= 70:
-        break
+# # 将DataFrame写入CSV文件
+# csv_file_path = 'dataBase/test.csv'
+# df.to_csv(csv_file_path, index=False)
+# # print(f'DataFrame saved to {csv_file_path}')
 
+# # 从CSV文件读取DataFrame
+# read_df = pd.read_csv(csv_file_path)
+# # print('\nDataFrame read from CSV:')
+# print(read_df)
+
+# # df.loc[row_label, column_label]
+# # df.iloc[row_index, column_index]
+
+# df利用某個col(label)的值，找出該值整個row的值
+# selected_rows = df[df['City'] == 'New York']
+
+#%%
+# try:
+#     # Code that might raise an exception
+#     while True:
+#         x = int(input("Enter a number: "))
+#         result = 10 / x
+#         print("Result:", result)
+
+# except Exception as e:
+#     # Handle any type of exception
+#     print(f"An error occurred: {e}")
+
+# else:
+#     # This block is executed if no exception occurs
+#     print("No exceptions occurred.")
+
+# finally:
+#     # This block is always executed, regardless of whether an exception occurred or not
+#     print("Finally block: This will always be executed.")

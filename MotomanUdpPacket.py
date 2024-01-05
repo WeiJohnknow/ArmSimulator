@@ -3,6 +3,7 @@ import socket
 import pandas as pd
 from Toolbox import TimeTool
 import time
+import keyboard
 
 class UDP_packet:
     def __init__(self, Sub_header, data=[]) -> None:
@@ -113,7 +114,8 @@ class UDP_packet:
         
 
         if status == '0x0':
-            print('udp ok!!')
+            # print('udp ok!!')
+            udp_flag = "0x0"
             return data
         
         elif status == '0x8':
@@ -141,6 +143,9 @@ class UDP_packet:
                 return Error
             elif add_status[0] == '0x10' and add_status[1] == '0x20':
                 Error = ['Error code: 2010','Manipulator operating!!']
+                return Error
+            elif add_status[0] == '0x50' and add_status[1] == '0x34':
+                Error = ['Error code: 3450','Servo power cannot be turned ON, Plase check in Robot mode.']
                 return Error
             else:
                 return add_status
@@ -191,6 +196,22 @@ class MotomanUDP:
         """
         reqSubHeader = {'Command_No': (0x83, 0x00),  #Command No.
                         'Instance': [2, 0],             #instance 1: HOLD, 2: Servo ON, 3: HLOCK
+                        'Attribute': 1,                   #Fixed to “1”
+                        'Service':  0x10,            #Get_Attribute_Single: 0x0E, Get_Attribute_All: 0x01
+                        'Padding': (0, 0) }
+        reqData = [state,0,0,0]
+
+        Ans_packet = self.sendCmd( reqSubHeader, reqData)
+        Error = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
+        return Error
+    
+    def holdMH(self, state):
+        """Hold ON/OFF
+        - state(1) = ON
+        - state(2) = OFF
+        """
+        reqSubHeader = {'Command_No': (0x83, 0x00),  #Command No.
+                        'Instance': [1, 0],             #instance 1: HOLD, 2: Servo ON, 3: HLOCK
                         'Attribute': 1,                   #Fixed to “1”
                         'Service':  0x10,            #Get_Attribute_Single: 0x0E, Get_Attribute_All: 0x01
                         'Padding': (0, 0) }
@@ -521,34 +542,124 @@ class MotomanUDP:
 udp = MotomanUDP()
 Time = TimeTool()
 
-# 測試完成區
-# data = udp.ReadIO(2701)
 
-# 遠端起弧測試
+
+# 遠端起弧測試OK
+
 # 送線
 # udp.WriteIO(2701, 1)
+
 # 收線
 # udp.WriteIO(2701, 2)
+
 # 起弧
 # udp.WriteIO(2701, 12)
-# time.sleep(1)
+
 # IO狀態賦歸
-udp.WriteIO(2701, 0)
+# udp.WriteIO(2701, 0)
 
-
-
+# 位置讀取
 # result, coordinate = udp.getcoordinateMH()
+# print(coordinate)
 
+# 伺服電源開啟
+# status = udp.ServoMH(1)
 
-# 待測試區
-coord = [485.364, -1.213, 234.338, 179.984, 20.2111, 1.6879]
-# TODO speed送float時 編碼有問題
-# Error = udp.ServoMH(1)
-# TODO 運轉中可能無法重複送MOVE指令
-status = udp.moveMH(1,10, 17, coord)
-print(status)
-# Error = udp.ServoMH(2)
+# 伺服電源關閉
+# status = udp.ServoMH(2)
 # print(status)
+
+# 動作暫停ON
+# status = udp.holdMH(1)
+# print(status)
+
+# 動作暫停OFF
+# status = udp.holdMH(2)
+# print(status)
+
+# Move指令
+
+# 設定座標
+# weldstart = [958.579, -41.493, -166.245, -165.2938, -7.1996, 17.5670]
+# weldend = [955.404, 14.865, -166.749, -165.2902, -7.1958, 17.5569]
+
+# Cariten space
+# Real speed = speed * 0.1 mm/s
+# status = udp.moveMH(1,13, 17, weldstart)
+# print(status)
+
+# Joint space
+# Real speed = speed * 0.01%
+# status = udp.moveMH(0,500, 17, coord)
+# print(status)
+
+
+
+
+#　作業區
+
+# TODO BMOV 電流值尚未得知
+# 讀取IO
+# while True:
+#     data1 = udp.ReadIO(1001)
+#     print("1001", data1)
+
+#     data2 = udp.ReadIO(3003)
+#     print("3003", data2)
+#     time.sleep(1)
+
+# 控制系統有待加強
+# TODO 緊急開關IO應與收弧相連，可做到使用硬體緊急停止收弧
+# TODO 找到udp如何讀取機器人狀態， 需要Running狀態
+# TODO 判斷收弧的條件，若用座標+姿態，必須給予值range，防止因數值不同而無法收弧
+# TODO 完善軟體端之EMS開關
+try:
+    weldstart = [955.410, -102.226, -166.726, -165.2919, -7.1991, 17.5642]
+    weldend = [955.404, 14.865, -166.749, -165.2902, -7.1958, 17.5569]
+
+    # 伺服電源開啟
+    status = udp.ServoMH(1)
+    print(status)
+    if status == []:
+        print("ON")
+
+    # Cariten space
+    # Real speed = speed * 0.1 mm/s
+    # status = udp.moveMH(0,500, 17, weldend)
+    status = udp.moveMH(1,13, 17,  weldend)
+    print(status)
+
+    if status == []:
+        print("起弧")
+        print("送料")
+        # 純起弧
+        # data = udp.WriteIO(2701, 12)
+
+        # 起弧+送料
+        status = udp.WriteIO(2701, 13)
+        print(status)
+
+    while True:
+        # 位置讀取
+        result, coordinate = udp.getcoordinateMH()
+        # print(coordinate)
+
+        if coordinate == weldend:
+            print("收弧+收料")
+            udp.WriteIO(2701, 0)
+            break
+        if keyboard.is_pressed('esc'):
+            print('You pressed "ESC". Exiting...')
+            udp.holdMH(1)
+            udp.WriteIO(2701, 0)
+            break
+
+except Exception as e:
+    # Handle any type of exception
+    print(f"程式終止!!!: {e}")
+    udp.holdMH(1)
+    udp.WriteIO(2701, 0)
+
 
 
 

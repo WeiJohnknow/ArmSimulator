@@ -13,50 +13,73 @@ class TimeTool:
     
         return Nowtime
     
-    def TimeError(self, Before, After):
+    def TimeError(self, beforeTime, afterTime):
         """Calculate Time error
         - args:
             - Before time
-            - Afert time
+            - After time
         - return: 
             - dtype: dict
-            - Key: minute、second、millisecond、microsecond
-        - example: \n
-            # Time point \n
-            tb = ReadNowTime()
-
-            # work...\n
-            .......some code \n
-
-            # Next time point\n
-            ta = ReadNowTime() \n
-
-            # Calculate Time error\n
-            TimeError = TimeError(tb, ta)\n
-            
-            # Read the Time value\n
-            TimeError["minute"] = total second \n
-            TimeError["second"] = total second \n
-            TimeError["millisecond"] = total second \n
-            TimeError["microsecond"] = total second \n
+            - Key: minute、second、millisecond、microsecond, totalus
+            # totalus : Total microsecond difference(若單位過天會有Bug)
         """
+
+
         # 時間差
-        time_err = After - Before
+        time_err = afterTime - beforeTime
+        # 時差
+        hours_err, remainder = divmod(time_err.total_seconds(), 3600)
         # 分差
         minutes_err, seconds_err = divmod(time_err.total_seconds(), 60)
         # 秒差
         second_err = int(seconds_err)
         # 毫秒差
-        millisecond_err = int((time_err.microseconds / 1000) + seconds_err * 1000)
+        millisecond_err = int((time_err.microseconds / 1000) + second_err * 1000)
         # 微秒差
         microsecond_err = (time_err.seconds * 1000000) + (time_err.microseconds)
 
-        timeData = {"minute": minutes_err,
+        # 總微秒差
+        total_ms_err = int(time_err.microseconds + second_err *1000*1000 + (minutes_err*60*1000*1000) + (hours_err*60*60*1000*1000))
+
+        timeData = {"hour":hours_err,
+                    "minute": minutes_err,
                     "second": second_err,
                     "millisecond": millisecond_err,
-                    "microsecond": microsecond_err}
+                    "microsecond": microsecond_err,
+                    "totalus": total_ms_err}
         
         return timeData
+    
+    def sysTime(self, startTime, startNode, nowTime, sampleTime):
+        """Unit: microscond
+        - Args: 
+            - startTime
+            - startNode: It's int.
+            - nowTime
+            - sampleTime: Unit is second.
+        - Return: 
+            - sysTime: 系統時間(由系統開始運作➔此時此刻之時間差)
+            - nowNode:　依據系統時間，此時此刻應該要到達的軌跡index
+        """
+        
+        timerr = self.TimeError(startTime, nowTime)
+        
+        # 軌跡index計算公式
+        node = int(timerr["totalus"] // (sampleTime*1000*1000))
+
+        # 依據時間差，應該要到達的軌跡index
+        nowNode = startNode + node
+
+        # 系統時間(單位: 微秒)
+        sysTime = timerr["totalus"]
+
+        return sysTime, nowNode
+    
+
+        
+
+        
+
     
 class CsvTool:
     def __init__(self) -> None:
@@ -214,7 +237,7 @@ class CsvTool:
         # 顯示圖表
         plt.show()
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
     # Csv = CsvTool()
     # testdata = np.array([[0,4,8,12],
     #                             [1,5,9,13],
@@ -225,4 +248,36 @@ if __name__ == "__main__":
     # data = Csv.LoadCsv("testdata.csv")
     # print(data[0, 2])
 
-    print(TimeTool().ReadNowTime("minute"))
+    # Time = TimeTool()
+    # bf = Time.ReadNowTime()
+    # node = 0
+    # sampleTime = 0.03
+    # while True:
+    #     af = Time.ReadNowTime()
+    #     timerr = Time.TimeError(bf, af)
+    #     print(timerr)
+    #     # Trajectory counter
+    #     node = int(timerr["totalus"] // (sampleTime*1000*1000))
+    #     # print(timerr["totalms"] ,node)
+    #     if node >= 200:
+    #         endt = Time.ReadNowTime()
+    #         timerr = Time.TimeError(bf, endt)
+    #         print("軌跡已完成,總時間: " , timerr["totalus"], "us")
+    #         break
+
+
+    # 系統時間功能測試
+    # startTime = Time.ReadNowTime()
+    # startNode = 0
+    # sampleTime = 0.03
+    # while True:
+    #     nowTime = Time.ReadNowTime()
+    #     sysTime, nowNode = Time.sysTime(startTime, startNode, nowTime, sampleTime)
+    #     print(nowNode)
+    #     if nowNode >= 200:
+    #         break
+        
+
+        
+
+        

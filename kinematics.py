@@ -445,6 +445,8 @@ class Kinematics:
 
         World_Point = np.eye(4)
         
+        Jbuffer = 0
+
         iter = 10
         # 學習率
         # test = 0.05
@@ -460,9 +462,12 @@ class Kinematics:
 
             # 收斂條件
             if error  < 0.001:
+                J = self.Jacobian4x4(θ_Buffer)
+                Jbuffer = J
                 break
 
             J = self.Jacobian4x4(θ_Buffer)
+            Jbuffer = J
             # Pseudo Inverse
             J_1 = np.linalg.pinv(J)
 
@@ -481,14 +486,14 @@ class Kinematics:
         """  
 
         # 算Jacbian matrix det(用SVD)
-        _, s, _ = np.linalg.svd(J)
+        _, s, _ = np.linalg.svd(Jbuffer)
         # 計算行列式
         determinant = np.prod(s)
         # print("det(J)", determinant)
         if determinant == 0:
             print("SVD =  0, 是奇異點")
 
-        rankJ = np.linalg.matrix_rank(J)
+        rankJ = np.linalg.matrix_rank(Jbuffer)
         # print("rank :", rankJ)
         if rankJ < 6:
             print("有可能是 奇異點")

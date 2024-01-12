@@ -4,6 +4,7 @@ import pandas as pd
 from Toolbox import TimeTool
 import time
 import keyboard
+import cv2
 
 class UDP_packet:
     def __init__(self, Sub_header, data=[]) -> None:
@@ -147,6 +148,15 @@ class UDP_packet:
             elif add_status[0] == '0x50' and add_status[1] == '0x34':
                 Error = ['Error code: 3450','Servo power cannot be turned ON, Plase check in Robot mode.']
                 return Error
+            elif add_status[0] == '0x50' and add_status[1] == '0x20':
+                Error = ['Error code: 2050','Command Hold.']
+                return Error
+            elif add_status[0] == '0x4' and add_status[1] == '0xb0':
+                Error = ['Error code: B004','Outside the data.']
+                return Error
+            elif add_status[0] == '0x9' and add_status[1] == '0xb0':
+                Error = ['Error code: B009','Speed setting error.']
+                return Error
             else:
                 return add_status
         
@@ -221,6 +231,43 @@ class MotomanUDP:
         Error = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
         return Error
     
+    def getstatusMH(self):
+        """Get status INF.
+        - Data 1 
+            - bit0 Step 
+            - bit1 1 cycle 
+            - bit2 Automatic and continuous
+            - bit3 Running 
+            - bit4 In-guard safe operation
+            - bit5 Teach 
+            - bit6 Play 
+            - bit7 Command remote
+
+        - Data 2 
+            - bit0
+            - bit1 In hold status (by programming pendant)
+            - bit2 In hold status (externally)
+            - bit3 In hold status (by command)
+            - bit4 Alarming
+            - bit5 Error occurring
+            - bit6 Servo ON
+            - bit7
+        - Return:
+            data = [0~255, 0, 0, 0, 0~255, 0, 0, 0]
+        """
+        reqSubHeader= { 'Command_No': (0x72, 0x00),
+                    'Instance': [1, 0],
+                    'Attribute': 0,
+                    'Service':  0x01,
+                    'Padding': (0, 0) }
+        reqData = []
+        
+        Ans_packet = self.sendCmd( reqSubHeader, reqData)
+        data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
+        
+        
+        return data
+    
     def getcoordinateMH(self):
         """Get coordniate
         - result:
@@ -241,6 +288,22 @@ class MotomanUDP:
         # print(result)
         coordinate = [result[5], result[6], result[7], result[8], result[9], result[10]]
         return result, coordinate
+    
+    def getTorqueMH(self):
+        """Get Torque
+        """
+        reqSubHeader= { 'Command_No': (0x77, 0x00),
+                    'Instance': [1, 0],
+                    'Attribute': 0,
+                    'Service':  0x01,
+                    'Padding': (0, 0) }
+        reqData = []
+        
+        Ans_packet = self.sendCmd( reqSubHeader, reqData)
+        data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
+        
+        
+        return data
      
     def Cvt_SignInt(self, data):
         """Convert 32bit Signed Integer
@@ -319,7 +382,7 @@ class MotomanUDP:
         """
         - number : 12bit
         """
-        # TODO 未測試
+        
         number_hex = hex(number)
 
         # 移除 '0x' 前綴並填充零，確保至少有兩個字元
@@ -339,17 +402,42 @@ class MotomanUDP:
         Ans_packet = self.sendCmd( reqSubHeader, reqData)
         data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
         return data
+    
+    def WriteRegister(self, Pin, data):
+        # TODO Instance高、低位元輸入還未完成
+        Pin_hex = hex(Pin)
+
+        # 移除 '0x' 前綴並填充零，確保至少有兩個字元
+        Pin_hex = Pin_hex[2:].zfill(4)
+
+        # 將十六進位表示法分為高位元和低位元
+        high_byte = int(Pin_hex[:2], 16)
+        low_byte = int(Pin_hex[2:], 16)
         
+        reqSubHeader = {'Command_No': (0x79, 0x00),
+                        'Instance': [low_byte, high_byte],
+                        'Attribute': 1,
+                        'Service':  0x10,
+                        'Padding': (0, 0)}
+        reqData = [data]
+        
+        Ans_packet = self.sendCmd( reqSubHeader, reqData)
+        data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
+        return data
 #------------------------------------------------------------------------------ Robot Move Cammand-----------------------------------------------------------------------------------------
-    def MoveCMD_data(self, moveType, speed, coordinateType, coordinate, Type= 4, Expanded_type= 0, Tool_No=5, User_coordinate=0):
+    def MoveCMD_data(self, moveType, moveSpeedType, speed, coordinateType, coordinate, Type= 4, Expanded_type= 0, Tool_No=5, User_coordinate=0):
 
         # TODO : 參數已完成，待測驗。
         """Move Joint Angle(Point to Point)
         - Args: data use  Pack_MoveCMD_Packet(fun.)!!!
         - moveType:
+            - 1: Link absolute position operation() ➜ Joint space ➜ 走弧線
+            - 2: Straight absolute position operation ➜ Catesian space ➜ 走直線
+            - 3: Straight increment value operation ➜ Catesian space ➜ 走直線 ➜ 給位置誤差
+        - moveSpeedType:
             - 0: Link operation(0.01%)
             - 1: V(Cartesian operation)(0.1 mm/s)
-            - 2: VR(Cartesian operation)(0.1 degree/s)
+            - 2: VR(Cartesian operation)(0.1 degree/s) ➜ 此選項移動速度極快，請小心使用!!!
         - coordinateType:
             - 16: Base coordinate
             - 17: Robot coordinate
@@ -381,6 +469,7 @@ class MotomanUDP:
         Movedata ={"Robot": 1,
            "Station": 0,
            "moveType": moveType,
+           "moveSpeedType": moveSpeedType,
            "speed": speed,
            "coordinateType": coordinateType,
            "coordinate":[coordinate[0], coordinate[1], coordinate[2], coordinate[3], coordinate[4], coordinate[5]],
@@ -406,12 +495,12 @@ class MotomanUDP:
         return ans
 
     def Pack_MoveCMD_Packet(self, Movedata):
+        """Pack the MOVE command package
         """
-        """
-        # TODO speed 改浮點數後尚未測試
+        
         Robot = struct.pack('I', Movedata["Robot"])
         Station= struct.pack('I', Movedata["Station"])
-        moveType= struct.pack('I', Movedata["moveType"])
+        moveType= struct.pack('I', Movedata["moveSpeedType"])
         speed= struct.pack('I', Movedata["speed"])
         # speed= struct.pack('f', Movedata["speed"])
         coordinateType= struct.pack('I', Movedata["coordinateType"])
@@ -442,13 +531,15 @@ class MotomanUDP:
                 +Tool_No+User_coordniate+Base_axis_1+Base_axis_2+Base_axis_3+Station_axis_1+Station_axis_2\
                 +Station_axis_3+Station_axis_4+Station_axis_5+Station_axis_6
         
-        return MovePacket
+        return MovePacket, Movedata["moveType"]
 
-    def MoveCMD_req(self, data):
+    def MoveCMD_req(self, moveType, data):
 
-        # TODO: Ans解碼未完成
+        if moveType != 1 or moveType != 2 or moveType != 3:
+            print("moveType value Error!!!")
+
         reqSubHeader = { 'Command_No': (0x8A, 0x00),
-                    'Instance': [1, 0],  # 1:Joint 2:Line
+                    'Instance': [moveType, 0],  
                     'Attribute': 1,
                     'Service':  0x02,
                     'Padding': (0, 0)}
@@ -464,13 +555,17 @@ class MotomanUDP:
 
         return status
 
-    def moveMH(self, moveType, speed, coordinateType, coordinate):
+    def moveMH(self, moveType, moveSpeedType, speed, coordinateType, coordinate):
         """Move Command
         Use me!!! 
-        - moveType :
+        - moveType:
+            - 1: Link absolute position operation() ➜ Joint space ➜ 走弧線
+            - 2: Straight absolute position operation ➜ Catesian space ➜ 走直線
+            - 3: Straight increment value operation ➜ Catesian space ➜ 走直線 ➜ 給位置誤差
+        - moveSpeedType :
             - 0: Link operation(0.01%)
             - 1: V(Cartesian operation)(0.1 mm/s)
-            - 2: VR(Cartesian operation)(0.1 degree/s)
+            - 2: VR(Cartesian operation)(0.1 degree/s)➜ 此選項移動速度極快，請小心使用!!!
         - speed:
             - 0: unit (0.01%)
             - 1: unit (0.1 mm/s)
@@ -496,11 +591,11 @@ class MotomanUDP:
         """
         # 參數
         # 填寫參數，並轉字典形式
-        dict_data = self.MoveCMD_data(moveType, speed, coordinateType, coordinate)
+        dict_data = self.MoveCMD_data(moveType, moveSpeedType, speed, coordinateType, coordinate)
         # 把字典打包封包
-        Movedata_packet = self.Pack_MoveCMD_Packet(dict_data)
+        Movedata_packet, moveType = self.Pack_MoveCMD_Packet(dict_data)
         # 加入標題、子標題並完成封包後寄出
-        status = self.MoveCMD_req(Movedata_packet)
+        status = self.MoveCMD_req(moveType, Movedata_packet)
 
         return status
     
@@ -558,6 +653,10 @@ Time = TimeTool()
 # IO狀態賦歸
 # udp.WriteIO(2701, 0)
 
+# # Read IO
+# data = udp.ReadIO(2701)
+# print(data)
+
 # 位置讀取
 # result, coordinate = udp.getcoordinateMH()
 # print(coordinate)
@@ -577,10 +676,27 @@ Time = TimeTool()
 # status = udp.holdMH(2)
 # print(status)
 
+# 系統狀態讀取
+# data = udp.getstatusMH()
+# print(data)
+
+# Read torque
+# data = udp.getTorqueMH()
+# print(data)
+
+# Read Register
+# data = udp.ReadRegister(560)
+# print(data)
+
+# Write Register
+# data = udp.WriteRegister(548, 0)
+# print(data)
+
 # Move指令
 
 # 設定座標
-# weldstart = [958.579, -41.493, -166.245, -165.2938, -7.1996, 17.5670]
+# ORG = [485.364, -1.213, 234.338, 179.984, 20.2111, 1.6879]
+# weldstart = [955.41, -102.226, -166.726, -165.2919, -7.1991, 17.5642]
 # weldend = [955.404, 14.865, -166.749, -165.2902, -7.1958, 17.5569]
 
 # Cariten space
@@ -593,7 +709,105 @@ Time = TimeTool()
 # status = udp.moveMH(0,500, 17, coord)
 # print(status)
 
+# test
 
+# # 創建一個空視窗
+cv2.namedWindow('Empty Window')
+
+ORG = [485.364, -1.213, 234.338, 179.984, 20.2111, 1.6879]
+weldstart = [955.398, -87.132, -166.811, -165.2914, -7.1824, 17.5358]
+weldend = [955.421, -8.941, -166.768, -165.288, -7.1896, 17.5397]
+
+# Servo ON
+Servo_status = udp.ServoMH(1)
+
+# 讀取是否Servo ON
+sys_status = udp.getstatusMH()
+print(sys_status)
+if sys_status[4] == 64:
+    print("Servo ON is success")
+    # 0: speed * 0.01 %
+    # 1: speed * 0.1 mm/s
+    # 2: speed * 0.1 deg/s
+    
+    
+    while True:
+        # 等待鍵盤事件，並取得按下的鍵
+        key = cv2.waitKey(1) & 0xFF
+
+        # 離開
+        if key == 27:  # 27是'ESC'鍵的ASCII碼
+            print('You pressed "ESC". Exiting...')
+            status = udp.holdMH(2)
+            time.sleep(0.01)
+            status = udp.ServoMH(2)
+            udp.WriteIO(2701, 0)
+            break
+
+        elif key == ord('h'):
+            print('Hold on')
+            status = udp.holdMH(1)
+        
+        elif key == ord('w'):
+            print('Send Position Error')
+            status = udp.holdMH(1)
+            time.sleep(0.01)
+            status = udp.holdMH(2)
+
+            # 增量型
+            dp = [10, 0, 0, 0, 0, 0]
+            status = udp.moveMH(3, 1, 100, 17, dp)
+            print(status)
+
+            while True:
+                print("讀取是否運轉中")
+                sys_status = udp.getstatusMH()
+                print(sys_status)
+
+                if sys_status[0] == 194:
+                    # 回歸原本路徑
+                    status = udp.moveMH(2,1, 100, 17, weldend)
+                    print(status)
+                    break
+                else:
+                    print("Manipulator operating!!")
+                    time.sleep(0.01)
+            
+        elif key == ord('r'):
+            print('Hold off and Servo off')
+            status = udp.holdMH(2)
+            time.sleep(0.01)
+            status = udp.ServoMH(2)
+
+        elif key == ord('s'):
+            print('Read Position')
+            pos_result, coordinate = udp.getcoordinateMH()
+            print(coordinate)
+            sys_result = udp.getstatusMH()
+            print(sys_result)
+            torque = udp.getTorqueMH()
+            print(torque)
+
+        elif key == ord('n'):
+            print('Arc ON')
+            udp.WriteIO(2701, 12)
+            status = udp.moveMH(2,1, 14, 17, weldend)
+            print(status)
+
+        elif key == ord('f'):
+            print('Arc OFF')
+            udp.WriteIO(2701, 0)
+
+
+
+    # 釋放資源
+    cv2.destroyAllWindows()
+else:
+    print(Servo_status)
+
+
+# result, coordinate = udp.getcoordinateMH()
+# print(coordinate)
 
 
 #　作業區
@@ -613,52 +827,67 @@ Time = TimeTool()
 # TODO 找到udp如何讀取機器人狀態， 需要Running狀態
 # TODO 判斷收弧的條件，若用座標+姿態，必須給予值range，防止因數值不同而無法收弧
 # TODO 完善軟體端之EMS開關
-try:
-    weldstart = [955.410, -102.226, -166.726, -165.2919, -7.1991, 17.5642]
-    weldend = [955.404, 14.865, -166.749, -165.2902, -7.1958, 17.5569]
+# try:
+#     weldstart = [955.410, -102.226, -166.726, -165.2919, -7.1991, 17.5642]
+#     weldend = [955.404, 14.865, -166.749, -165.2902, -7.1958, 17.5569]
 
-    # 伺服電源開啟
-    status = udp.ServoMH(1)
-    print(status)
-    if status == []:
-        print("ON")
+#     # 伺服電源開啟
+#     status = udp.ServoMH(1)
+#     print(status)
+#     if status == []:
+#         print("ON")
 
-    # Cariten space
-    # Real speed = speed * 0.1 mm/s
-    # status = udp.moveMH(0,500, 17, weldend)
-    status = udp.moveMH(1,13, 17,  weldend)
-    print(status)
+#     # Cariten space
+#     # Real speed = speed * 0.1 mm/s
+#     # status = udp.moveMH(0,500, 17, weldend)
+#     status = udp.moveMH(1,13, 17,  weldend)
+#     print(status)
 
-    if status == []:
-        print("起弧")
-        print("送料")
-        # 純起弧
-        # data = udp.WriteIO(2701, 12)
+#     if status == []:
+#         print("起弧")
+#         print("送料")
+#         # 純起弧
+#         # data = udp.WriteIO(2701, 12)
 
-        # 起弧+送料
-        status = udp.WriteIO(2701, 13)
-        print(status)
+#         # 起弧+送料
+#         status = udp.WriteIO(2701, 13)
+#         print(status)
 
-    while True:
-        # 位置讀取
-        result, coordinate = udp.getcoordinateMH()
-        # print(coordinate)
+#     # 創建一個空視窗
+#     cv2.namedWindow('Empty Window')
 
-        if coordinate == weldend:
-            print("收弧+收料")
-            udp.WriteIO(2701, 0)
-            break
-        if keyboard.is_pressed('esc'):
-            print('You pressed "ESC". Exiting...')
-            udp.holdMH(1)
-            udp.WriteIO(2701, 0)
-            break
+#     while True:
+#         # 等待鍵盤事件，並取得按下的鍵
+#         key = cv2.waitKey(1) & 0xFF
 
-except Exception as e:
-    # Handle any type of exception
-    print(f"程式終止!!!: {e}")
-    udp.holdMH(1)
-    udp.WriteIO(2701, 0)
+#         # 位置讀取
+#         result, coordinate = udp.getcoordinateMH()
+#         # print(coordinate)
+
+#         if coordinate == weldend:
+#             print("收弧+收料")
+#             udp.WriteIO(2701, 0)
+#             break
+
+#         # 檢查按下的鍵
+#         if key == 27:  # 27是'ESC'鍵的ASCII碼
+#             print('You pressed "ESC". Exiting...')
+#             udp.holdMH(1)
+#             udp.WriteIO(2701, 0)
+#             break
+
+#         elif key == ord('q'):
+#             print('You pressed "q"')
+#             # 在這裡加入相應的動作
+#         elif key == ord('r'):
+#             print('You pressed "r"')
+
+
+# except Exception as e:
+#     # Handle any type of exception
+#     print(f"程式終止!!!: {e}")
+#     udp.holdMH(1)
+#     udp.WriteIO(2701, 0)
 
 
 

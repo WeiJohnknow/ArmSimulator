@@ -798,25 +798,34 @@ class Simulator:
         # GoalEnd = GoalEnd @ Mat.TransXYZ(9.5858,-1.02274,z=-1.64748) @ Mat.RotaXYZ(d2r(-165.2922), d2r(-7.1994), d2r(17.5635))
         GoalEnd = GoalEnd @ Mat.TransXYZ(9,-4,z=-2) @ Mat.RotaXYZ(d2r(-165.2922), d2r(-7.1994), d2r(17.5635))  
         # 矩陣差值法
-        alltime = 6
-        sampleTime = 0.03
+        alltime = 8
+        sampleTime = 0.04
         startTime = 0
-        PosBuffer4X4 = self.Plan.MatrixPathPlanning("dataBase\MatrixPathPlanning.csv", GoalEnd, NowEnd, alltime, startTime, sampleTime)
-        # self.Plan.QuaternionsInterpolation(GoalEnd, NowEnd, 5)
+        # PosBuffer4X4 = self.Plan.MatrixPathPlanning("dataBase\MatrixPathPlanning.csv", GoalEnd, NowEnd, alltime, startTime, sampleTime)
+        # # self.Plan.QuaternionsInterpolation(GoalEnd, NowEnd, 5)
         
+        # 434差值版本
+        self.Plan.MatrixPath434( "dataBase/MatrixPath434.csv", GoalEnd, NowEnd, alltime, startTime, sampleTime)
+
         # 由資料庫取得路徑資訊
-        # TODO 回傳值有擴充新功能 須注意
-        path_dict, path_df, pathData = self.dB.LoadMatrix4x4("dataBase\MatrixPathPlanning.csv")
-        θ = np.zeros((len(path_dict),6,1))
+        # path_dict_4X4, path_df_4X4, path_np_4X4, path_np_6X1 = self.dB.LoadMatrix4x4("dataBase\MatrixPathPlanning.csv")
+        path_dict_4X4, path_df_4X4, path_np_4X4, path_np_6X1 = self.dB.LoadMatrix4x4("dataBase/MatrixPath434.csv")
+        # θ = np.zeros((len(path_dict_4X4),6,1))
+        θ = np.zeros((len(path_np_4X4),6,1))
 
         # 取出資料後放入IK，將coordinate data ➔ Joint Angle data
-        for i in range(len(path_dict)):
+        for i in range(len(path_dict_4X4)):
             i_ = round(i*sampleTime,2)
-            θ[i] = self.Kin.IK_4x4(path_dict[i_], θ_Buffer)
+            # θ[i] = self.Kin.IK_4x4(path_dict_4X4[i_], θ_Buffer)
+            θ[i] = self.Kin.IK_4x4(path_np_4X4[i], θ_Buffer)
             
             
         # 此為存取JointAngle data
-        self.dB.Save(θ, 0, "dataBase\MatrixPathPlanning_JointAngle_.csv")
+        # self.dB.Save(θ, 0, "dataBase/MatrixPathPlanning_JointAngle.csv")
+        self.dB.Save(θ, 0, "dataBase/MatrixPath434_JointAngle.csv")
+        # 此為存取Pose Matrix data
+        # self.dB.Save(path_np_6X1, 0, "dataBase/MatrixPathPlanning_PoseMatrix.csv")
+        self.dB.Save(path_np_6X1, 0, "dataBase/MatrixPath434_PoseMatrix.csv")
 
         # 迴圈疊代次數
         Mainloopiter = 0

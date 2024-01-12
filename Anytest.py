@@ -310,55 +310,55 @@ from Matrix import Matrix4x4
 #     except KeyboardInterrupt:
 #         break
 #%%
-from PathPlanning import PathPlanning
-from Matrix import Matrix4x4
-from dataBase import dataBase
-from Toolbox import TimeTool
-from Kinematics import Kinematics
-import time
+# from PathPlanning import PathPlanning
+# from Matrix import Matrix4x4
+# from dataBase import dataBase
+# from Toolbox import TimeTool
+# from Kinematics import Kinematics
+# import time
 
-Plan = PathPlanning()
-Mat = Matrix4x4()
-dB = dataBase()
-Time = TimeTool()
-Kin = Kinematics()
+# Plan = PathPlanning()
+# Mat = Matrix4x4()
+# dB = dataBase()
+# Time = TimeTool()
+# Kin = Kinematics()
 
-d2r = np.deg2rad
-r2d = np.rad2deg
+# d2r = np.deg2rad
+# r2d = np.rad2deg
 
-NowEnd = np.eye(4)  
-GoalEnd = np.eye(4)
+# NowEnd = np.eye(4)  
+# GoalEnd = np.eye(4)
 
-"""
-weldstart = [955.410, -102.226, -166.726, -165.2919, -7.1991, 17.5642]
-weldend = [955.404, 14.865, -166.749, -165.2902, -7.1958, 17.5569]
-"""
+# """
+# weldstart = [955.410, -102.226, -166.726, -165.2919, -7.1991, 17.5642]
+# weldend = [955.404, 14.865, -166.749, -165.2902, -7.1958, 17.5569]
+# """
 
-NowEnd = NowEnd @ Mat.TransXYZ(4.85,0,2.34) @ Mat.RotaXYZ(d2r(-180), d2r(20.2111), d2r(21.6879))
-GoalEnd = GoalEnd @ Mat.TransXYZ(9,-4,z=-2) @ Mat.RotaXYZ(d2r(-165.2922), d2r(-7.1994), d2r(17.5635))   
+# NowEnd = NowEnd @ Mat.TransXYZ(4.85,0,2.34) @ Mat.RotaXYZ(d2r(-180), d2r(20.2111), d2r(21.6879))
+# GoalEnd = GoalEnd @ Mat.TransXYZ(9,-4,z=-2) @ Mat.RotaXYZ(d2r(-165.2922), d2r(-7.1994), d2r(17.5635))   
 
-# 矩陣差值法
-alltime = 6
-sampleTime = 0.03
-startTime = 0
-PosBuffer4X4 = Plan.MatrixPathPlanning("dataBase/test.csv", GoalEnd, NowEnd, alltime, startTime, sampleTime)
+# # 矩陣差值法
+# alltime = 6
+# sampleTime = 0.03
+# startTime = 0
+# PosBuffer4X4 = Plan.MatrixPathPlanning("dataBase/test.csv", GoalEnd, NowEnd, alltime, startTime, sampleTime)
 
 
-# 由資料庫取得路徑資訊
-path_dict_4X4, path_df_4X4, path_np_4X4, path_np_6X1 = dB.LoadMatrix4x4("dataBase/test.csv")
-dB.Save(path_np_6X1, 0, "dataBase/test_PoseMatrix.csv")
+# # 由資料庫取得路徑資訊
+# path_dict_4X4, path_df_4X4, path_np_4X4, path_np_6X1 = dB.LoadMatrix4x4("dataBase/test.csv")
+# dB.Save(path_np_6X1, 0, "dataBase/test_PoseMatrix.csv")
 
-# # 轉換 pose matrix (6*1)d
-# test = Mat.MatToAngle(path_np_4X4[0]) 
-# print(test)
+# # # 轉換 pose matrix (6*1)d
+# # test = Mat.MatToAngle(path_np_4X4[0]) 
+# # print(test)
 
-# IK : coordinate To Joint angle
-NowJA = np.zeros((6, 1))
-JointAngle = np.zeros((len(path_np_4X4), 6, 1))
-for i in range(len(path_np_4X4)):
-    JointAngle[i] = Kin.IK_4x4(path_np_4X4[i], NowJA) 
-dB.Save(JointAngle, 0, "dataBase/test_JointAngle.csv")
-print("test") 
+# # IK : coordinate To Joint angle
+# NowJA = np.zeros((6, 1))
+# JointAngle = np.zeros((len(path_np_4X4), 6, 1))
+# for i in range(len(path_np_4X4)):
+#     JointAngle[i] = Kin.IK_4x4(path_np_4X4[i], NowJA) 
+# dB.Save(JointAngle, 0, "dataBase/test_JointAngle.csv")
+# print("test") 
 
 # # main
 # startTime = Time.ReadNowTime()
@@ -421,3 +421,100 @@ print("test")
 # finally:
 #     # This block is always executed, regardless of whether an exception occurred or not
 #     print("Finally block: This will always be executed.")
+#%%
+x = [0, 3]
+ans = np.diff(x)/0.03
+Ans = x[1] - x[0]/0.03
+
+
+# np.sin()
+# import sympy as sp
+
+# # 假设 t 是时间符号，x 是位置函数关于 t 的表达式
+# t = sp.symbols('t')
+# x = 3
+
+# # 计算位置函数关于时间 t 的导数，即瞬时速度
+# velocity = sp.diff(x, t)
+
+# # 将速度函数转换为可调用的 Lambda 函数
+# velocity_function = sp.lambdify(t, velocity, 'numpy')
+
+# # 假设有一个时间点 t_value，你可以使用以下方式计算在该时间点的瞬时速度
+# t_value = 0.03  # 例如，时间点为2秒
+# instantaneous_speed = velocity_function(t_value)
+
+# print(f"The instantaneous speed at t = {t_value} is {instantaneous_speed}")
+
+# # diff測試
+# t = np.linspace(0, 3, 1000)  # 从0到3秒，生成1000个时间点
+# x = np.sin(2 * np.pi * t)  # sin函数作为位置函数
+# # x = np.insert(x, 0, 0)
+# v = np.diff(x)
+# v = np.insert(v, 0, 0)
+# a = np.diff(v)
+# a = np.insert(a, 0, 0)
+# plt. plot(t, x)
+# plt. plot(t, v)
+# plt. plot(t, a)
+# plt.show()
+
+
+
+#%%
+# # 動態繪製曲線功能 
+# x = []
+# y = []  
+# fig, ax = plt.subplots()
+# for i in range(50):
+#     x.append(i)
+#     y.append(i/5)
+
+#     # 清除資料
+#     ax.cla()
+#     ax.plot(x, y, "r", lw=1)
+
+#     # 暫停更新XX秒
+#     plt.pause(0.03)
+# plt.show()
+
+#%%
+# import keyboard
+# import time
+
+# while True:
+#     if keyboard.is_pressed('esc'):
+#         print('You pressed "ESC". Exiting...')
+#         break  # 跳出無窮迴圈
+#     if keyboard.is_pressed('q') and not q_pressed:
+#         print('You pressed "q"')
+#         q_pressed = True
+#         # 在這裡加入相應的動作
+#     elif not keyboard.is_pressed('q'):
+#         q_pressed = False
+
+#     time.sleep(0.01)
+#%%
+import cv2
+
+
+# 創建一個空視窗
+cv2.namedWindow('Empty Window')
+
+while True:
+    # 等待鍵盤事件，並取得按下的鍵
+    key = cv2.waitKey(1) & 0xFF
+
+    # 檢查按下的鍵
+    if key == 27:  # 27是'ESC'鍵的ASCII碼
+        print('You pressed "ESC". Exiting...')
+        break
+    elif key == ord('q'):
+        print('You pressed "q"')
+        # 在這裡加入相應的動作
+    elif key == ord('r'):
+        print('You pressed "r"')
+        # 在這裡加入相應的動作
+
+# 釋放資源
+cv2.destroyAllWindows()

@@ -91,7 +91,7 @@ class PathPlanning:
 
         return TimeList, PosList, VelList, AccList, samplePoint
 
-    def TrajectoryPlanning_434(self, θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t1, t2, t3, StartTime=0):
+    def TrajectoryPlanning_434(self, θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t1, t2, t3, sampleTime, StartTime=0):
         """
         Args:
             θinit, Vinit, Ainit
@@ -141,9 +141,9 @@ class PathPlanning:
         a33 = X[5]
         a34 = X[6]
 
-        sampleIntervals = 0.001
-        samplePoint = [int(t1/sampleIntervals), int(t2/sampleIntervals), int(t3/sampleIntervals)]
-        reciprocal = 1/sampleIntervals
+        
+        samplePoint = [int(t1/sampleTime), int(t2/sampleTime), int(t3/sampleTime)]
+        reciprocal = 1/sampleTime
         
         DataSize = samplePoint[0]+samplePoint[1]+samplePoint[2]
         TimeList = np.zeros((DataSize))
@@ -156,7 +156,7 @@ class PathPlanning:
 
         for _u in range(0,1*samplePoint[0]+1):
             u = _u/samplePoint[0]
-            TimeList[_u] = StartTime + t1*u
+            TimeList[_u] = round(StartTime + t1*u , 2)
 
             P = a10 + a11*u + a12*u**2 + a13*u**3 + a14*u**4
             V = a11 + 2*a12*u + 3*a13*u**2 + 4*a14*u**3
@@ -170,7 +170,7 @@ class PathPlanning:
 
         for _u in range(0,1*samplePoint[1]):
             u = _u/samplePoint[1]
-            TimeList[PreviousNode+_u] = TimeList[PreviousNode] + t2*u
+            TimeList[PreviousNode+_u] = round(TimeList[PreviousNode] + t2*u, 2)
 
             P = a20 + a21*u + a22*u**2 + a23*u**3
             V = a21 + 2*a22*u + 3*a23*u**2
@@ -187,8 +187,8 @@ class PathPlanning:
         counter = 0
         for _u in range(-1*samplePoint[2],1):
             u = _u/samplePoint[2]
-            ut += sampleIntervals
-            TimeList[PreviousNode+counter] = TimeList[PreviousNode-1] + ut
+            ut += sampleTime
+            TimeList[PreviousNode+counter] = round(TimeList[PreviousNode-1] + ut, 2)
 
 
             P = a30 + a31*u + a32*u**2 + a33*u**3 + a34*u**4
@@ -466,6 +466,85 @@ class PathPlanning:
 
         return TBuffer, timeData
     
+    def MatrixPath434(self, filePath, GoalEnd, NowEnd, allTime, startTime=0, sampleTime = 0.04):
+        """Homogeneous matrix interpolation method
+        - Ref. 2023hurocup file robot.py fun.GetDmat
+        - return:
+            dshape: n*4*4 \n 
+        """ 
+        # 4-3-4
+        rate = 0.25
+        θinit, Vinit, Ainit, Vfinal, Afinal = 0, 0, 0, 0, 0
+        θfinal = 1
+        θlift_off = θfinal*rate
+        θset_down = θfinal*(1-rate)
+        t1, t2, t3 = allTime/3, allTime/3, allTime/3
+        timeData , λ, VelList, AccList, samplePoint = self.TrajectoryPlanning_434\
+        (θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t1, t2, t3, sampleTime)
+
+
+
+
+        sin = np.sin
+        cos = np.cos
+        arccos = np.arccos
+        inv  = np.linalg.inv
+        pi = np.pi
+        
+
+        D = inv(NowEnd) @ GoalEnd
+        θ = arccos(round((D[0,0] + D[1,1] + D[2,2] - 1.0)/2.0,4))
+        if type(θ) !=type(np.arccos(0.5)):
+            θ = 0
+        if round(θ % pi,4) !=round(0.0,4):
+            u = 2.0*sin(θ)
+            kx = (D[2,1] - D[1,2]) / u
+            ky = (D[0,2] - D[2,0]) / u
+            kz = (D[1,0] - D[0,1]) / u
+        else:
+            u = 0.001
+            kx = (D[2,1] - D[1,2]) / u
+            ky = (D[0,2] - D[2,0]) / u
+            kz = (D[1,0] - D[0,1]) / u
+        # kx = (D[2,1]-D[1,2]) / (2*sin(θ))
+        # ky = (D[0,2]-D[2,0]) / (2*sin(θ))
+        # kz = (D[1,0]-D[0,1]) / (2*sin(θ))
+        
+        Δx = GoalEnd[0,3] - NowEnd[0,3]
+        Δy = GoalEnd[1,3] - NowEnd[1,3]
+        Δz = GoalEnd[2,3] - NowEnd[2,3]   
+        
+        # sampleInterval = allTime / sampleTime
+        # # Create Time Point     
+        # timeData = np.arange(startTime, allTime+sampleTime, sampleTime)
+
+        # TBuffer = np.zeros(((int(sampleInterval)+1,4,4)))
+        pathData = np.zeros(((len(λ),4,4)))
+        
+        for i in range(len(λ)):
+            V = (1-cos(θ*λ[i]))
+            
+            
+            # Transformation matrix
+            D_ = np.array(([ [kx**2*V+cos(θ*λ[i]), kx*ky*V-kz*sin(θ*λ[i]), kx*kz*V+ky*sin(θ*λ[i]), D[0,3]*λ[i]],
+                                    [kx*ky*V+kz*sin(θ*λ[i]), ky**2*V+cos(θ*λ[i]), ky*kz*V-kx*sin(θ*λ[i]), D[1,3]*λ[i]],
+                                    [kx*kz*V-ky*sin(θ*λ[i]), ky*kz*V+kx*sin(θ*λ[i]), kz**2*V+cos(θ*λ[i]), D[2,3]*λ[i]],
+                                    [0, 0, 0, 1]]))
+
+            # D_ = np.array(([ [round(kx**2*V+cos(θ*λ[i]), 4),    round(kx*ky*V-kz*sin(θ*λ[i]),4),  round(kx*kz*V+ky*sin(θ*λ[i]), 4), round(D[0,3]*λ[i], 3)],
+            #                         [round(kx*ky*V+kz*sin(θ*λ[i]), 4), round(ky**2*V+cos(θ*λ[i]), 4),    round(ky*kz*V-kx*sin(θ*λ[i]), 4), round(D[1,3]*λ[i], 3)],
+            #                         [round(kx*kz*V-ky*sin(θ*λ[i]), 4), round(ky*kz*V+kx*sin(θ*λ[i]), 4), round(kz**2*V+cos(θ*λ[i]), 4), round(D[2,3]*λ[i],3)],
+            #                         [0, 0, 0, 1]]))
+            
+            # T 是 NowEnd ➜ GoalEnd 過程的插值矩陣(軌跡點)
+            T = NowEnd @ D_ 
+            pathData[i] = T
+        
+        # Save data
+        self.dB.Save(pathData, timeData, filePath)
+
+        return pathData
+    
     def QuaternionsInterpolation(self, GoalEnd, NowEnd, Alltime, SampleTime=0.03):
         """Quaternions interpolation method
 
@@ -512,22 +591,35 @@ class PathPlanning:
 
     def main(self):
         # 4-3-4
-        rate = 0.25
-        θinit, Vinit, Ainit, Vfinal, Afinal = 0, 0, 0, 0, 0
-        θfinal = 60
-        θlift_off = θfinal*rate
-        θset_down = θfinal*(1-rate)
-        t1, t2, t3 = 1, 1, 1
-        TimeList, PosList , VelList, AccList, samplePoint = self.TrajectoryPlanning_434\
-        (θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t1, t2, t3)
-        plt.plot(TimeList,AccList, label='Acc')
-        plt.plot(TimeList,VelList, label='Vel')
-        plt.plot(TimeList,PosList, label='S')
-        plt.title('4-3-4 motion planning')
-        plt.xlabel('time')
-        plt.ylabel('Unit')
-        # plt.tight_layout()
-        plt.show()
+        # rate = 0.25
+        # θinit, Vinit, Ainit, Vfinal, Afinal = 0, 0, 0, 0, 0
+        # θfinal = 1
+        # θlift_off = θfinal*rate
+        # θset_down = θfinal*(1-rate)
+        # t1, t2, t3 = 2, 2, 2
+        # TimeList, PosList , VelList, AccList, samplePoint = self.TrajectoryPlanning_434\
+        # (θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t1, t2, t3, 0.03)
+
+        # plt.plot(TimeList,AccList, label='Acc')
+        # plt.plot(TimeList,VelList, label='Vel')
+        # plt.plot(TimeList,PosList, label='S')
+        # plt.title('4-3-4 motion planning')
+        # plt.xlabel('time')
+        # plt.ylabel('Unit')
+        # # plt.tight_layout()
+        # plt.show()
+
+        # MatrixPath + 434
+        d2r = np.deg2rad
+        NowEnd = np.eye(4)  
+        GoalEnd = np.eye(4)
+
+        NowEnd = NowEnd @ self.Mat.TransXYZ(4.85,0,2.34) @ self.Mat.RotaXYZ(d2r(-180), d2r(20.2111), d2r(21.6879))
+        GoalEnd = GoalEnd @ self.Mat.TransXYZ(9,-4,z=-2) @ self.Mat.RotaXYZ(d2r(-165.2922), d2r(-7.1994), d2r(17.5635)) 
+        sampleTime = 0.03
+
+        pathData = self.MatrixPath434( GoalEnd, NowEnd, sampleTime, "MatrixPath434test.csv")
+        print(pathData)
 
         # # Matrix PathPlan test
         # NowEnd = np.array([[-1,0,0,10],

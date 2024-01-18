@@ -9,6 +9,7 @@ from Toolbox import TimeTool
 import time
 from Matrix import Matrix4x4
 from dataBase import dataBase
+from sklearn.linear_model import LinearRegression
 
 dB = dataBase()
 
@@ -88,27 +89,27 @@ def Analyze_Position(PoseMat_file, Time_file):
 def Analyze_Velocity(sampleTime, PoseMat_file, Time_file):
     PoseMat6x1 = pd.read_csv(PoseMat_file)
     pathdata_df = pd.read_csv(Time_file)
-    x=[]
-    y=[]
-    z=[]
-    Rx=[]
-    Ry=[]
-    Rz=[]
+    x = np.zeros((len(PoseMat6x1)))
+    y = np.zeros((len(PoseMat6x1)))
+    z = np.zeros((len(PoseMat6x1)))
+    Rx = np.zeros((len(PoseMat6x1)))
+    Ry = np.zeros((len(PoseMat6x1)))
+    Rz = np.zeros((len(PoseMat6x1)))
 
-    vx=[]
-    vy=[]
-    vz=[]
-    vRx=[]
-    vRy=[]
-    vRz=[]
+    vx = np.zeros((len(PoseMat6x1)))
+    vy = np.zeros((len(PoseMat6x1)))
+    vz = np.zeros((len(PoseMat6x1)))
+    vRx = np.zeros((len(PoseMat6x1)))
+    vRy = np.zeros((len(PoseMat6x1)))
+    vRz = np.zeros((len(PoseMat6x1)))
 
     for i in range(len(PoseMat6x1)):
-        x.append(PoseMat6x1["X"][i])
-        y.append(PoseMat6x1["Y"][i])
-        z.append(PoseMat6x1["Z"][i])
-        Rx.append(PoseMat6x1["Rx"][i])
-        Ry.append(PoseMat6x1["Ry"][i])
-        Rz.append(PoseMat6x1["Rz"][i])
+        x[i] = PoseMat6x1["X"][i]
+        y[i] = PoseMat6x1["Y"][i]
+        z[i] = PoseMat6x1["Z"][i]
+        Rx[i] = PoseMat6x1["Rx"][i]
+        Ry[i] = PoseMat6x1["Ry"][i]
+        Rz[i] = PoseMat6x1["Rz"][i]
 
     # 平均速度
     # for i in range(0, len(x)):
@@ -148,7 +149,35 @@ def Analyze_Velocity(sampleTime, PoseMat_file, Time_file):
     vRx =np.insert(vRx, 0, 0)
     vRy =np.insert(vRy, 0, 0)
     vRz =np.insert(vRz, 0, 0)
-    
+
+
+    # 線性回歸
+    # t = np.zeros((len(pathdata_df['time']), 1))
+    # for i in range(len(pathdata_df['time'])):
+    #     t[i] = pathdata_df['time'][i]
+
+    # # 添加一列全為1的特徵，以便包含截距
+    # X_b = np.c_[np.ones((len(vx), 1)), vx]
+
+    # # 使用最小二乘法計算斜率和截距
+    # theta_best = np.linalg.inv(X_b.T.dot(X_b)).dot(X_b.T).dot(t)
+
+    # # 獲取斜率和截距
+    # slope = theta_best[1][0]
+    # intercept = theta_best[0][0]
+
+    # # 顯示結果
+    # print(f"斜率：{slope}")
+    # print(f"截距：{intercept}")
+
+    # # 繪製散點圖和擬和線
+    # plt.scatter(t, vx, color='blue', label='數據點')
+    # plt.plot(vx, X_b.dot(theta_best), color='red', linewidth=3, label='擬和線')
+    # plt.xlabel('X軸')
+    # plt.ylabel('Y軸')
+    # plt.legend()
+    # plt.show()
+
     # 图1：Px vs. time
     # plt.subplot(3, 2, 1)
     plt.subplot2grid((3, 2), (0, 0))
@@ -264,7 +293,7 @@ def Analyze_Acceleration(sampleTime, PoseMat_file, Time_file):
     # 图1：Px vs. time
     # plt.subplot(3, 2, 1)
     plt.subplot2grid((3, 2), (0, 0))
-    plt.plot(pathdata_df['time'], ax)
+    plt.plot(pathdata_df['time'], ax, marker='o')
     plt.title('x Acceleration curve')
     plt.xlabel('time(s)')
     plt.ylabel('Acceleration(m/s²)')
@@ -272,7 +301,7 @@ def Analyze_Acceleration(sampleTime, PoseMat_file, Time_file):
     # 图2：Py vs. time
     # plt.subplot(3, 2, 2)
     plt.subplot2grid((3, 2), (1, 0))
-    plt.plot(pathdata_df['time'], ay)
+    plt.plot(pathdata_df['time'], ay, marker='o')
     plt.title('y Acceleration curve')
     plt.xlabel('time(s)')
     plt.ylabel('Acceleration(m/s²)')
@@ -280,7 +309,7 @@ def Analyze_Acceleration(sampleTime, PoseMat_file, Time_file):
     # 图3：Pz vs. time
     # plt.subplot(3, 2, 3)
     plt.subplot2grid((3, 2), (2, 0))
-    plt.plot(pathdata_df['time'], az)
+    plt.plot(pathdata_df['time'], az, marker='o')
     plt.title('z Acceleration curve')
     plt.xlabel('time(s)')
     plt.ylabel('Acceleration(m/s²)')
@@ -288,7 +317,7 @@ def Analyze_Acceleration(sampleTime, PoseMat_file, Time_file):
     # 图4：Px vs. time
     # plt.subplot(3, 2, 4)
     plt.subplot2grid((3, 2), (0, 1))
-    plt.plot(pathdata_df['time'], aRx)
+    plt.plot(pathdata_df['time'], aRx, marker='o')
     plt.title('x Angular Acceleration curve')
     plt.xlabel('time(s)')
     plt.ylabel('Angular Acceleration(deg/s²)')
@@ -296,7 +325,7 @@ def Analyze_Acceleration(sampleTime, PoseMat_file, Time_file):
     # 图5：Py vs. time
     # plt.subplot(3, 2, 5)
     plt.subplot2grid((3, 2), (1, 1))
-    plt.plot(pathdata_df['time'], aRy)
+    plt.plot(pathdata_df['time'], aRy, marker='o')
     plt.title('y Angular Acceleration curve')
     plt.xlabel('time(s)')
     plt.ylabel('Angular Acceleration(deg/s²)')
@@ -304,7 +333,7 @@ def Analyze_Acceleration(sampleTime, PoseMat_file, Time_file):
     # 图6：Pz vs. time
     # plt.subplot(3, 2, 6)
     plt.subplot2grid((3, 2), (2, 1))
-    plt.plot(pathdata_df['time'], aRz)
+    plt.plot(pathdata_df['time'], aRz, marker='o')
     plt.title('z Angular Acceleration curve')
     plt.xlabel('time(s)')
     plt.ylabel('Angular Acceleration(deg/s²)')
@@ -390,20 +419,36 @@ def Analyze_JointAngle(PoseMat_file, Time_file):
     plt.show()
 
 if __name__ == "__main__" :
+    '''
+    Pose Matrix專區
+    '''
+    # Matrix Planning
     # PoseMat_file = "dataBase/MatrixPathPlanning_PoseMatrix.csv"
     # Time_file = "dataBase/MatrixPathPlanning.csv"
 
-    PoseMat_file = "dataBase/MatrixPath434_PoseMatrix.csv"
-    Time_file = "dataBase/MatrixPath434.csv"
+    # Matrix Planning + 4-3-4 Trajectory 
+    # PoseMat_file = "dataBase/MatrixPath434_PoseMatrix.csv"
+    # Time_file = "dataBase/MatrixPath434.csv"
 
-    # PoseMat_file = "dataBase/MatrixPathPlanning_JointAngle.csv"
-    # Time_file = "dataBase/MatrixPathPlanning.csv"
+    # Matrix Planning + S-curve
+    # PoseMat_file = "dataBase/MatrixPath_Scurve_PoseMatrix.csv"
+    # Time_file = "dataBase/MatrixPath_Scurve.csv"
 
+    # Analyze_Position(PoseMat_file, Time_file)
+    # Analyze_Velocity(0.04, PoseMat_file, Time_file)
+    # Analyze_Acceleration(0.04, PoseMat_file, Time_file)
+
+    """
+    Joint Angle專區
+    """
+    # Matrix Planning
+    PoseMat_file = "dataBase/MatrixPathPlanning_JointAngle.csv"
+    Time_file = "dataBase/MatrixPathPlanning.csv"
+
+    # Matrix Planning + 4-3-4 Trajectory
     # PoseMat_file = "dataBase/MatrixPath434_JointAngle.csv"
     # Time_file = "dataBase/MatrixPath434.csv"
 
-    # Analyze_JointAngle(PoseMat_file, Time_file)
+    Analyze_JointAngle(PoseMat_file, Time_file)
 
-    Analyze_Position(PoseMat_file, Time_file)
-    Analyze_Velocity(0.03, PoseMat_file, Time_file)
-    Analyze_Acceleration(0.03, PoseMat_file, Time_file)
+    

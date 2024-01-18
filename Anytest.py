@@ -422,9 +422,9 @@ from Matrix import Matrix4x4
 #     # This block is always executed, regardless of whether an exception occurred or not
 #     print("Finally block: This will always be executed.")
 #%%
-x = [0, 3]
-ans = np.diff(x)/0.03
-Ans = x[1] - x[0]/0.03
+# x = [0, 3]
+# ans = np.diff(x)/0.03
+# Ans = x[1] - x[0]/0.03
 
 
 # np.sin()
@@ -462,7 +462,8 @@ Ans = x[1] - x[0]/0.03
 
 
 #%%
-# # 動態繪製曲線功能 
+"""Dynamically draw curves 
+"""
 # x = []
 # y = []  
 # fig, ax = plt.subplots()
@@ -478,7 +479,264 @@ Ans = x[1] - x[0]/0.03
 #     plt.pause(0.03)
 # plt.show()
 
+"""
+Dynamically draw curves(增量式)
+1. while loop版本
+2. for loop版本
+"""
+
+# # 迭代次數
+# iter = 100
+# NowPos = 0
+
+# # Data buffer
+# posBuffer = np.zeros((iter))
+# t = np.linspace(0, iter, iter)
+
+# # 繪圖設定
+# fig, ax = plt.subplots()
+
+# # Initialize lines
+# line,  = ax.plot([], [], label='Curve')
+
+# # Set legend for the first time
+# ax.legend()
+
+# # 產生資料集
+# for i in range(iter):
+#     NowPos += 2*i+1
+#     posBuffer[i] = NowPos
+
+# """
+# while loop ver.
+# """
+# loopIter = 0
+# while True:
+#     if loopIter == len(posBuffer)+1:
+#         break
+#     # 增量式繪圖(速度較快)
+#     line.set_data(t[:loopIter+1], posBuffer[:loopIter+1])
+
+#     # Update plot without clearing
+#     ax.set_xlim(0, iter)  # Ensure correct x-axis range
+#     ax.set_ylim(min(posBuffer) - 5, max(posBuffer) + 5)  # Adjust y-axis range
+    
+#     # Update plot without clearing
+#     ax.set_title('Dynamic Curve')
+
+#     # 調整圖間距
+#     fig.subplots_adjust(hspace=0.4)
+
+#     plt.draw()
+#     plt.pause(0.03)
+#     loopIter += 1
+# plt.show()
+
+# """
+# for loop ver.
+# """
+# # for loopIter in range(iter):
+    
+# #     # 增量式繪圖(速度較快)
+# #     line.set_data(t[:loopIter+1], posBuffer[:loopIter+1])
+
+# #     # Update plot without clearing
+# #     ax.set_xlim(0, iter)  # Ensure correct x-axis range
+# #     ax.set_ylim(min(posBuffer) - 5, max(posBuffer) + 5)  # Adjust y-axis range
+    
+# #     # Update plot without clearing
+# #     ax.set_title('Dynamic Curve')
+
+# #     # 調整圖間距
+# #     fig.subplots_adjust(hspace=0.4)
+
+# #     plt.draw()
+# #     plt.pause(0.03)
+    
+# # plt.show()
+"""
+一張圖同時畫六條曲線
+"""
+# import matplotlib.pyplot as plt
+# import numpy as np
+# from matplotlib.animation import FuncAnimation
+
+# # 迭代次數
+# iter = 100
+# NowPos1 = 0
+# NowPos2 = 0
+# NowPos3 = 0
+# NowPos4 = 0
+# NowPos5 = 0
+# NowPos6 = 0
+
+# # Data buffer
+# posBuffer = np.zeros((iter, 6))
+# t = np.linspace(0, iter, iter)
+
+# # Curve name
+# name = ['S', 'L', 'U', 'R', 'B', 'T']
+
+# # 繪圖設定
+# fig, ax = plt.subplots()
+
+# # Initialize lines with color and label
+# lines = [ax.plot([], [], label=f'{name[i]} Joint Angle')[0] for i in range(6)]
+
+# # Set legend for the first time
+# ax.legend()
+
+# # 產生資料集
+# for i in range(iter):
+#     NowPos1 += 2*i
+#     NowPos2 += 2*i+5
+#     NowPos3 += 2*i+10
+#     NowPos4 += 2*i+15
+#     NowPos5 += 2*i+20
+#     NowPos6 += 2*i+25
+    
+#     posBuffer[i, 0] = NowPos1 
+#     posBuffer[i, 1] = NowPos2
+#     posBuffer[i, 2] = NowPos3
+#     posBuffer[i, 3] = NowPos4
+#     posBuffer[i, 4] = NowPos5
+#     posBuffer[i, 5] = NowPos6
+
+# # 更新函数
+# def update(frame):
+#     for i in range(6):
+#         lines[i].set_data(t[:frame], posBuffer[:frame, i])
+
+#     ax.set_xlim(0, iter)  # Ensure correct x-axis range
+#     ax.set_ylim(posBuffer.min(), posBuffer.max())  # Adjust y-axis range
+#     ax.set_title('Dynamic Curves')
+#     fig.subplots_adjust(hspace=0.4)
+#     return lines
+
+# # 创建动画对象
+# ani = FuncAnimation(fig, update, frames=range(1, iter+1), blit=True)
+
+# plt.show()
+"""
+同時畫六張圖 一張圖一條曲線
+"""
+
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.animation import FuncAnimation
+from dataBase import dataBase
+
+
+
+dB = dataBase()
+JointAngleData, JDnp = dB.LoadJointAngle("dataBase/MatrixPathPlanning_JointAngle.csv")
+
+
+
+# 曲线名称
+name = ['S', 'L', 'U', 'R', 'B', 'T']
+
+# 繪圖設定
+fig, axs = plt.subplots(3, 2, figsize=(6, 10))  # 2行3列的子图布局
+fig.suptitle('Dynamic Curves')
+
+# 初始化六条曲线
+lines = [axs[i // 2, i % 2].plot([], [], label=f'{name[i]} Axis Angle')[0] for i in range(6)]
+
+# Set legend for the first time
+for ax in axs.flat:
+    ax.legend()
+
+t = np.linspace(0, len(JointAngleData), len(JointAngleData))
+
+# 初始y轴范围
+y_axis_ranges = [(min(JDnp[i]), max(JDnp[i])) for i in range(6)]
+
+# 更新函数
+def update(frame):
+    for i, ax in enumerate(axs.flat):
+        line = lines[i]
+        line.set_data(t[:frame], JDnp[i, :frame])
+        ax.set_xlim(0, len(t)+1)
+        ax.set_ylim(y_axis_ranges[i])
+        ax.set_title(f'{name[i]}Axis Angle')
+
+    fig.subplots_adjust(hspace=0.4, wspace=0.3)
+    return lines
+
+# 创建动画对象
+ani = FuncAnimation(fig, update, frames=range(1, len(t)+1, 10), blit=True)
+
+plt.show()
+
+# # 迭代次數
+# iter = 100
+# NowPos1 = 0
+# NowPos2 = 0
+# NowPos3 = 0
+# NowPos4 = 0
+# NowPos5 = 0
+# NowPos6 = 0
+
+# # Data buffer
+# posBuffer = np.zeros((iter, 6))
+# t = np.linspace(0, iter, iter)
+
+# # 曲线名称
+# name = ['S', 'L', 'U', 'R', 'B', 'T']
+
+# # 繪圖設定
+# fig, axs = plt.subplots(3, 2, figsize=(6, 10))  # 2行3列的子图布局
+# fig.suptitle('Dynamic Curves')
+
+# # 初始化六条曲线
+# lines = [axs[i // 2, i % 2].plot([], [], label=f'Curve {name[i]}')[0] for i in range(6)]
+
+# # Set legend for the first time
+# for ax in axs.flat:
+#     ax.legend()
+
+# # 產生資料集
+# for i in range(iter):
+#     NowPos1 += 1*i
+#     NowPos2 += -1.5*i
+#     NowPos3 += 2*i
+#     NowPos4 += -2.5*i
+#     NowPos5 += 3*i
+#     NowPos6 += -3.5*i
+    
+#     posBuffer[i, 0] = NowPos1 
+#     posBuffer[i, 1] = NowPos2
+#     posBuffer[i, 2] = NowPos3
+#     posBuffer[i, 3] = NowPos4
+#     posBuffer[i, 4] = NowPos5
+#     posBuffer[i, 5] = NowPos6
+
+# # 初始y轴范围
+# y_axis_ranges = [(min(posBuffer[i]), max(posBuffer[i])) for i in range(100)]
+
+# # 更新函数
+# def update(frame):
+#     for i, ax in enumerate(axs.flat):
+#         line = lines[i]
+#         line.set_data(t[:frame], posBuffer[:frame, i])
+#         ax.set_xlim(0, iter)
+#         ax.set_ylim(posBuffer.min(), posBuffer.max())
+#         ax.set_title(f'Curve {name[i]}')
+
+#     fig.subplots_adjust(hspace=0.4, wspace=0.3)
+#     return lines
+
+# # 创建动画对象
+# ani = FuncAnimation(fig, update, frames=range(1, iter+1), blit=True)
+
+# plt.show()
+
+
 #%%
+"""
+Python Keyboard events
+"""
 # import keyboard
 # import time
 
@@ -495,26 +753,153 @@ Ans = x[1] - x[0]/0.03
 
 #     time.sleep(0.01)
 #%%
-import cv2
+"""OpenCV Keyboard events
+"""
+# import cv2
 
+# # 創建一個空視窗
+# cv2.namedWindow('Empty Window')
 
-# 創建一個空視窗
-cv2.namedWindow('Empty Window')
+# while True:
+#     # 等待鍵盤事件，並取得按下的鍵
+#     key = cv2.waitKey(1) & 0xFF
 
-while True:
-    # 等待鍵盤事件，並取得按下的鍵
-    key = cv2.waitKey(1) & 0xFF
+#     # 檢查按下的鍵
+#     if key == 27:  # 27是'ESC'鍵的ASCII碼
+#         print('You pressed "ESC". Exiting...')
+#         break
+#     elif key == ord('q'):
+#         print('You pressed "q"')
+#         # 在這裡加入相應的動作
+#     elif key == ord('r'):
+#         print('You pressed "r"')
+#         # 在這裡加入相應的動作
 
-    # 檢查按下的鍵
-    if key == 27:  # 27是'ESC'鍵的ASCII碼
-        print('You pressed "ESC". Exiting...')
-        break
-    elif key == ord('q'):
-        print('You pressed "q"')
-        # 在這裡加入相應的動作
-    elif key == ord('r'):
-        print('You pressed "r"')
-        # 在這裡加入相應的動作
+# # 釋放資源
+# cv2.destroyAllWindows()
+#%%
+"""
+linear regression mothod 1
+"""
+# import numpy as np
+# import matplotlib.pyplot as plt
 
-# 釋放資源
-cv2.destroyAllWindows()
+# # 生成一些示例資料
+# np.random.seed(42)
+# x = 2 * np.random.rand(100, 1)
+# y = 4 + 3 * x + np.random.randn(100, 1)
+
+# # 添加一列全為1的特徵，以便包含截距
+# X_b = np.c_[np.ones((100, 1)), x]
+
+# # 使用最小二乘法計算斜率和截距
+# theta_best = np.linalg.inv(X_b.T.dot(X_b)).dot(X_b.T).dot(y)
+
+# # 獲取斜率和截距
+# slope = theta_best[1][0]
+# intercept = theta_best[0][0]
+
+# # 顯示結果
+# print(f"斜率：{slope}")
+# print(f"截距：{intercept}")
+
+# # 繪製散點圖和擬和線
+# plt.scatter(x, y, color='blue', label='數據點')
+# plt.plot(x, X_b.dot(theta_best), color='red', linewidth=3, label='擬和線')
+# plt.xlabel('X軸')
+# plt.ylabel('Y軸')
+# plt.legend()
+# plt.show()
+
+"""
+linear regression mothod 2
+"""
+# import numpy as np
+# from sklearn.linear_model import LinearRegression
+# import matplotlib.pyplot as plt
+
+# # 生成一些示例資料
+# np.random.seed(42)
+# x = 2 * np.random.rand(100, 1)
+# y = 4 + 3 * x + np.random.randn(100, 1)
+
+# # 初始化線性回歸模型
+# model = LinearRegression()
+
+# # 適應模型
+# model.fit(x, y)
+
+# # 獲取斜率和截距
+# slope = model.coef_[0][0]
+# intercept = model.intercept_[0]
+
+# # 顯示結果
+# print(f"斜率：{slope}")
+# print(f"截距：{intercept}")
+
+# # 繪製散點圖和擬和線
+# plt.scatter(x, y, color='blue', label='數據點')
+# plt.plot(x, model.predict(x), color='red', linewidth=3, label='擬和線')
+# plt.xlabel('X軸')
+# plt.ylabel('Y軸')
+# plt.legend()
+# plt.show()
+#%%
+"""
+Polynomial regression
+"""
+# import numpy as np
+# from sklearn.preprocessing import PolynomialFeatures
+# from sklearn.linear_model import LinearRegression
+# import matplotlib.pyplot as plt
+
+# # 生成一些示例資料
+# np.random.seed(42)
+# x = 2 * np.random.rand(100, 1)
+# y = 4 + 3 * x + 1.5 * x**2 + 4*x*3 + np.random.randn(100, 1)
+
+# # 轉換特徵矩陣，添加多項式項
+# poly_features = PolynomialFeatures(degree=2, include_bias=False)
+# X_poly = poly_features.fit_transform(x)
+
+# # 初始化線性回歸模型
+# model = LinearRegression()
+
+# # 適應模型
+# model.fit(X_poly, y)
+
+# # 繪製散點圖和多項式擬和線
+# x_new = np.linspace(0, 2, 100).reshape(-1, 1)
+# X_new_poly = poly_features.transform(x_new)
+# y_new = model.predict(X_new_poly)
+
+# plt.scatter(x, y, color='blue', label='數據點')
+# plt.plot(x_new, y_new, color='red', label='多項式擬和線')
+# plt.xlabel('X軸')
+# plt.ylabel('Y軸')
+# plt.legend()
+# plt.show()
+#%%
+"""
+多項式求值 numpy版本
+"""
+# import numpy as np
+
+# # 定義多項式的係數
+# coefficients = [1, 2]
+
+# # 定義 u 的值
+# u_values = [0,1,2]  # 使用200個點以獲得光滑的曲線，你可以根據需要調整點的數量
+
+# # 使用 polyval 函數求值
+# polynomial_values = np.polyval(coefficients, u_values)
+
+# # 繪製多項式曲線
+# plt.plot(u_values, polynomial_values, label='Polynomial: $10 + 11u + 12u^2 + 13u^3 + 14u^4$')
+# plt.xlabel('u')
+# plt.ylabel('Polynomial Value')
+# plt.title('Plot of the Polynomial')
+# plt.legend()
+# plt.grid(True)
+# plt.show()
+

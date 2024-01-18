@@ -798,8 +798,6 @@ if sys_status[4] == 64:
             print('Arc OFF')
             udp.WriteIO(2701, 0)
 
-
-
     # 釋放資源
     cv2.destroyAllWindows()
 else:

@@ -798,18 +798,23 @@ class Simulator:
         # GoalEnd = GoalEnd @ Mat.TransXYZ(9.5858,-1.02274,z=-1.64748) @ Mat.RotaXYZ(d2r(-165.2922), d2r(-7.1994), d2r(17.5635))
         GoalEnd = GoalEnd @ Mat.TransXYZ(9,-4,z=-2) @ Mat.RotaXYZ(d2r(-165.2922), d2r(-7.1994), d2r(17.5635))  
         # 矩陣差值法
-        alltime = 8
-        sampleTime = 0.04
+        alltime = 6
+        sampleTime = 0.03
         startTime = 0
+        # 線性插值版本
         # PosBuffer4X4 = self.Plan.MatrixPathPlanning("dataBase\MatrixPathPlanning.csv", GoalEnd, NowEnd, alltime, startTime, sampleTime)
         # # self.Plan.QuaternionsInterpolation(GoalEnd, NowEnd, 5)
         
         # 434差值版本
         self.Plan.MatrixPath434( "dataBase/MatrixPath434.csv", GoalEnd, NowEnd, alltime, startTime, sampleTime)
 
+        # Scurve版本
+        # self.Plan.MatrixPath_Scurve("dataBase/MatrixPath_Scurve.csv", GoalEnd, NowEnd, sampleTime)
+
         # 由資料庫取得路徑資訊
         # path_dict_4X4, path_df_4X4, path_np_4X4, path_np_6X1 = self.dB.LoadMatrix4x4("dataBase\MatrixPathPlanning.csv")
         path_dict_4X4, path_df_4X4, path_np_4X4, path_np_6X1 = self.dB.LoadMatrix4x4("dataBase/MatrixPath434.csv")
+        # path_dict_4X4, path_df_4X4, path_np_4X4, path_np_6X1 = self.dB.LoadMatrix4x4("dataBase/MatrixPath_Scurve.csv")
         # θ = np.zeros((len(path_dict_4X4),6,1))
         θ = np.zeros((len(path_np_4X4),6,1))
 
@@ -823,9 +828,12 @@ class Simulator:
         # 此為存取JointAngle data
         # self.dB.Save(θ, 0, "dataBase/MatrixPathPlanning_JointAngle.csv")
         self.dB.Save(θ, 0, "dataBase/MatrixPath434_JointAngle.csv")
+        # self.dB.Save(θ, 0, "dataBase/MatrixPath_Scurve_JointAngle.csv")
+
         # 此為存取Pose Matrix data
         # self.dB.Save(path_np_6X1, 0, "dataBase/MatrixPathPlanning_PoseMatrix.csv")
         self.dB.Save(path_np_6X1, 0, "dataBase/MatrixPath434_PoseMatrix.csv")
+        # self.dB.Save(path_np_6X1, 0, "dataBase/MatrixPath_Scurve_PoseMatrix.csv")
 
         # 迴圈疊代次數
         Mainloopiter = 0

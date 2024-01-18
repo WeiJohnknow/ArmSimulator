@@ -160,9 +160,29 @@ class dataBase:
         else:
             print("None")
 
+    def LoadJointAngle(self, filePath):
+        """Load JointAngle.csv file and it dtype transform
+        - Args: filePath
+        - Return: path_df, path_np_6xn, n is Pathdata number.
+        """
+        path_df = self.Load(filePath)
+
+        # dtype :ndarray ,shape :6xn
+        path_np_6xn = np.zeros((6, len(path_df)))
+        for i in range(len(path_df)):
+            path_np_6xn[0, i] = path_df["S"][i]
+            path_np_6xn[1, i] = path_df["L"][i]
+            path_np_6xn[2, i] = path_df["U"][i]
+            path_np_6xn[3, i] = path_df["R"][i]
+            path_np_6xn[4, i] = path_df["B"][i]
+            path_np_6xn[5, i] = path_df["T"][i]
 
         
+        return path_df, path_np_6xn
+        
 
+
+    
 
 # if __name__ == '__main__':
 #     db = database()

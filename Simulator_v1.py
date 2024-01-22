@@ -492,9 +492,17 @@ class Simulator:
         """
         NowEnd = np.eye(4)
         GoalEnd = np.eye(4)
+        """
+        ORG = [485.364, -1.213, 234.338, 179.984, 20.2111, 1.6879]
+        weldstart = [955.398, -87.132, -166.811, -165.2914, -7.1824, 17.5358]
+        weldend = [955.421, -8.941, -166.768, -165.288, -7.1896, 17.5397]
+        """
 
-        NowEnd = NowEnd @ Mat.TransXYZ(4.85,0,2.34) @ Mat.RotaXYZ(d2r(-180), d2r(20.2111), d2r(21.6879)) 
-        GoalEnd = GoalEnd @ Mat.TransXYZ(9,-4,z=-2) @ Mat.RotaXYZ(d2r(-165.2922), d2r(-7.1994), d2r(17.5635))
+        # NowEnd = NowEnd @ Mat.TransXYZ(4.85,0,2.34) @ Mat.RotaXYZ(d2r(180), d2r(20.2111), d2r(21.6879)) 
+        # GoalEnd = GoalEnd @ Mat.TransXYZ(9,-4,z=-2) @ Mat.RotaXYZ(d2r(-165.2922), d2r(-7.1994), d2r(17.5635))
+        unit = 0.01
+        NowEnd = NowEnd @ Mat.TransXYZ(485.364*unit,-1.213*unit,234.338*unit) @ Mat.RotaXYZ(d2r(179.984), d2r(20.2111), d2r(21.6879)) 
+        GoalEnd = GoalEnd @ Mat.TransXYZ(955.421*unit,-87.132*unit,z=-166.811*unit) @ Mat.RotaXYZ(d2r(-165.2914), d2r(-7.1896), d2r(17.5397))
 
         alltime = 6
         sampleTime = 0.03
@@ -516,17 +524,17 @@ class Simulator:
         # path_dict_4X4, path_df_4X4, path_np_4X4, path_np_6X1 = self.dB.LoadMatrix4x4("dataBase/MatrixPath_Scurve.csv")
 
         # 建立path buffer
-        θ = np.zeros((len(path_np_4X4),6,1))
+        # θ = np.zeros((len(path_np_4X4),6,1))
 
 
         # 取出資料後放入IK，將coordinate data ➔ Joint Angle data
-        for i in range(len(path_dict_4X4)):
-            θ[i] = self.Kin.IK_4x4(path_np_4X4[i], θ_Buffer)
+        # for i in range(len(path_dict_4X4)):
+        #     θ[i] = self.Kin.IK_4x4(path_np_4X4[i], θ_Buffer)
 
         """
         存取JointAngle data
         """    
-        self.dB.Save(θ, 0, "dataBase/MatrixPathPlanning_JointAngle.csv")
+        # self.dB.Save(θ, 0, "dataBase/MatrixPathPlanning_JointAngle.csv")
         # self.dB.Save(θ, 0, "dataBase/MatrixPath434_JointAngle.csv")
         # self.dB.Save(θ, 0, "dataBase/MatrixPath_Scurve_JointAngle.csv")
 
@@ -653,17 +661,25 @@ class Simulator:
             """
             矩陣軌跡法
             """
-            if Mainloopiter < len(θ):
-                Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.Mh12_FK(World_coordinate,θ[Mainloopiter,0,0],θ[Mainloopiter,1,0],θ[Mainloopiter,2,0],θ[Mainloopiter,3,0],θ[Mainloopiter,4,0],θ[Mainloopiter,5,0])
+            # if Mainloopiter < len(θ):
+            if Mainloopiter < JointAngle_np.shape[1]:
+                # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.Mh12_FK\
+                    # (World_coordinate,θ[Mainloopiter,0,0],θ[Mainloopiter,1,0],θ[Mainloopiter,2,0],θ[Mainloopiter,3,0],θ[Mainloopiter,4,0],θ[Mainloopiter,5,0], 0.01)
+                Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.Mh12_FK\
+                    (World_coordinate,
+                     JointAngle_np[0, Mainloopiter],
+                     JointAngle_np[1, Mainloopiter],
+                     JointAngle_np[2, Mainloopiter],
+                     JointAngle_np[3, Mainloopiter],
+                     JointAngle_np[4, Mainloopiter],
+                     JointAngle_np[5, Mainloopiter],
+                    0.01)
                 self.draw_axis(NowEnd,1)
                 self.draw_axis(GoalEnd,1)
                 
             self.draw_Matrix4X4(EndEffector, 550)
             self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector, 1)
             self.draw_Trajectory(path_np_4X4, Mainloopiter)
-
-
-
 
 
             """

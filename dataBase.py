@@ -10,16 +10,43 @@ class dataBase:
         self.Time = TimeTool()
         self.Mat = Matrix4x4()
         
-    
+    def Save_singleData_experiment(self, data, Time, filePath):
+        """軌跡實驗用一次存取單筆資料
+        - Harder :['X', 'Y', 'Z', 'Rx', 'Ry', 'Rz', 'Time']
+        - data shape: 1x7
+        """
+       
+
+        # 假設這是一筆新的資料，你想要逐一存入 CSV 檔案
+        new_data = [data[0, 0], data[0, 1], data[0, 2], data[0, 3], data[0, 4], data[0, 5], Time]
+
+        """
+        檔案若存在 追加資料
+        """
+        # 檢查檔案是否存在
+        if not os.path.exists(filePath):
+            # 如果檔案不存在，使用 header=True 寫入標題
+            pd.DataFrame(columns=['X', 'Y', 'Z', 'Rx', 'Ry', 'Rz', 'Time']).to_csv(filePath, mode='w', header=True, index=False)
+
+        # 逐行將新資料存入 CSV 檔案
+        new_df = pd.DataFrame([new_data], columns=['X', 'Y', 'Z', 'Rx', 'Ry', 'Rz', 'Time'])
+        new_df.to_csv(filePath, mode='a', header=False, index=False)
+        
+ 
+        
     def Save(self, data, timeData, filePath):
-        # TODO 重複檔案處理方式未完成，暫時使用程式結束來提醒。
+        
         """Save Homogeneous Transformation Matrix 
         - Args: \n 
             # data: 2-dimensional array, shape is 4x4. \n
             # filePath: "xxxx.csv" (str)
         """
         mode = ""
+        
         # 文件寫入模式判定
+       
+
+        
         if os.path.isfile(filePath):
             # 如果該檔名已存在
             Ans = input("該檔案名稱存在，請選擇處理方式 :\nw.覆寫 \na.追加 \no.程式結束，請重設檔案名稱 \nAnswer :")
@@ -80,7 +107,7 @@ class dataBase:
         elif len(data.shape) == 3 and data.shape[1] == 1 and data.shape[2] == 6 :
             """Save pose matrix (1X6)
             """
-            # TODO 未測試
+            
             df = pd.DataFrame(columns=['X', 'Y', 'Z', 'Rx', 'Ry', 'Rz'])
             # list用於儲存 Matrix(1x6) 的數據 
             data_list = []

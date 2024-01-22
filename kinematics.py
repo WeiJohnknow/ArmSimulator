@@ -1,5 +1,6 @@
 import numpy as np
 from Matrix import *
+import sys
 
 
 class Kinematics:
@@ -138,14 +139,18 @@ class Kinematics:
         CorrEndEffector = NewTaxis
         return Base, Saxis, Laxis, Uaxis, Raxis, Baxis, NewTaxis, CorrEndEffector
     
-    def Mh12_FK(self, WorldCoordinate, Saxisθ, Laxisθ, Uaxisθ, Raxisθ, Baxisθ, Taxisθ):
-        """
-        Ref. Yaskawa_mh12.xar
+    def Mh12_FK(self, WorldCoordinate, Saxisθ, Laxisθ, Uaxisθ, Raxisθ, Baxisθ, Taxisθ, Unit=0.01):
+        """Motoman MH12 Forward kinematics
+        - Ref. Yaskawa_mh12.xacro
+        - Arg: 
+            - Unit: 
+                - Real: 1
+                - Simulator: 0.01 (default)
         """
         WorldCoordinate = np.eye(4)
 
         # 模擬器倍率
-        Unit = 0.01
+        # Unit = 0.01
 
         # 真實倍率
         # Unit = 1
@@ -450,7 +455,7 @@ class Kinematics:
         iter = 10
         # 學習率
         # test = 0.05
-        test = 0.75
+        test = 1
         while iter > 0:
             iter -= 1
 
@@ -487,23 +492,40 @@ class Kinematics:
 
         # 算Jacbian matrix det(用SVD)
         _, s, _ = np.linalg.svd(Jbuffer)
+
         # 計算行列式
         determinant = np.prod(s)
-        # print("det(J)", determinant)
-        if determinant == 0:
-            print("SVD =  0, 是奇異點")
+
+        # if determinant == 0:
+        #     print("SVD =  0, 是奇異點")
 
         rankJ = np.linalg.matrix_rank(Jbuffer)
-        # print("rank :", rankJ)
-        if rankJ < 6:
-            print("有可能是 奇異點")
+        
+        if rankJ < 6 or determinant == 0:
+            print("SVD =  0, 是奇異點")
 
-        print("iter :", iter)
-        # normθ = norm_deg(θ)
-        # print(θ)
+
+        print("iter :", 10-iter)
         normθ = self.Normdeg(θ_Buffer)
         print(normθ)
         print("error " , error)
+
+        if error  > 0.001:
+            sys.exit("IK迭代誤差過大")
+        if normθ[0,0] > d2r(170) or normθ[0,0] < d2r(-170):
+            sys.exit("S軸超過角度限制")
+        if normθ[1,0] >= d2r(155) or normθ[1,0] < d2r(-90):
+            sys.exit("L軸超過角度限制")
+        if normθ[2,0] > d2r(240) or normθ[2,0] < d2r(-84.995):
+            sys.exit("U軸超過角度限制")
+        if normθ[3,0] > d2r(150) or normθ[3,0] < d2r(-150):
+            sys.exit("R軸超過角度限制")
+        if normθ[4,0] > d2r(90) or normθ[4,0] < d2r(-135):
+            sys.exit("B軸超過角度限制")
+        if normθ[5,0] > d2r(210) or normθ[5,0] < d2r(-210):
+            sys.exit("T軸超過角度限制")
+
+            
 
         return normθ
 

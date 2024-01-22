@@ -621,53 +621,53 @@ Dynamically draw curves(增量式)
 同時畫六張圖 一張圖一條曲線
 """
 
-import matplotlib.pyplot as plt
-import numpy as np
-from matplotlib.animation import FuncAnimation
-from dataBase import dataBase
+# import matplotlib.pyplot as plt
+# import numpy as np
+# from matplotlib.animation import FuncAnimation
+# from dataBase import dataBase
 
 
 
-dB = dataBase()
-JointAngleData, JDnp = dB.LoadJointAngle("dataBase/MatrixPathPlanning_JointAngle.csv")
+# dB = dataBase()
+# JointAngleData, JDnp = dB.LoadJointAngle("dataBase/MatrixPathPlanning_JointAngle.csv")
 
 
 
-# 曲线名称
-name = ['S', 'L', 'U', 'R', 'B', 'T']
+# # 曲线名称
+# name = ['S', 'L', 'U', 'R', 'B', 'T']
 
-# 繪圖設定
-fig, axs = plt.subplots(3, 2, figsize=(6, 10))  # 2行3列的子图布局
-fig.suptitle('Dynamic Curves')
+# # 繪圖設定
+# fig, axs = plt.subplots(3, 2, figsize=(6, 10))  # 2行3列的子图布局
+# fig.suptitle('Dynamic Curves')
 
-# 初始化六条曲线
-lines = [axs[i // 2, i % 2].plot([], [], label=f'{name[i]} Axis Angle')[0] for i in range(6)]
+# # 初始化六条曲线
+# lines = [axs[i // 2, i % 2].plot([], [], label=f'{name[i]} Axis Angle')[0] for i in range(6)]
 
-# Set legend for the first time
-for ax in axs.flat:
-    ax.legend()
+# # Set legend for the first time
+# for ax in axs.flat:
+#     ax.legend()
 
-t = np.linspace(0, len(JointAngleData), len(JointAngleData))
+# t = np.linspace(0, len(JointAngleData), len(JointAngleData))
 
-# 初始y轴范围
-y_axis_ranges = [(min(JDnp[i]), max(JDnp[i])) for i in range(6)]
+# # 初始y轴范围
+# y_axis_ranges = [(min(JDnp[i]), max(JDnp[i])) for i in range(6)]
 
-# 更新函数
-def update(frame):
-    for i, ax in enumerate(axs.flat):
-        line = lines[i]
-        line.set_data(t[:frame], JDnp[i, :frame])
-        ax.set_xlim(0, len(t)+1)
-        ax.set_ylim(y_axis_ranges[i])
-        ax.set_title(f'{name[i]}Axis Angle')
+# # 更新函数
+# def update(frame):
+#     for i, ax in enumerate(axs.flat):
+#         line = lines[i]
+#         line.set_data(t[:frame], JDnp[i, :frame])
+#         ax.set_xlim(0, len(t)+1)
+#         ax.set_ylim(y_axis_ranges[i])
+#         ax.set_title(f'{name[i]}Axis Angle')
 
-    fig.subplots_adjust(hspace=0.4, wspace=0.3)
-    return lines
+#     fig.subplots_adjust(hspace=0.4, wspace=0.3)
+#     return lines
 
-# 创建动画对象
-ani = FuncAnimation(fig, update, frames=range(1, len(t)+1, 10), blit=True)
+# # 创建动画对象
+# ani = FuncAnimation(fig, update, frames=range(1, len(t)+1, 10), blit=True)
 
-plt.show()
+# plt.show()
 
 # # 迭代次數
 # iter = 100
@@ -903,3 +903,36 @@ Polynomial regression
 # plt.grid(True)
 # plt.show()
 
+import cv2
+
+# 創建VideoCapture對象，0表示默認的攝影機（第一個可用的USB攝影機）
+cap = cv2.VideoCapture(0)
+
+# 檢查攝影機是否成功打開
+if not cap.isOpened():
+    print("無法打開攝影機。")
+    exit()
+
+# 創建一個新的窗口
+cv2.namedWindow('Camera Feed', cv2.WINDOW_NORMAL)
+
+# 開始捕獲視頻
+while True:
+    # 讀取一幀
+    ret, frame = cap.read()
+
+    # 檢查視頻是否成功讀取
+    if not ret:
+        print("無法讀取視頻流。")
+        break
+
+    # 顯示視頻流在新的窗口中
+    cv2.imshow('Camera Feed', frame)
+
+    # 按下 'q' 鍵退出迴圈
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+# 釋放資源
+cap.release()
+cv2.destroyAllWindows()

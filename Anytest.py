@@ -903,36 +903,126 @@ Polynomial regression
 # plt.grid(True)
 # plt.show()
 
-import cv2
+# import cv2
 
-# 創建VideoCapture對象，0表示默認的攝影機（第一個可用的USB攝影機）
-cap = cv2.VideoCapture(0)
+# # 創建VideoCapture對象，0表示默認的攝影機（第一個可用的USB攝影機）
+# cap = cv2.VideoCapture(0)
 
-# 檢查攝影機是否成功打開
-if not cap.isOpened():
-    print("無法打開攝影機。")
-    exit()
+# # 檢查攝影機是否成功打開
+# if not cap.isOpened():
+#     print("無法打開攝影機。")
+#     exit()
 
-# 創建一個新的窗口
-cv2.namedWindow('Camera Feed', cv2.WINDOW_NORMAL)
+# # 創建一個新的窗口
+# cv2.namedWindow('Camera Feed', cv2.WINDOW_NORMAL)
 
-# 開始捕獲視頻
-while True:
-    # 讀取一幀
-    ret, frame = cap.read()
+# # 開始捕獲視頻
+# while True:
+#     # 讀取一幀
+#     ret, frame = cap.read()
 
-    # 檢查視頻是否成功讀取
-    if not ret:
-        print("無法讀取視頻流。")
-        break
+#     # 檢查視頻是否成功讀取
+#     if not ret:
+#         print("無法讀取視頻流。")
+#         break
 
-    # 顯示視頻流在新的窗口中
-    cv2.imshow('Camera Feed', frame)
+#     # 顯示視頻流在新的窗口中
+#     cv2.imshow('Camera Feed', frame)
 
-    # 按下 'q' 鍵退出迴圈
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+#     # 按下 'q' 鍵退出迴圈
+#     if cv2.waitKey(1) & 0xFF == ord('q'):
+#         break
 
-# 釋放資源
-cap.release()
-cv2.destroyAllWindows()
+# # 釋放資源
+# cap.release()
+# cv2.destroyAllWindows()
+#%%
+Time = TimeTool()
+# count = 0
+# e_ = []
+# E_ = []
+# while True:
+#     if count >20:
+#         break
+#     b = Time.ReadNowTime()
+#     start_process_time = time.process_time()
+#     time.sleep(0.03)
+#     a = Time.ReadNowTime()
+#     end_process_time = time.process_time()
+#     e = Time.TimeError(b,a)
+#     elapsed_process_time = end_process_time - start_process_time
+#     e_.append(e["millisecond"])
+#     E_.append(elapsed_process_time)
+#     count+=1
+# print(e_)
+# print(E_)
+#%%
+
+"""
+精準time sleep
+"""
+# import time
+# import timeit
+
+# def time_sleep(seconds):
+#     """
+#     - Args: time
+#         - time unit :second
+#     """
+#     start_time = timeit.default_timer()
+#     target_time = start_time + seconds
+
+#     while timeit.default_timer() < target_time:
+#         pass
+
+# count = 0
+# e_ = []
+# while count <= 20:
+#     # Example: Sleep for 0.1 milliseconds
+#     b = Time.ReadNowTime()
+#     time_sleep(0.03)
+#     a = Time.ReadNowTime()
+#     e = Time.TimeError(b,a)
+#     e_.append(e["millisecond"])
+#     count+=1
+# print(e_)
+
+"""
+計算CPU運算時間
+"""
+# import time
+
+# # Record the starting process time
+# start_process_time = time.process_time()
+
+# # Perform some time-consuming operation
+# for _ in range(1000000):
+#     pass
+
+# # Record the ending process time
+# end_process_time = time.process_time()
+
+# # Calculate the elapsed process time
+# elapsed_process_time = end_process_time - start_process_time
+
+# print(f"Elapsed process time: {elapsed_process_time} seconds")
+#%%
+import matplotlib.pyplot as plt
+
+# 示例数据
+t1 = [0, 1, 2, 3, 4]
+x1 = [0, 1, 4, 9, 16]
+
+# 绘制红色虚线
+plt.plot(t1, x1, color='red', linestyle='--', linewidth=2, label='Line 1')
+
+# 添加其他设置，如标题和标签
+plt.title('My Plot')
+plt.xlabel('Time')
+plt.ylabel('Values')
+
+# 显示图例
+plt.legend()
+
+# 显示图形
+plt.show()

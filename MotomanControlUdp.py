@@ -2,11 +2,11 @@ import threading
 import time
 import sys
 import cv2
-# from MotomanUdpPacket import MotomanUDP
+from MotomanUdpPacket import MotomanUDP
 from dataBase import dataBase
 import numpy as np
 from Toolbox import TimeTool
-
+import timeit
 
 
 
@@ -17,62 +17,108 @@ from Toolbox import TimeTool
 3. 讀取位置並存檔
 4. 現在位置與資料庫做比對，若有誤差則修正
 """
+def time_sleep(seconds):
+    """
+    - Args: time
+        - time unit :second
+    """
+    start_time = timeit.default_timer()
+    target_time = start_time + seconds
 
+    while timeit.default_timer() < target_time:
+        pass
 
 
 def readNowPosCMD():
     global t1, sysTime, Node
     # 讀取位置後存檔
-    # pos_result, coordinate = udp.getcoordinateMH()
-    # print(coordinate)
-    NowPos[0,0] = round(955.398-t1, 4)
-    NowPos[0,1] = round(-87.132+t1, 4)
-    NowPos[0,2] = round(-166.811-t1, 4)
-    NowPos[0,3] = round(-165.2914+t1, 4)
-    NowPos[0,4] = round(-7.1824-t1, 4)
-    NowPos[0,5] = round(17.5358+t1, 4)
+    b = Time.ReadNowTime()
 
-    # NowPos[0,0] = coordinate[0]
-    # NowPos[0,1] = coordinate[1]
-    # NowPos[0,2] = coordinate[2]
-    # NowPos[0,3] = coordinate[3]
-    # NowPos[0,4] = coordinate[4]
-    # NowPos[0,5] = coordinate[5]
+    startTime = Time.ReadNowTime()
+    pos_result, coordinate = udp.getcoordinateMH()
+    # print(pos_result)
     
+    # print(error)
+    # print(coordinate)
+    # NowPos[0,0] = round(955.398-t1, 4)
+    # NowPos[0,1] = round(-87.132+t1, 4)
+    # NowPos[0,2] = round(-166.811-t1, 4)
+    # NowPos[0,3] = round(-165.2914+t1, 4)
+    # NowPos[0,4] = round(-7.1824-t1, 4)
+    # NowPos[0,5] = round(17.5358+t1, 4)
+
+    NowPos[0,0] = coordinate[0]
+    NowPos[0,1] = coordinate[1]
+    NowPos[0,2] = coordinate[2]
+    NowPos[0,3] = coordinate[3]
+    NowPos[0,4] = coordinate[4]
+    NowPos[0,5] = coordinate[5]
     db.Save_singleData_experiment(NowPos, sysTime, "dataBase/testTrajectory.csv")
+
+    # Torque = udp.getTorqueMH()
+    # NowTorque[0,0] = Torque[0]
+    # NowTorque[0,1] = Torque[1]
+    # NowTorque[0,2] = Torque[2]
+    # NowTorque[0,3] = Torque[3]
+    # NowTorque[0,4] = Torque[4]
+    # NowTorque[0,5] = Torque[5]
+    # db.Save_singleData_experiment(NowTorque, sysTime, "dataBase/testTrajectory_torque.csv")
     
-    print("讀取")
-    t1 +=1
+    endTime = Time.ReadNowTime()
+    Errtime = Time.TimeError(startTime, endTime)
+    sampleTime = 40
+    syserror = sampleTime - Errtime["millisecond"]
+    db.Save_time(Errtime["millisecond"], "dataBase/ReadcoordCMDtime.csv")
+    time_sleep(syserror/1000)
+
+    a = Time.ReadNowTime()
+    test = Time.TimeError(b, a)
+    print(test["millisecond"])
+    # print("讀取")
+    # t1 +=1
     # print("t1: ", t1)
     
 def sendMoveCMD():
-    global t2, sysTime, Node, GoalEnd
+    global t2, sysTime, Node
 
-    print("寫入Goal位置")
+    # print("寫入Goal位置")
     
-    # status = udp.moveMH(2,1, 14, 17, GoalEnd)
+    
+
 
     t2 +=1
     # print("t2 :", t2)
     
 def main():
-    global sysTime, Node
+    global sysTime, Node, GoalEnd
     # Servo ON
     # Servo_status = udp.ServoMH(1)
     start = True
     startNode = 0
+
+    # before = Time.ReadNowTime()
+    status = udp.moveMH(2,1, 500, 17, GoalEnd)
+    # after = Time.ReadNowTime()
+    # error = Time.TimeError(before, after)
+    # print(error)
+
     while True:
         
         sendcmd = threading.Thread(target=sendMoveCMD)
         readcmd = threading.Thread(target=readNowPosCMD)
 
         # 將執行緒設置為守護執行緒
-        sendcmd.daemon = True
-        readcmd.daemon = True
+        # sendcmd.daemon = True
+        # readcmd.daemon = True
 
         # Start the thread
         sendcmd.start()
         readcmd.start()
+
+        # Wait for the thread to finish (optional)
+        sendcmd.join()
+        readcmd.join()
+
         if start is True: 
             startTime = Time.ReadNowTime()
             start = False
@@ -80,45 +126,44 @@ def main():
         nowTime = Time.ReadNowTime()
         
         sysTime, Node = Time.sysTime(startTime, startNode, nowTime, 0.001)
-        print("系統時間(ms): ", sysTime/1000)
+        # print("系統時間(ms): ", sysTime/1000)
 
-        # # Wait for the thread to finish (optional)
-        # sendcmd.join()
-        # readcmd.join()
 
         # cv鍵盤事件
         key = cv2.waitKey(1) & 0xFF
         if key == 27:  # 27是'ESC'鍵的ASCII碼
             print('You pressed "ESC". Exiting...')
             print("Hold ON ➜ Servo OFF ➜ Hold OFF ➜ I/O Reset ➜ loop berak")
-            # status = udp.holdMH(2)
-            # time.sleep(0.01)
-            # status = udp.ServoMH(2)
-            # udp.WriteIO(2701, 0)
+            status = udp.holdMH(2)
+            time.sleep(0.01)
+            status = udp.ServoMH(2)
+            udp.WriteIO(2701, 0)
             break
 
         elif key == ord('h'):
             print('Hold on')
-            # status = udp.holdMH(1)
+            status = udp.holdMH(1)
             time.sleep(5)
         
 if __name__ == "__main__":
     db = dataBase()
     Time = TimeTool()
-    # udp = MotomanUDP()
+    udp = MotomanUDP()
 
     # 載入軌跡資訊
-    filepath = "dataBase/MatrixPathPlanning.csv"
-    pathDict, pathDf, pathNp4x4, pathNp6x1 = db.LoadMatrix4x4(filepath)
+    # filepath = "dataBase/MatrixPathPlanning.csv"
+    # pathDict, pathDf, pathNp4x4, pathNp6x1 = db.LoadMatrix4x4(filepath)
 
     # 創建一個空視窗
     cv2.namedWindow('Control Motoman Window')
 
     # 設定Goal
-    GoalEnd = [955.398, -87.132, -166.811, -165.2914, -7.1824, 17.5358]
+    ORG = [485.364, -1.213, 234.338, 179.984, 20.2111, 1.6879]
+    GoalEnd = [955.386, -19.8, -75.117, -165.2853, -7.1884, 17.5443]
 
-    # 位置暫存器
+    # 暫存器
     NowPos = np.zeros((1, 6))
+    NowTorque = np.zeros((1, 6))
 
     # 系統時間
     t1 = 0
@@ -126,14 +171,14 @@ if __name__ == "__main__":
     sysTime, Node = 0, 0
     
     # Servo ON
-    # Servo_status = udp.ServoMH(1)
+    Servo_status = udp.ServoMH(1)
 
     # 確認Servo Power狀態
-    # sys_status = udp.getstatusMH()
-    sys_status = 64
+    sys_status = udp.getstatusMH()
+    # sys_status = 64
 
-    # if sys_status[4] == 64:
-    if sys_status == 64:
+    if sys_status[4] == 64:
+    # if sys_status == 64:
         main()
         # 釋放資源
         cv2.destroyAllWindows()

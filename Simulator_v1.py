@@ -500,12 +500,12 @@ class Simulator:
 
         # NowEnd = NowEnd @ Mat.TransXYZ(4.85,0,2.34) @ Mat.RotaXYZ(d2r(180), d2r(20.2111), d2r(21.6879)) 
         # GoalEnd = GoalEnd @ Mat.TransXYZ(9,-4,z=-2) @ Mat.RotaXYZ(d2r(-165.2922), d2r(-7.1994), d2r(17.5635))
-        unit = 0.01
-        NowEnd = NowEnd @ Mat.TransXYZ(485.364*unit,-1.213*unit,234.338*unit) @ Mat.RotaXYZ(d2r(179.984), d2r(20.2111), d2r(21.6879)) 
-        GoalEnd = GoalEnd @ Mat.TransXYZ(955.421*unit,-87.132*unit,z=-166.811*unit) @ Mat.RotaXYZ(d2r(-165.2914), d2r(-7.1896), d2r(17.5397))
+        unit = 1
+        NowEnd = NowEnd @ Mat.TransXYZ(485.364*unit,-1.213*unit,234.338*unit) @ Mat.RotaXYZ(d2r(179.984), d2r(20.2111), d2r(1.6879)) 
+        GoalEnd = GoalEnd @ Mat.TransXYZ(955.386*unit,-19.8*unit,z=-75.117*unit) @ Mat.RotaXYZ(d2r(-165.2853), d2r(-7.1884), d2r(17.5443))
 
-        alltime = 6
-        sampleTime = 0.03
+        alltime = 11.223
+        sampleTime = 0.04
         startTime = 0
 
         # 線性插值版本
@@ -524,17 +524,17 @@ class Simulator:
         # path_dict_4X4, path_df_4X4, path_np_4X4, path_np_6X1 = self.dB.LoadMatrix4x4("dataBase/MatrixPath_Scurve.csv")
 
         # 建立path buffer
-        # θ = np.zeros((len(path_np_4X4),6,1))
+        θ = np.zeros((len(path_np_4X4),6,1))
 
 
         # 取出資料後放入IK，將coordinate data ➔ Joint Angle data
-        # for i in range(len(path_dict_4X4)):
-        #     θ[i] = self.Kin.IK_4x4(path_np_4X4[i], θ_Buffer)
+        for i in range(len(path_dict_4X4)):
+            θ[i] = self.Kin.IK_4x4(path_np_4X4[i], θ_Buffer)
 
         """
         存取JointAngle data
         """    
-        # self.dB.Save(θ, 0, "dataBase/MatrixPathPlanning_JointAngle.csv")
+        self.dB.Save(θ, 0, "dataBase/MatrixPathPlanning_JointAngle.csv")
         # self.dB.Save(θ, 0, "dataBase/MatrixPath434_JointAngle.csv")
         # self.dB.Save(θ, 0, "dataBase/MatrixPath_Scurve_JointAngle.csv")
 

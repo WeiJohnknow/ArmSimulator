@@ -5,6 +5,7 @@ from Toolbox import TimeTool
 import time
 import keyboard
 import cv2
+from dataBase import dataBase
 
 class UDP_packet:
     def __init__(self, Sub_header, data=[]) -> None:
@@ -287,7 +288,10 @@ class MotomanUDP:
         result = self.Cvt_SignInt( data)
         # print(result)
         coordinate = [result[5], result[6], result[7], result[8], result[9], result[10]]
+
         return result, coordinate
+    
+    
     
     def getTorqueMH(self):
         """Get Torque
@@ -301,9 +305,13 @@ class MotomanUDP:
         
         Ans_packet = self.sendCmd( reqSubHeader, reqData)
         data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
-        
-        
-        return data
+        result = self.Cvt_SignInt(data)
+        if result == []:
+            Torque = [0, 0, 0, 0, 0, 0]
+            return Torque
+        else:
+            Torque = [result[0], result[1], result[2], result[3], result[4], result[5]]
+            return Torque
      
     def Cvt_SignInt(self, data):
         """Convert 32bit Signed Integer
@@ -311,6 +319,7 @@ class MotomanUDP:
         input len: 4
         """
         result = []
+        # coordinate
         if len(data) == 52:
             for i in range(0, len(data), 4):
                 databuffer = (data[i+3] << 24) | (data[i+2] << 16) | (data[i+1] << 8) | data[i]
@@ -330,6 +339,31 @@ class MotomanUDP:
                     databuffer = round(databuffer*0.0001,4)
                 elif i == 40:
                     databuffer = round(databuffer*0.0001,4)
+                result.append(databuffer)
+        
+        # Torque
+        if len(data) == 24:
+            for i in range(0, len(data), 4):
+                # Combine the four bytes into a 32-bit unsigned integer
+                databuffer = (data[i+3] << 24) | (data[i+2] << 16) | (data[i+1] << 8) | data[i]
+
+                if databuffer & (1 << 31):
+                    databuffer -= 1 << 32
+                
+                result.append(databuffer)
+        return result
+    
+    def Cvt_UnsignedInt(self, data):
+        """Convert 32-bit unsigned Integer
+        - Args: type: list
+        - Return :list
+        """
+        result = []
+        if len(data) == 24:
+            for i in range(0, len(data), 4):
+                # Combine the four bytes into a 32-bit unsigned integer
+                databuffer = (data[i+3] << 24) | (data[i+2] << 16) | (data[i+1] << 8) | data[i]
+      
                 result.append(databuffer)
 
         return result
@@ -535,7 +569,7 @@ class MotomanUDP:
 
     def MoveCMD_req(self, moveType, data):
 
-        if moveType != 1 or moveType != 2 or moveType != 3:
+        if moveType < 1 and moveType > 3:
             print("moveType value Error!!!")
 
         reqSubHeader = { 'Command_No': (0x8A, 0x00),
@@ -545,12 +579,9 @@ class MotomanUDP:
                     'Padding': (0, 0)}
         reqData = data
 
-        tb = Time.ReadNowTime()
+        
         Ans_packet = self.sendCmd(reqSubHeader, reqData)
-        ta = Time.ReadNowTime()
-        cmd_cost = Time.TimeError(tb,ta)
-        print("Write Move Command cost time: ", cmd_cost)
-
+        
         status = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
 
         return status
@@ -636,7 +667,7 @@ class MotomanUDP:
 # UDP test
 udp = MotomanUDP()
 Time = TimeTool()
-
+dB = dataBase()
 
 
 # 遠端起弧測試OK
@@ -660,7 +691,17 @@ Time = TimeTool()
 # 位置讀取
 # result, coordinate = udp.getcoordinateMH()
 # print(coordinate)
-
+GoalEnd = [955.386, -19.8, -75.117, -165.2853, -7.1884, 17.5443]
+count = 0
+Servo_status = udp.ServoMH(1)
+while count<=100:
+    b = Time.ReadNowTime()
+    udp.moveMH(2,1, 14, 17, GoalEnd)
+    a = Time.ReadNowTime()
+    err = Time.TimeError(b, a)
+    dB.Save_time(err["millisecond"], "dataBase/moveCMDtime_3.csv")
+    count+=1
+Servo_status = udp.ServoMH(2)
 # 伺服電源開啟
 # status = udp.ServoMH(1)
 
@@ -712,104 +753,111 @@ Time = TimeTool()
 # test
 
 # # 創建一個空視窗
-cv2.namedWindow('Empty Window')
+# cv2.namedWindow('Empty Window')
 
-ORG = [485.364, -1.213, 234.338, 179.984, 20.2111, 1.6879]
-weldstart = [955.398, -87.132, -166.811, -165.2914, -7.1824, 17.5358]
-weldend = [955.421, -8.941, -166.768, -165.288, -7.1896, 17.5397]
+# ORG = [485.364, -1.213, 234.338, 179.984, 20.2111, 1.6879]
+# weldstart = [955.398, -87.132, -166.811, -165.2914, -7.1824, 17.5358]
+# weldend = [955.421, -8.941, -166.768, -165.288, -7.1896, 17.5397]
+# testGoal = [485.364+50, -1.213, 234.338+50, 179.984, 20.2111, 1.6879]
 
-# Servo ON
-Servo_status = udp.ServoMH(1)
+# # Servo ON
+# Servo_status = udp.ServoMH(1)
 
-# 讀取是否Servo ON
-sys_status = udp.getstatusMH()
-print(sys_status)
-if sys_status[4] == 64:
-    print("Servo ON is success")
-    # 0: speed * 0.01 %
-    # 1: speed * 0.1 mm/s
-    # 2: speed * 0.1 deg/s
+# # 讀取是否Servo ON
+# sys_status = udp.getstatusMH()
+# print(sys_status)
+# if sys_status[4] == 64:
+#     print("Servo ON is success")
+#     # 0: speed * 0.01 %
+#     # 1: speed * 0.1 mm/s
+#     # 2: speed * 0.1 deg/s
     
     
-    while True:
-        # 等待鍵盤事件，並取得按下的鍵
-        key = cv2.waitKey(1) & 0xFF
+#     while True:
+#         # 等待鍵盤事件，並取得按下的鍵
+#         key = cv2.waitKey(1) & 0xFF
+#         torque = udp.getTorqueMH()
+#         print(torque)
 
-        # 離開
-        if key == 27:  # 27是'ESC'鍵的ASCII碼
-            print('You pressed "ESC". Exiting...')
-            status = udp.holdMH(2)
-            time.sleep(0.01)
-            status = udp.ServoMH(2)
-            udp.WriteIO(2701, 0)
-            break
+#         # 離開
+#         if key == 27:  # 27是'ESC'鍵的ASCII碼
+#             print('You pressed "ESC". Exiting...')
+#             status = udp.holdMH(2)
+#             time.sleep(0.01)
+#             status = udp.ServoMH(2)
+#             udp.WriteIO(2701, 0)
+#             break
 
-        elif key == ord('h'):
-            print('Hold on')
-            status = udp.holdMH(1)
+#         elif key == ord('h'):
+#             print('Hold on')
+#             status = udp.holdMH(1)
         
-        elif key == ord('w'):
-            print('Send Position Error')
-            status = udp.holdMH(1)
-            time.sleep(0.01)
-            status = udp.holdMH(2)
+#         elif key == ord('w'):
+#             print('Send Position Error')
+#             status = udp.holdMH(1)
+#             time.sleep(0.01)
+#             status = udp.holdMH(2)
 
-            # 增量型
-            dp = [10, 0, 0, 0, 0, 0]
-            status = udp.moveMH(3, 1, 100, 17, dp)
-            print(status)
+#             # 增量型
+#             dp = [10, 0, 0, 0, 0, 0]
+#             status = udp.moveMH(3, 1, 100, 17, dp)
+#             print(status)
 
-            while True:
-                print("讀取是否運轉中")
-                sys_status = udp.getstatusMH()
-                print(sys_status)
+#             while True:
+#                 print("讀取是否運轉中")
+#                 sys_status = udp.getstatusMH()
+#                 print(sys_status)
 
-                if sys_status[0] == 194:
-                    # 回歸原本路徑
-                    status = udp.moveMH(2,1, 100, 17, weldend)
-                    print(status)
-                    break
-                else:
-                    print("Manipulator operating!!")
-                    time.sleep(0.01)
+#                 if sys_status[0] == 194:
+#                     # 回歸原本路徑
+#                     status = udp.moveMH(2,1, 100, 17, weldend)
+#                     print(status)
+#                     break
+#                 else:
+#                     print("Manipulator operating!!")
+#                     time.sleep(0.01)
             
-        elif key == ord('r'):
-            print('Hold off and Servo off')
-            status = udp.holdMH(2)
-            time.sleep(0.01)
-            status = udp.ServoMH(2)
+#         elif key == ord('r'):
+#             print('Hold off and Servo off')
+#             status = udp.holdMH(2)
+#             time.sleep(0.01)
+#             status = udp.ServoMH(2)
 
-        elif key == ord('s'):
-            print('Read Position')
-            pos_result, coordinate = udp.getcoordinateMH()
-            print(coordinate)
-            sys_result = udp.getstatusMH()
-            print(sys_result)
-            torque = udp.getTorqueMH()
-            print(torque)
+#         elif key == ord('s'):
+#             print('Read Position')
+#             pos_result, coordinate = udp.getcoordinateMH()
+#             print(coordinate)
+#             sys_result = udp.getstatusMH()
+#             print(sys_result)
+#             torque = udp.getTorqueMH()
+#             print(torque)
 
-        elif key == ord('n'):
-            print('Arc ON')
-            udp.WriteIO(2701, 12)
-            status = udp.moveMH(2,1, 14, 17, weldend)
-            print(status)
+#         # elif key == ord('n'):
+#         #     print('Arc ON')
+#         #     udp.WriteIO(2701, 12)
+#         #     status = udp.moveMH(2,1, 14, 17, weldend)
+#         #     print(status)
 
-        elif key == ord('f'):
-            print('Arc OFF')
-            udp.WriteIO(2701, 0)
+#         # elif key == ord('f'):
+#         #     print('Arc OFF')
+#         #     udp.WriteIO(2701, 0)
 
-    # 釋放資源
-    cv2.destroyAllWindows()
-else:
-    print(Servo_status)
+#         elif key == ord('m'):
+#             print('Move to Goal')
+#             status = udp.moveMH(2,1, 50, 17, ORG)
+#             print(status)
 
+#     # 釋放資源
+#     cv2.destroyAllWindows()
+# else:
+#     print(Servo_status)
 
+#%%
 # result, coordinate = udp.getcoordinateMH()
 # print(coordinate)
 
 
 #　作業區
-
 # TODO BMOV 電流值尚未得知
 # 讀取IO
 # while True:

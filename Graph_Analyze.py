@@ -85,6 +85,118 @@ def Analyze_Position(PoseMat_file, Time_file):
     # 显示图形
     plt.show()
 
+def Analyze_2_Position(PoseMat_file_1, Time_file_1, PoseMat_file_2, Time_file_2):
+    """Analyze 2 curve
+    - Real : PoseMat_file_1、Time_file_1
+    - Simulator : PoseMat_file_2、Time_file_2
+    """
+    PoseMat6x1_1 = pd.read_csv(PoseMat_file_1)
+    pathdata_df_1 = pd.read_csv( Time_file_1)
+    PoseMat6x1_2 = pd.read_csv(PoseMat_file_2)
+    pathdata_df_2 = pd.read_csv( Time_file_2)
+    x1 =[]
+    y1 =[]
+    z1 =[]
+    Rx1=[]
+    Ry1=[]
+    Rz1=[]
+    x2 =[]
+    y2 =[]
+    z2 =[]
+    Rx2=[]
+    Ry2=[]
+    Rz2=[]
+    t1 = []
+    for i in range(len(PoseMat6x1_1)):
+        x1.append( PoseMat6x1_1["X"][i])
+        y1.append( PoseMat6x1_1["Y"][i]) 
+        z1.append( PoseMat6x1_1["Z"][i]) 
+        Rx1.append(PoseMat6x1_1["Rx"][i])
+        Ry1.append(PoseMat6x1_1["Ry"][i])
+        Rz1.append(PoseMat6x1_1["Rz"][i])
+
+    for i in range(len(PoseMat6x1_2)):
+        x2.append( PoseMat6x1_2["X"][i])
+        y2.append( PoseMat6x1_2["Y"][i]) 
+        z2.append( PoseMat6x1_2["Z"][i]) 
+        Rx2.append(PoseMat6x1_2["Rx"][i])
+        Ry2.append(PoseMat6x1_2["Ry"][i])
+        Rz2.append(PoseMat6x1_2["Rz"][i])
+    
+    for i in range(len(pathdata_df_1)):
+        t = round(pathdata_df_1["time"][i]/1000000, 3)
+        t1.append(t)
+        
+
+        
+    # 图1：Px vs. time
+    # plt.subplot(3, 2, 1)
+    plt.subplot2grid((3, 2), (0, 0))
+    plt.plot(t1, x1, color='red', linestyle='-', linewidth=3, label="Real")
+    plt.plot(pathdata_df_2['time'], x2, color='blue', linestyle=':', linewidth=3, label="Simulator")
+    plt.title('x Position curve')
+    plt.xlabel('time(s)')
+    plt.ylabel('Position(m)')
+    plt.legend()
+
+    # 图2：Py vs. time
+    # plt.subplot(3, 2, 2)
+    plt.subplot2grid((3, 2), (1, 0))
+    plt.plot(t1, y1, color='red', linestyle='-', linewidth=3, label="Real")
+    plt.plot(pathdata_df_2['time'], y2, color='blue', linestyle=':', linewidth=3, label="Simulator")
+    plt.title('y Position curve')
+    plt.xlabel('time(s)')
+    plt.ylabel('Position(m)')
+    plt.legend()
+
+    # 图3：Pz vs. time
+    # plt.subplot(3, 2, 3)
+    plt.subplot2grid((3, 2), (2, 0))
+    plt.plot(t1, z1, color='red', linestyle='-', linewidth=3, label="Real")
+    plt.plot(pathdata_df_2['time'], z2, color='blue', linestyle=':', linewidth=3, label="Simulator")
+    plt.title('z Position curve')
+    plt.xlabel('time(s)')
+    plt.ylabel('Position(m)')
+    plt.legend()
+
+    # 图4：Px vs. time
+    # plt.subplot(3, 2, 4)
+    plt.subplot2grid((3, 2), (0, 1))
+    plt.plot(t1, Rx1, color='red', linestyle='-', linewidth=3, label="Real")
+    plt.plot(pathdata_df_2['time'], Rx2, color='blue', linestyle=':', linewidth=3, label="Simulator")
+    plt.title('x Angle curve')
+    plt.xlabel('time(s)')
+    plt.ylabel('Angle(deg)')
+    plt.legend()
+
+    # 图5：Py vs. time
+    # plt.subplot(3, 2, 5)
+    plt.subplot2grid((3, 2), (1, 1))
+    plt.plot(t1, Ry1, color='red', linestyle='-', linewidth=3, label="Real")
+    plt.plot(pathdata_df_2['time'], Ry2, color='blue', linestyle=':', linewidth=3, label="Simulator")
+    plt.title('y Angle curve')
+    plt.xlabel('time(s)')
+    plt.ylabel('Angle(deg)')
+    plt.legend()
+
+    # 图6：Pz vs. time
+    # plt.subplot(3, 2, 6)
+    plt.subplot2grid((3, 2), (2, 1))
+    plt.plot(t1, Rz1, color='red', linestyle='-', linewidth=3, label="Real")
+    plt.plot(pathdata_df_2['time'], Rz2, color='blue', linestyle=':', linewidth=3, label="Simulator")
+    plt.title('z Angle curve')
+    plt.xlabel('time(s)')
+    plt.ylabel('Angle(deg)')
+    plt.legend()
+
+    # 在整体图中添加图例
+    
+
+    # 调整布局
+    plt.tight_layout()
+
+    # 显示图形
+    plt.show()
 
 def Analyze_Velocity(sampleTime, PoseMat_file, Time_file):
     PoseMat6x1 = pd.read_csv(PoseMat_file)
@@ -434,6 +546,14 @@ if __name__ == "__main__" :
     # PoseMat_file = "dataBase/MatrixPath_Scurve_PoseMatrix.csv"
     # Time_file = "dataBase/MatrixPath_Scurve.csv"
 
+
+    Real_PoseMat_file = "Experimental_data/Trajectory.csv"
+    Real_Time_file = "Experimental_data/time.csv"
+    Sim_PoseMat_file = "dataBase/MatrixPathPlanning_PoseMatrix.csv"
+    Sim_Time_file = "dataBase/MatrixPathPlanning.csv"
+    Analyze_2_Position(Real_PoseMat_file, Real_Time_file, Sim_PoseMat_file, Sim_Time_file)
+    # Analyze_Position(Sim_PoseMat_file, Sim_Time_file)
+
     # Analyze_Position(PoseMat_file, Time_file)
     # Analyze_Velocity(0.04, PoseMat_file, Time_file)
     # Analyze_Acceleration(0.04, PoseMat_file, Time_file)
@@ -442,13 +562,13 @@ if __name__ == "__main__" :
     Joint Angle專區
     """
     # Matrix Planning
-    PoseMat_file = "dataBase/MatrixPathPlanning_JointAngle.csv"
-    Time_file = "dataBase/MatrixPathPlanning.csv"
+    # PoseMat_file = "dataBase/MatrixPathPlanning_JointAngle.csv"
+    # Time_file = "dataBase/MatrixPathPlanning.csv"
 
     # Matrix Planning + 4-3-4 Trajectory
     # PoseMat_file = "dataBase/MatrixPath434_JointAngle.csv"
     # Time_file = "dataBase/MatrixPath434.csv"
 
-    Analyze_JointAngle(PoseMat_file, Time_file)
+    # Analyze_JointAngle(PoseMat_file, Time_file)
 
     

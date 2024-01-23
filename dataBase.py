@@ -9,6 +9,21 @@ class dataBase:
     def __init__(self) -> None:
         self.Time = TimeTool()
         self.Mat = Matrix4x4()
+    
+    def Save_time(self, data, filePath):
+        new_data = [data]
+
+        """
+        檔案若存在 追加資料
+        """
+        # 檢查檔案是否存在
+        if not os.path.exists(filePath):
+            # 如果檔案不存在，使用 header=True 寫入標題
+            pd.DataFrame(columns=['Time']).to_csv(filePath, mode='w', header=True, index=False)
+
+        # 逐行將新資料存入 CSV 檔案
+        new_df = pd.DataFrame([new_data], columns=['Time'])
+        new_df.to_csv(filePath, mode='a', header=False, index=False)
         
     def Save_singleData_experiment(self, data, Time, filePath):
         """軌跡實驗用一次存取單筆資料

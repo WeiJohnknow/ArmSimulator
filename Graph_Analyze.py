@@ -79,7 +79,7 @@ def plot_6_chart_1curve(x, y, z, Rx, Ry, Rz, time, title_header, title, xlable, 
     # 显示图形
     plt.show()
 
-def plot_6_chart_2curve(data1, data2, title_header, title, xlable, ylable):
+def plot_6_chart_2curve(data1, data2, title_header, title, xlable, ylable, line_1_label, line_2_label):
     """畫出六張子圖，每張圖有二條曲線
     - Args: data1, data2
         - data1: [x, y, z, Rx, Ry, Rz, time]
@@ -89,6 +89,8 @@ def plot_6_chart_2curve(data1, data2, title_header, title, xlable, ylable):
             - title_header + title = "x" + "Position curve"
         - xlable :x軸標量名稱，ex :time(s).
         - ylable :y軸標量名稱，ex :Position.
+        - line_1_label :線條1之名稱，通常為實際量測值(真實手臂量測值)。
+        - line_2_label :線條2之名稱，通常為期望值(軌跡演算法產生)。
     - data type :list、ndarray
     """
 
@@ -108,12 +110,13 @@ def plot_6_chart_2curve(data1, data2, title_header, title, xlable, ylable):
     Rz2 = data2[5]
     t2 =  data2[6]
 
+
     
     # 图1：Px vs. time
     # plt.subplot(3, 2, 1)
     plt.subplot2grid((3, 2), (0, 0))
-    plt.plot(t1, x1, color='red',  linestyle='-', linewidth=3, label="Real")
-    plt.plot(t2, x2, color='blue', linestyle=':', linewidth=3, label="Simulator")
+    plt.plot(t1, x1, color='red',  linestyle='-', linewidth=3, label = line_1_label)
+    plt.plot(t2, x2, color='blue', linestyle=':', linewidth=3, label = line_2_label)
     plt.title(f"{title_header[0]} {title}")
     plt.xlabel(xlable)
     plt.ylabel(ylable)
@@ -122,8 +125,8 @@ def plot_6_chart_2curve(data1, data2, title_header, title, xlable, ylable):
     # 图2：Py vs. time
     # plt.subplot(3, 2, 2)
     plt.subplot2grid((3, 2), (1, 0))
-    plt.plot(t1, y1, color='red',  linestyle='-', linewidth=3, label="Real")
-    plt.plot(t2, y2, color='blue', linestyle=':', linewidth=3, label="Simulator")
+    plt.plot(t1, y1, color='red',  linestyle='-', linewidth=3, label = line_1_label)
+    plt.plot(t2, y2, color='blue', linestyle=':', linewidth=3, label = line_2_label)
     plt.title(f"{title_header[1]} {title}")
     plt.xlabel(xlable)
     plt.ylabel(ylable)
@@ -132,8 +135,8 @@ def plot_6_chart_2curve(data1, data2, title_header, title, xlable, ylable):
     # 图3：Pz vs. time
     # plt.subplot(3, 2, 3)
     plt.subplot2grid((3, 2), (2, 0))
-    plt.plot(t1, z1, color='red',  linestyle='-', linewidth=3, label="Real")
-    plt.plot(t2, z2, color='blue', linestyle=':', linewidth=3, label="Simulator")
+    plt.plot(t1, z1, color='red',  linestyle='-', linewidth=3, label = line_1_label)
+    plt.plot(t2, z2, color='blue', linestyle=':', linewidth=3, label = line_2_label)
     plt.title(f"{title_header[2]} {title}")
     plt.xlabel(xlable)
     plt.ylabel(ylable)
@@ -142,8 +145,8 @@ def plot_6_chart_2curve(data1, data2, title_header, title, xlable, ylable):
     # 图4：Px vs. time
     # plt.subplot(3, 2, 4)
     plt.subplot2grid((3, 2), (0, 1))
-    plt.plot(t1, Rx1, color='red',  linestyle='-', linewidth=3, label="Real")
-    plt.plot(t2, Rx2, color='blue', linestyle=':', linewidth=3, label="Simulator")
+    plt.plot(t1, Rx1, color='red',  linestyle='-', linewidth=3, label = line_1_label)
+    plt.plot(t2, Rx2, color='blue', linestyle=':', linewidth=3, label = line_2_label)
     plt.title(f"{title_header[3]} {title}")
     plt.xlabel(xlable)
     plt.ylabel(ylable)
@@ -152,8 +155,8 @@ def plot_6_chart_2curve(data1, data2, title_header, title, xlable, ylable):
     # 图5：Py vs. time
     # plt.subplot(3, 2, 5)
     plt.subplot2grid((3, 2), (1, 1))
-    plt.plot(t1, Ry1, color='red',  linestyle='-', linewidth=3, label="Real")
-    plt.plot(t2, Ry2, color='blue', linestyle=':', linewidth=3, label="Simulator")
+    plt.plot(t1, Ry1, color='red',  linestyle='-', linewidth=3, label =  line_1_label)
+    plt.plot(t2, Ry2, color='blue', linestyle=':', linewidth=3, label =  line_2_label)
     plt.title(f"{title_header[4]} {title}")
     plt.xlabel(xlable)
     plt.ylabel(ylable)
@@ -162,8 +165,8 @@ def plot_6_chart_2curve(data1, data2, title_header, title, xlable, ylable):
     # 图6：Pz vs. time
     # plt.subplot(3, 2, 6)
     plt.subplot2grid((3, 2), (2, 1))
-    plt.plot(t1, Rz1, color='red',  linestyle='-', linewidth=3, label="Real")
-    plt.plot(t2, Rz2, color='blue', linestyle=':', linewidth=3, label="Simulator")
+    plt.plot(t1, Rz1, color='red',  linestyle='-', linewidth=3, label =  line_1_label)
+    plt.plot(t2, Rz2, color='blue', linestyle=':', linewidth=3, label =  line_2_label)
     plt.title(f"{title_header[5]} {title}")
     plt.xlabel(xlable)
     plt.ylabel(ylable)
@@ -375,9 +378,9 @@ def Analyze_Acceleration(sampleTime, PoseMat_file, Time_file):
     plot_6_chart_1curve(ax, ay, az, aRx, aRy, aRz, t, title_header, title, xlabel, ylable)
 
 
-def Analyze_JointAngle(PoseMat_file, Time_file):
-    PoseMat6x1 = pd.read_csv(PoseMat_file)
-    pathdata_df = pd.read_csv( Time_file)
+def Analyze_JointAngle(JointAngle_file, Time_file):
+    JointAngle6x1 = pd.read_csv(JointAngle_file)
+    time_df = pd.read_csv( Time_file)
     S = []
     L = []
     U = []
@@ -385,14 +388,14 @@ def Analyze_JointAngle(PoseMat_file, Time_file):
     B = []
     T = []
     t = []
-    for i in range(len(PoseMat6x1)):
-        t.append(pathdata_df['time'][i])
-        S.append(PoseMat6x1["S"][i])
-        L.append(PoseMat6x1["L"][i])
-        U.append(PoseMat6x1["U"][i])
-        R.append(PoseMat6x1["R"][i])
-        B.append(PoseMat6x1["B"][i])
-        T.append(PoseMat6x1["T"][i])
+    for i in range(len(JointAngle6x1)):
+        t.append(time_df['time'][i])
+        S.append(JointAngle6x1["S"][i])
+        L.append(JointAngle6x1["L"][i])
+        U.append(JointAngle6x1["U"][i])
+        R.append(JointAngle6x1["R"][i])
+        B.append(JointAngle6x1["B"][i])
+        T.append(JointAngle6x1["T"][i])
 
     title_header = ["S axis", "L axis", "U axis", "R axis", "B axis", "T axis"]
     title = "JointAngle curve"
@@ -455,8 +458,10 @@ def Analyze_2curve_Position(PoseMat_file_1, Time_file_1, PoseMat_file_2, Time_fi
     title = "Position curve"
     xlabel = "time(s)"
     ylable = "Position(mm)"
+    line_1_label = "Measured value"
+    line_2_label = "Expect value"
         
-    plot_6_chart_2curve(data1, data2, title_header, title, xlabel, ylable)
+    plot_6_chart_2curve(data1, data2, title_header, title, xlabel, ylable, line_1_label, line_2_label)
 
 def Analyze_2curve_Velocity(sampleTime, PoseMat_file_1, Time_file_1, PoseMat_file_2, Time_file_2):
     """Analyze 2 curve
@@ -544,7 +549,10 @@ def Analyze_2curve_Velocity(sampleTime, PoseMat_file_1, Time_file_1, PoseMat_fil
     xlabel = "time(s)"
     ylable = "Volicity(mm/s)"
         
-    plot_6_chart_2curve(data1, data2, title_header, title, xlabel, ylable)
+    line_1_label = "Measured value"
+    line_2_label = "Expect value"
+        
+    plot_6_chart_2curve(data1, data2, title_header, title, xlabel, ylable, line_1_label, line_2_label)
 
 def Analyze_2curve_Acceleration(sampleTime, PoseMat_file_1, Time_file_1, PoseMat_file_2, Time_file_2):
     """Analyze 2 curve
@@ -662,7 +670,10 @@ def Analyze_2curve_Acceleration(sampleTime, PoseMat_file_1, Time_file_1, PoseMat
     xlabel = "time(s)"
     ylable = "Acceleration(mm/s²)"
         
-    plot_6_chart_2curve(data1, data2, title_header, title, xlabel, ylable)
+    line_1_label = "Measured value"
+    line_2_label = "Expect value"
+        
+    plot_6_chart_2curve(data1, data2, title_header, title, xlabel, ylable, line_1_label, line_2_label)
 
 def Analyze_2curve_JointAngle(PoseMat_file_1, Time_file_1, PoseMat_file_2, Time_file_2):
     """Analyze 2 curve

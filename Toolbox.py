@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import csv
+import timeit
 
 class TimeTool:
     def __init__(self) -> None:
@@ -51,7 +52,7 @@ class TimeTool:
         return timeData
     
     def sysTime(self, startTime, startNode, nowTime, sampleTime):
-        """Unit: microscond
+        """系統時間 Unit: microscond
         - Args: 
             - startTime
             - startNode: It's int.
@@ -75,6 +76,17 @@ class TimeTool:
 
         return sysTime, nowNode
     
+    def time_sleep(self, seconds):
+        """
+            - Args: time
+            - time unit :second
+        """
+        start_time = timeit.default_timer()
+        target_time = start_time + seconds
+
+        while timeit.default_timer() < target_time:
+            pass
+        
 
         
 

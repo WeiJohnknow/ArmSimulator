@@ -54,8 +54,14 @@ class Simulator:
 
 
     def draw_axis(self, Mats, Axislength):
-        '''
-        Axislenth 單位: OpenGL Unit
+        '''Axislenth 單位: OpenGL Unit
+        - Args:
+            - Mats : homogeneous transformation matrix(4x4)
+            - Axislength: line lengh, Unit is OpenGL unit.
+        - Axis color:
+            - Red :X axis
+            - green : Y axis
+            - Blue : Z axis
         '''
         glPushMatrix()
         glTranslatef(Mats[0,3], Mats[1,3], Mats[2,3])

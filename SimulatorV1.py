@@ -109,7 +109,7 @@ class Simulator:
                 if is_gray:
                     glColor3f(0.4, 0.4, 0.4)  # 灰色
                 else:
-                    glColor3f(0.5, 0.5, 0.5)  # 白色
+                    glColor3f(0.7, 0.7, 0.7)  # 白色
                 glVertex3f(i, j, Height)
                 glVertex3f(i + TatamiSize, j, Height)
                 glVertex3f(i + TatamiSize, j + TatamiSize, Height)
@@ -227,17 +227,17 @@ class Simulator:
 
         surfaces = (
         (0,1,2,3),
-        (0,3,4,7),
+        (0,3,7,4),
         (3,2,6,7),
         (1,2,6,5),
-        (0,1,4,5),
+        (0,1,5,4),
         (4,5,6,7)
         )
 
 
         colors = (
             (0,0,0),
-            (0,1,0),
+            (0,0,0),
             (0,0,1),
             (0,1,0),
             (1,1,1),
@@ -260,6 +260,8 @@ class Simulator:
                 glVertex3fv(vertices[vertex])
                 
         glEnd()
+
+        glLineWidth(5.0)  # 設置線條寬度為2個單位
 
         glBegin(GL_LINES)
         glColor3f(1.0, 1.0, 1.0)
@@ -509,7 +511,6 @@ class Simulator:
 
         # NowEnd = NowEnd @ Mat.TransXYZ(4.85,0,2.34) @ Mat.RotaXYZ(d2r(180), d2r(20.2111), d2r(21.6879)) 
         # GoalEnd = GoalEnd @ Mat.TransXYZ(9,-4,z=-2) @ Mat.RotaXYZ(d2r(-165.2922), d2r(-7.1994), d2r(17.5635))
-        unit = 1
         NowEnd = NowEnd @ Mat.TransXYZ(485.364*self.Unit,-1.213*self.Unit,234.338*self.Unit) @ Mat.RotaXYZ(d2r(179.984), d2r(20.2111), d2r(1.6879)) 
         GoalEnd = GoalEnd @ Mat.TransXYZ(955.386*self.Unit,-19.8*self.Unit,z=-75.117*self.Unit) @ Mat.RotaXYZ(d2r(-165.2853), d2r(-7.1884), d2r(17.5443))
 
@@ -518,7 +519,7 @@ class Simulator:
         startTime = 0
 
         # 線性插值版本
-        PosBuffer4X4 = self.Plan.MatrixPathPlanning("dataBase\MatrixPathPlanning.csv", GoalEnd, NowEnd, alltime, startTime, sampleTime)
+        # PosBuffer4X4 = self.Plan.MatrixPathPlanning("dataBase\MatrixPathPlanning.csv", GoalEnd, NowEnd, alltime, startTime, sampleTime)
         # # self.Plan.QuaternionsInterpolation(GoalEnd, NowEnd, 5)
         
         # 434差值版本
@@ -528,29 +529,29 @@ class Simulator:
         # self.Plan.MatrixPath_Scurve("dataBase/MatrixPath_Scurve.csv", GoalEnd, NowEnd, sampleTime)
 
         # 由資料庫取得路徑資訊
-        path_dict_4X4, path_df_4X4, path_np_4X4, path_np_6X1 = self.dB.LoadMatrix4x4("dataBase\MatrixPathPlanning.csv")
+        # path_dict_4X4, path_df_4X4, path_np_4X4, path_np_6X1 = self.dB.LoadMatrix4x4("dataBase\MatrixPathPlanning.csv")
         # path_dict_4X4, path_df_4X4, path_np_4X4, path_np_6X1 = self.dB.LoadMatrix4x4("dataBase/MatrixPath434.csv")
         # path_dict_4X4, path_df_4X4, path_np_4X4, path_np_6X1 = self.dB.LoadMatrix4x4("dataBase/MatrixPath_Scurve.csv")
 
         # 建立path buffer
-        θ = np.zeros((len(path_np_4X4),6,1))
+        # θ = np.zeros((len(path_np_4X4),6,1))
 
 
         # 取出資料後放入IK，將coordinate data ➔ Joint Angle data
-        for i in range(len(path_dict_4X4)):
-            θ[i] = self.Kin.IK_4x4(path_np_4X4[i], θ_Buffer)
+        # for i in range(len(path_dict_4X4)):
+        #     θ[i] = self.Kin.IK_4x4(path_np_4X4[i], θ_Buffer)
 
         """
         存取JointAngle data
         """    
-        self.dB.Save(θ, 0, "dataBase/MatrixPathPlanning_JointAngle.csv")
+        # self.dB.Save(θ, 0, "dataBase/MatrixPathPlanning_JointAngle.csv")
         # self.dB.Save(θ, 0, "dataBase/MatrixPath434_JointAngle.csv")
         # self.dB.Save(θ, 0, "dataBase/MatrixPath_Scurve_JointAngle.csv")
 
         """
         存取Pose Matrix data
         """
-        self.dB.Save(path_np_6X1, 0, "dataBase/MatrixPathPlanning_PoseMatrix.csv")
+        # self.dB.Save(path_np_6X1, 0, "dataBase/MatrixPathPlanning_PoseMatrix.csv")
         # self.dB.Save(path_np_6X1, 0, "dataBase/MatrixPath434_PoseMatrix.csv")
         # self.dB.Save(path_np_6X1, 0, "dataBase/MatrixPath_Scurve_PoseMatrix.csv")
 
@@ -564,13 +565,13 @@ class Simulator:
         
         # 視角移動參數
         # cameraDir = 20
-        cameraDir = 2000
+        cameraDir = 2500
         cameraθ = 45
         cameraφ = 0
 
         # 動態曲線圖初始化
-        poltData = self.init_dynamicCurve(JointAngle_np)
-        t = np.linspace(0, alltime, int(alltime/sampleTime))
+        # poltData = self.init_dynamicCurve(JointAngle_np)
+        # t = np.linspace(0, alltime, int(alltime/sampleTime))
 
         while True:
             tb = self.Time.ReadNowTime()
@@ -640,7 +641,7 @@ class Simulator:
             glLoadIdentity()
 
             aspect = self.display[0] / float(self.display[1])
-            gluPerspective(45, aspect, 0.1, 5000.0)
+            gluPerspective(45, aspect, 0.1, 6000.0)
             
 
             # 極座標系統
@@ -691,7 +692,7 @@ class Simulator:
                 
             self.draw_Matrix4X4(EndEffector, 550)
             self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector, 100)
-            self.draw_Trajectory(path_np_4X4, Mainloopiter)
+            # self.draw_Trajectory(path_np_4X4, Mainloopiter)
 
 
             """

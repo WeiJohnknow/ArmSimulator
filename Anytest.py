@@ -1030,16 +1030,188 @@ Time = TimeTool()
 """
 使numpy矩陣輸出時不帶有科學記號表示法
 """
-import numpy as np
+# import numpy as np
 
-# 定義矩陣
-matrix = np.array([[ 9.38000e-01,  3.00000e-02, -3.45000e-01,  4.85364e+02],
-                   [ 2.80000e-02, -1.00000e+00, -1.00000e-02, -1.21300e+00],
-                   [-3.45000e-01,  0.00000e+00, -9.38000e-01,  2.34338e+02],
-                   [ 0.00000e+00,  0.00000e+00,  0.00000e+00,  1.00000e+00]])
+# # 定義矩陣
+# matrix = np.array([[ 9.38000e-01,  3.00000e-02, -3.45000e-01,  4.85364e+02],
+#                    [ 2.80000e-02, -1.00000e+00, -1.00000e-02, -1.21300e+00],
+#                    [-3.45000e-01,  0.00000e+00, -9.38000e-01,  2.34338e+02],
+#                    [ 0.00000e+00,  0.00000e+00,  0.00000e+00,  1.00000e+00]])
 
-# 將科學符號格式化為非科學符號
-np.set_printoptions(suppress=True)
+# # 將科學符號格式化為非科學符號
+# np.set_printoptions(suppress=True)
 
-# 顯示矩陣
-print(matrix)
+# # 顯示矩陣
+# print(matrix)
+#%%
+"""
+PyQt5 與 OpenGL 結合
+"""
+# import sys
+# from PyQt5.QtWidgets import QApplication, QMainWindow, QOpenGLWidget
+# from PyQt5.QtGui import QOpenGLShader, QOpenGLShaderProgram, QSurfaceFormat
+# from PyQt5.QtCore import Qt
+
+# from OpenGL.GL import *
+
+
+# class OpenGLWidget(QOpenGLWidget):
+#     def __init__(self, parent=None):
+#         super().__init__(parent)
+    
+#     def initializeGL(self):
+#         # 設置 OpenGL 版本和相關參數
+#         glClearColor(0.0, 0.0, 0.0, 1.0)
+#         glEnable(GL_DEPTH_TEST)  # 啟用深度測試
+        
+#     def resizeGL(self, width, height):
+#         # 窗口大小變化時調整 OpenGL 視口
+#         glViewport(0, 0, width, height)
+        
+#     def paintGL(self):
+#         # 繪製 OpenGL 圖形
+#         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+#         glBegin(GL_TRIANGLES)
+#         glColor3f(1.0, 0.0, 0.0)
+#         glVertex3f(0.0, 1.0, 0.0)
+#         glColor3f(0.0, 1.0, 0.0)
+#         glVertex3f(-1.0, -1.0, 0.0)
+#         glColor3f(0.0, 0.0, 1.0)
+#         glVertex3f(1.0, -1.0, 0.0)
+#         glEnd()
+
+
+# class MainWindow(QMainWindow):
+#     def __init__(self):
+#         super().__init__()
+#         self.setWindowTitle("PyQt5 OpenGL Demo")
+#         self.setGeometry(100, 100, 800, 600)
+        
+#         # 創建 OpenGLWidget 並將其設置為主窗口的中心控件
+#         self.glWidget = OpenGLWidget(self)
+#         self.setCentralWidget(self.glWidget)
+
+
+# if __name__ == "__main__":
+#     app = QApplication(sys.argv)
+    
+#     # 設置 OpenGL 版本
+#     format = QSurfaceFormat()
+#     format.setVersion(2, 1)  # 將版本設置為 2.1
+#     format.setProfile(QSurfaceFormat.CoreProfile)
+#     QSurfaceFormat.setDefaultFormat(format)
+    
+#     mainWindow = MainWindow()
+#     mainWindow.show()
+    
+#     sys.exit(app.exec_())
+#%% 
+import sys
+import pygame
+from pygame.locals import *
+from OpenGL.GL import *
+from OpenGL.GLU import *
+from OpenGL.GLUT import *
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget, QOpenGLWidget
+from PyQt5.QtCore import QTimer
+
+# 定義立方體的頂點和面
+class paintGL:
+    def __init__(self):
+        self.roatdirection = True
+        pass
+
+    def Cube(self):
+        vertices = (
+        (1, -1, -1),
+        (1, 1, -1),
+        (-1, 1, -1),
+        (-1, -1, -1),
+        (1, -1, 1),
+        (1, 1, 1),
+        (-1, -1, 1),
+        (-1, 1, 1)
+        )
+
+        edges = (
+            (0,1),
+            (1,2),
+            (2,3),
+            (3,0),
+            (0,4),
+            (1,5),
+            (2,6),
+            (3,7),
+            (4,5),
+            (5,6),
+            (6,7),
+            (7,4)
+        )
+        glBegin(GL_LINES)
+        for edge in edges:
+            for vertex in edge:
+                glVertex3fv(vertices[vertex])
+        glEnd()
+
+    def draw(self):
+        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
+        if self.roatdirection is True:
+            glRotatef(1, 3, 1, 1)
+        else:
+            glRotatef(-5, 3, 1, 1)
+        self.Cube()
+        pygame.display.flip()
+        pygame.time.wait(10)
+
+    def main(self):
+        pygame.init()
+        display = (800,600)
+        pygame.display.set_mode(display, DOUBLEBUF|OPENGL)
+        gluPerspective(45, (display[0]/display[1]), 0.1, 50.0)
+        glTranslatef(0.0,0.0, -5)
+
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    quit()
+            self.draw()
+
+class MainWindow(QMainWindow, paintGL):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("PyQt5 OpenGL Control")
+        self.setGeometry(100, 100, 400, 200)
+
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
+
+        self.start_button = QPushButton("forward Rotation")
+        self.stop_button = QPushButton("backward Rotation")
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.start_button)
+        layout.addWidget(self.stop_button)
+        self.central_widget.setLayout(layout)
+
+        self.start_button.clicked.connect(self.forward_rotation)
+        self.stop_button.clicked.connect(self.backward_rotation)
+
+        self.rotating = False
+
+    def forward_rotation(self):
+        self.roatdirection = True
+
+    def backward_rotation(self):
+        self.roatdirection = False
+
+    def update_rotation(self):
+        self.draw()
+# TODO　無法更新旋轉狀態
+if __name__ == "__main__":
+    GL = paintGL()
+    app = QApplication(sys.argv)
+    main_window = MainWindow()
+    main_window.show()
+    GL.main()
+    sys.exit(app.exec_())

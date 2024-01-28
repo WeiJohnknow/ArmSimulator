@@ -51,7 +51,7 @@ void main()
 }
 """
 
-d2r = np.deg2rad
+
 def rpy_to_homogeneous(xyz,rpy):
 
     Px= xyz[0]
@@ -187,79 +187,110 @@ def draw_object(vao,lens,mat,view,projection):
     glBindVertexArray(0)
     glUseProgram(0)
 
-def draw_chessboard(Worldcoordinate,TatamiNumber=40, TatamiSize=1):
-    '''
-    TatamiNumber 地板組成(塌塌米數量)
-    TatamiSize 單格塌塌米大小(n*n)
-    '''
-    Unit = 0.01
-    is_gray = True 
-    z = Worldcoordinate @ Matrix4x4().TransXYZ(0,0,0)
-    Height = z[2,3]
-    glPushMatrix()
-    glBegin(GL_QUADS)
-    for i in range(-TatamiNumber, TatamiNumber, TatamiSize):
-        is_gray = not is_gray
-        for j in range(-TatamiNumber, TatamiNumber, TatamiSize):
-            if is_gray:
-                glColor3f(0.4, 0.4, 0.4)  # 灰色
-            else:
-                glColor3f(0.5, 0.5, 0.5)  # 白色
-            glVertex3f(i, j, Height)
-            glVertex3f(i + TatamiSize, j, Height)
-            glVertex3f(i + TatamiSize, j + TatamiSize, Height)
-            glVertex3f(i, j + TatamiSize, Height)
-            is_gray = not is_gray
-    glEnd()
-    glPopMatrix()
 
 def draw_axes(shader_program):
-    # 定義坐標軸的頂點和顏色
-    scale = 1.39
+    # Define vertices and colors for the axes
     axes_vertices = np.array([
-        0.0, 0.0, 0.0,
-        0.78, 0.0, 0.0,
-        0.0, 0.0, 0.0,
-        0.0, 0.78, 0.0,
-        0.0, 0.0, 0.0,
-        0.0, 0.0, 0.78
+        0.0, 0.0, 0.0,  # X-axis start point (origin)
+        1.0, 0.0, 0.0,  # X-axis end point
+        0.0, 0.0, 0.0,  # Y-axis start point (origin)
+        0.0, 1.0, 0.0,  # Y-axis end point
+        0.0, 0.0, 0.0,  # Z-axis start point (origin)
+        0.0, 0.0, 1.0   # Z-axis end point
     ], dtype=np.float32)
 
     axes_colors = np.array([
+        1.0, 0.0, 0.0,  # Red for X-axis
         1.0, 0.0, 0.0,
-        1.0, 0.0, 0.0,
+        0.0, 1.0, 0.0,  # Green for Y-axis
         0.0, 1.0, 0.0,
-        0.0, 1.0, 0.0,
-        0.0, 0.0, 1.0,
+        0.0, 0.0, 1.0,  # Blue for Z-axis
         0.0, 0.0, 1.0
     ], dtype=np.float32)
 
-    # 創建 VBO 和 VAO
+    # Create VBO and VAO
     vbo = glGenBuffers(2)
     vao = glGenVertexArrays(1)
 
-    # 綁定 VAO
+    # Bind VAO
     glBindVertexArray(vao)
 
-    # 綁定頂點 VBO，上傳頂點數據
+    # Bind vertex VBO, upload vertex data
     glBindBuffer(GL_ARRAY_BUFFER, vbo[0])
     glBufferData(GL_ARRAY_BUFFER, axes_vertices.nbytes, axes_vertices, GL_STATIC_DRAW)
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, None)
     glEnableVertexAttribArray(0)
 
-    # 綁定顏色 VBO，上傳顏色數據
+    # Bind color VBO, upload color data
     glBindBuffer(GL_ARRAY_BUFFER, vbo[1])
     glBufferData(GL_ARRAY_BUFFER, axes_colors.nbytes, axes_colors, GL_STATIC_DRAW)
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, None)
     glEnableVertexAttribArray(1)
 
-    # 畫出坐標軸
+    # Draw the axes
     glDrawArrays(GL_LINES, 0, 6)
 
-    # 解綁 VAO 和 VBO
+    # Unbind VAO and VBO
     glBindVertexArray(0)
     glBindBuffer(GL_ARRAY_BUFFER, 0)
     glDeleteBuffers(2, vbo)
+
+# def draw_axes(shader_program):
+#     # 定義坐標軸的頂點和顏色
+#     scale = 1.39
+#     # axes_vertices = np.array([
+#     #     0.0, 0.0, 0.0,  # X-axis start point (origin)
+#     #     0.78, 0.0, 0.0, # X-axis end point
+#     #     0.0, 0.0, 0.0,  # Y-axis start point (origin)
+#     #     0.0, 0.78, 0.0, # Y-axis end point
+#     #     0.0, 0.0, 0.0,  # Z-axis start point (origin)
+#     #     0.0, 0.0, 0.78  # Z-axis end point
+#     # ], dtype=np.float32)
+
+#     axes_vertices = np.array([
+#         0.0, 0.0, 0.0,  # X-axis start point (origin)
+#         1.0, 0.0, 0.0, # X-axis end point
+#         0.0, 0.0, 0.0,  # Y-axis start point (origin)
+#         0.0, 1.0, 0.0, # Y-axis end point
+#         0.0, 0.0, 0.0,  # Z-axis start point (origin)
+#         0.0, 0.0, 1.0  # Z-axis end point
+#     ], dtype=np.float32)
+
+#     axes_colors = np.array([
+#         1.0, 0.0, 0.0,
+#         1.0, 0.0, 0.0,
+#         0.0, 1.0, 0.0,
+#         0.0, 1.0, 0.0,
+#         0.0, 0.0, 1.0,
+#         0.0, 0.0, 1.0
+#     ], dtype=np.float32)
+
+#     # 創建 VBO 和 VAO
+#     vbo = glGenBuffers(2)
+#     vao = glGenVertexArrays(1)
+
+#     # 綁定 VAO
+#     glBindVertexArray(vao)
+
+#     # 綁定頂點 VBO，上傳頂點數據
+#     glBindBuffer(GL_ARRAY_BUFFER, vbo[0])
+#     glBufferData(GL_ARRAY_BUFFER, axes_vertices.nbytes, axes_vertices, GL_STATIC_DRAW)
+#     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, None)
+#     glEnableVertexAttribArray(0)
+
+#     # 綁定顏色 VBO，上傳顏色數據
+#     glBindBuffer(GL_ARRAY_BUFFER, vbo[1])
+#     glBufferData(GL_ARRAY_BUFFER, axes_colors.nbytes, axes_colors, GL_STATIC_DRAW)
+#     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, None)
+#     glEnableVertexAttribArray(1)
+
+#     # 畫出坐標軸
+#     glDrawArrays(GL_LINES, 0, 6)
+
+#     # 解綁 VAO 和 VBO
+#     glBindVertexArray(0)
+#     glBindBuffer(GL_ARRAY_BUFFER, 0)
+#     glDeleteBuffers(2, vbo)
 
 def draw_vector(vector, line_width, color):
     vector = [vector[0], vector[1], vector[2]]
@@ -295,7 +326,7 @@ def main():
         compileShader(vertex_shader, GL_VERTEX_SHADER),
         compileShader(fragment_shader, GL_FRAGMENT_SHADER)
     )
-    floor_vao,floor_lens,floor_vertices, floor_normals, floor_colors = create_floor_grid(20, 20, 0.2,0)
+    floor_vao,floor_lens,floor_vertices, floor_normals, floor_colors = create_floor_grid(20, 20, 1,0)
 
 
 
@@ -358,12 +389,12 @@ def main():
 
         
         # color
-        red = [1.0, 0.0, 0.0]
-        orange = [1.0, 0.6, 0.0]
-        yellow = [1.0, 1.0, 0]
-        green = [0.0, 1.0, 0.0]
-        blue = [0.0, 0.0, 1.0]
-        Purple = [0.62, 0.125, 0.941]
+        # red = [1.0, 0.0, 0.0]
+        # orange = [1.0, 0.6, 0.0]
+        # yellow = [1.0, 1.0, 0]
+        # green = [0.0, 1.0, 0.0]
+        # blue = [0.0, 0.0, 1.0]
+        # Purple = [0.62, 0.125, 0.941]
 
 
         # # Vector test
@@ -375,24 +406,24 @@ def main():
         # draw_vector(v_, 2, yellow)
         
         # # Vector projection
-        Raxis = np.array(([0.0, 0.0, 1.0]))
-        v = np.array(([0.707, 0, 0.707]))
-        v_parallel = dot(Raxis, v)*Raxis
-        v_vertical = v-v_parallel
+        # Raxis = np.array(([0.0, 0.0, 1.0]))
+        # v = np.array(([0.707, 0, 0.707]))
+        # v_parallel = dot(Raxis, v)*Raxis
+        # v_vertical = v-v_parallel
 
-        w = cross(Raxis, v)
-        Vrot_vertical = cos(d2r(160))*v_vertical + sin(d2r(160))*w
-        Vrot = v_parallel + Vrot_vertical
+        # w = cross(Raxis, v)
+        # Vrot_vertical = cos(d2r(160))*v_vertical + sin(d2r(160))*w
+        # Vrot = v_parallel + Vrot_vertical
 
-        draw_vector(v, 10, red)
-        draw_vector(Raxis, 5, blue)
-        draw_vector(v_parallel, 10, green)
-        draw_vector(v_vertical, 10, yellow)
-        draw_vector(w, 10, Purple)
-        draw_vector(Vrot_vertical, 10, yellow)
-        draw_vector(Vrot, 10, orange)
+        # draw_vector(v, 10, red)
+        # draw_vector(Raxis, 5, blue)
+        # draw_vector(v_parallel, 10, green)
+        # draw_vector(v_vertical, 10, yellow)
+        # draw_vector(w, 10, Purple)
+        # draw_vector(Vrot_vertical, 10, yellow)
+        # draw_vector(Vrot, 10, orange)
 
-        
+        draw_axes(shader_program)
 
 
         # # # Rodrigues' rotation formula

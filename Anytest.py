@@ -1007,22 +1007,39 @@ Time = TimeTool()
 
 # print(f"Elapsed process time: {elapsed_process_time} seconds")
 #%%
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
-# 示例数据
-t1 = [0, 1, 2, 3, 4]
-x1 = [0, 1, 4, 9, 16]
+# # 示例数据
+# t1 = [0, 1, 2, 3, 4]
+# x1 = [0, 1, 4, 9, 16]
 
-# 绘制红色虚线
-plt.plot(t1, x1, color='red', linestyle='--', linewidth=2, label='Line 1')
+# # 绘制红色虚线
+# plt.plot(t1, x1, color='red', linestyle='--', linewidth=2, label='Line 1')
 
-# 添加其他设置，如标题和标签
-plt.title('My Plot')
-plt.xlabel('Time')
-plt.ylabel('Values')
+# # 添加其他设置，如标题和标签
+# plt.title('My Plot')
+# plt.xlabel('Time')
+# plt.ylabel('Values')
 
-# 显示图例
-plt.legend()
+# # 显示图例
+# plt.legend()
 
-# 显示图形
-plt.show()
+# # 显示图形
+# plt.show()
+#%%
+"""
+使numpy矩陣輸出時不帶有科學記號表示法
+"""
+import numpy as np
+
+# 定義矩陣
+matrix = np.array([[ 9.38000e-01,  3.00000e-02, -3.45000e-01,  4.85364e+02],
+                   [ 2.80000e-02, -1.00000e+00, -1.00000e-02, -1.21300e+00],
+                   [-3.45000e-01,  0.00000e+00, -9.38000e-01,  2.34338e+02],
+                   [ 0.00000e+00,  0.00000e+00,  0.00000e+00,  1.00000e+00]])
+
+# 將科學符號格式化為非科學符號
+np.set_printoptions(suppress=True)
+
+# 顯示矩陣
+print(matrix)

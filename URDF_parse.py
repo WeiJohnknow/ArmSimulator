@@ -10,7 +10,7 @@ from OpenGL.GLUT import *
 from OpenGL.GL.shaders import compileProgram, compileShader
 import stl
 from Kinematics import Kinematics
-from Simulator import Simulator
+from Simulator_v1 import Simulator
 from Matrix import Matrix4x4
 from PathPlanning import PathPlanning
 from dataBase import dataBase

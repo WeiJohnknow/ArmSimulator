@@ -2,11 +2,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 from dataBase import dataBase
 from Matrix import Matrix4x4
+from Kinematics import Kinematics
+# from Simulator_v2 import Simulator
 
 class PathPlanning:
     def __init__(self):
         self.dB = dataBase()
         self.Mat = Matrix4x4()
+        self.Kin = Kinematics()
+        # self.Sim = Simulator()
         
     
     def TP_434(self, θ1, V1, A1, θ2, θ3, θ4, V4, A4, t1, t2, t3, sampleTime):
@@ -639,8 +643,11 @@ class PathPlanning:
         # Create Time Point     
         timeData = np.arange(startTime, allTime+sampleTime, sampleTime)
 
+        # 儲存軌跡資料(Homogeneous transformation)
         TBuffer = np.zeros(((int(sampleInterval)+1,4,4)))
         
+        
+
         for λ_ in range(int(sampleInterval)+1):
             λ = λ_ / int(sampleInterval)
             V = (1-cos(θ*λ))
@@ -672,9 +679,12 @@ class PathPlanning:
             # T 是 NowEnd ➜ GoalEnd 過程的插值矩陣(軌跡點)
             T = NowEnd @ D_ 
             TBuffer[λ_] = T
-        
+            
+
         # Save data
         self.dB.Save(TBuffer, timeData,filePath)
+
+
 
         return TBuffer, timeData
     
@@ -956,4 +966,7 @@ class PathPlanning:
 
 if __name__ == "__main__":
     PathPlan = PathPlanning()
-    PathPlan.main()
+    # PathPlan.main()
+
+    
+        

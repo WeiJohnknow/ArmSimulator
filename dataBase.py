@@ -25,13 +25,13 @@ class dataBase:
         new_df = pd.DataFrame([new_data], columns=['Time'])
         new_df.to_csv(filePath, mode='a', header=False, index=False)
         
-    def Save_singleData_experiment(self, data, Time, filePath):
+    def Save_singleData_experiment(self, data, Time, filePath, Header:list):
         """軌跡實驗用一次存取單筆資料
-        - Harder :['X', 'Y', 'Z', 'Rx', 'Ry', 'Rz', 'Time']
-        - data shape: 1x7
+        - Args
+            - Harder : Dataframe開頭檔，ex:['X', 'Y', 'Z', 'Rx', 'Ry', 'Rz', 'Time']
+            - data shape: 1x7
         """
        
-
         # 假設這是一筆新的資料，你想要逐一存入 CSV 檔案
         new_data = [data[0, 0], data[0, 1], data[0, 2], data[0, 3], data[0, 4], data[0, 5], Time]
 
@@ -41,10 +41,10 @@ class dataBase:
         # 檢查檔案是否存在
         if not os.path.exists(filePath):
             # 如果檔案不存在，使用 header=True 寫入標題
-            pd.DataFrame(columns=['X', 'Y', 'Z', 'Rx', 'Ry', 'Rz', 'Time']).to_csv(filePath, mode='w', header=True, index=False)
+            pd.DataFrame(columns = Header).to_csv(filePath, mode='w', header=True, index=False)
 
         # 逐行將新資料存入 CSV 檔案
-        new_df = pd.DataFrame([new_data], columns=['X', 'Y', 'Z', 'Rx', 'Ry', 'Rz', 'Time'])
+        new_df = pd.DataFrame([new_data], columns = Header)
         new_df.to_csv(filePath, mode='a', header=False, index=False)
         
  

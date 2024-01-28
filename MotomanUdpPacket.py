@@ -167,7 +167,16 @@ class UDP_packet:
           
 class MotomanUDP:
     def __init__(self,ip="192.168.255.200",S_pulse = 1435.4, L_pulse = 1300.4, U_pulse = 1422.2, R_pulse = 969.9, B_pulse = 980.2, T_pulse = 454.7) -> None:
-        # MA1440 deg/pulse
+        """
+        Yaskawa motoman MA1440 
+        deg/pulse
+        - S_pulse (float, optional): S-Axis encoder pulses per degree. Defaults to 1435.4.
+        - L_pulse (float, optional): L-Axis encoder pulses per degree. Defaults to 1300.4.
+        - U_pulse (float, optional): U-Axis encoder pulses per degree. Defaults to 1422.2.
+        - R_pulse (float, optional): R-Axis encoder pulses per degree. Defaults to 969.9.
+        - B_pulse (float, optional): B-Axis encoder pulses per degree. Defaults to 980.2.
+        - T_pulse (float, optional): T-Axis encoder pulses per degree. Defaults to 454.7.
+        """
         self.S_pulse = S_pulse
         self.L_pulse = L_pulse
         self.U_pulse = U_pulse
@@ -269,15 +278,29 @@ class MotomanUDP:
         
         return data
     
-    def getcoordinateMH(self):
-        """Get coordniate
-        - result:
-            [dataType, Form, Tool No, User coordinate No, Extended form, x, y, z, Rx, Ry, Rz, 0, 0]
-        - coordinate:
-            [x, y, z, Rx, Ry, Rz]
+    def getcoordinateMH(self, Type:int):
+        """Get coordniate or Motor Pulse
+        - Args :
+            - Type(1 or 101)
+                - 1 :Motor Pulse(6 axis)
+                - 101 : Cartesian coordinate
+            
+        - Return:
+            - result:
+                - Type = 1   ➔[dataType=1 , Form, Tool No, User coordinate No, Extended form, S pulse, L pulse, U pulse, R pulse, B pulse, T pulse, 0, 0]
+                - Type = 101 ➔[dataType=16, Form, Tool No, User coordinate No, Extended form, x, y, z, Rx, Ry, Rz, 0, 0]
+            - coordinate:
+                - Type = 1   ➔[S degree, L degree, U degree, R degree, B degree, T degree]
+                - Type = 101 ➔[x, y, z, Rx, Ry, Rz]
+        """
+        # TODO 新增讀取pulse功能，但尚未測試
+        """
+        - Instance: R1
+            - Read Pulse data: 1
+            - Read coordinate data: 101
         """
         reqSubHeader= { 'Command_No': (0x75, 0x00),
-                    'Instance': [101, 0],
+                    'Instance': [Type, 0],
                     'Attribute': 0,
                     'Service':  0x0E,
                     'Padding': (0, 0) }
@@ -285,12 +308,22 @@ class MotomanUDP:
         
         Ans_packet = self.sendCmd( reqSubHeader, reqData)
         data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
-        result = self.Cvt_SignInt( data)
-        # print(result)
-        coordinate = [result[5], result[6], result[7], result[8], result[9], result[10]]
+        result = self.Cvt_SignInt(data)
 
-        return result, coordinate
-    
+        
+        if Type == 101:
+            coordinate = [result[5], result[6], result[7], result[8], result[9], result[10]]
+            return result, coordinate
+        elif Type == 1:
+            JointAngle = [float(result[5]/self.S_pulse), 
+                          float(result[6]/self.L_pulse), 
+                          float(result[7]/self.U_pulse), 
+                          float(result[8]/self.R_pulse), 
+                          float(result[9]/self.B_pulse), 
+                          float(result[10]/self.T_pulse)]
+            return result, JointAngle
+        else:
+            print("Your dataType is Error!!!")
     
     
     def getTorqueMH(self):
@@ -438,7 +471,11 @@ class MotomanUDP:
         return data
     
     def WriteRegister(self, Pin, data):
-        # TODO Instance高、低位元輸入還未完成
+        # TODO 559後無法讀取與寫入
+        """
+        559後無法讀取與寫入
+        Service 嘗試 0x01
+        """
         Pin_hex = hex(Pin)
 
         # 移除 '0x' 前綴並填充零，確保至少有兩個字元
@@ -629,7 +666,126 @@ class MotomanUDP:
         status = self.MoveCMD_req(moveType, Movedata_packet)
 
         return status
+#%%    
+    def MoveJointAngleCMD_data(self, moveType, moveSpeedType, speed, JointAngle:list, Tool_No=5):
+        """Move Joint Angle(Point to Point)
+        - moveType:
+            - 1: Link absolute position operation() ➜ Joint space ➜ 走弧線
+            - 2: Straight absolute position operation ➜ Catesian space ➜ 走直線
+        - moveSpeedType :
+            - 0: Link operation(0.01%)
+            - 1: V(Cartesian operation)(0.1 mm/s)
+            - 2: VR(Cartesian operation)(0.1 degree/s)➜ 此選項移動速度極快，請小心使用!!!
+        - speed:
+            - 0: unit (0.01%)
+            - 1: unit (0.1 mm/s)
+            - 2: unit (0.1 degree/s)
+        - coordinate : [S axis degree, L axis degree, U axis degree, R axis degree, B axis degree, T axis degree] -list
+        - Type : Please read the manual!
+        - Expanded type : Please read the manual!
+        - Tool No.: 
+            - 5: default
+        - User_coordinate:
+            - 0: default
+        """
+
+        Movedata ={"Robot": 1,
+           "Station": 0,
+           "moveType": moveType,
+           "moveSpeedType": moveSpeedType,
+           "speed": speed,
+           "JointAngle":[JointAngle[0], JointAngle[1], JointAngle[2], JointAngle[3], JointAngle[4], JointAngle[5]],
+           "Axis 78": [0, 0],
+           "Tool No": Tool_No,
+           "Base axis": [0, 0, 0],
+           "Station axis": [0, 0, 0, 0, 0, 0]}
+        
+        return Movedata
     
+    def Pack_MoveJointAngleCMD_Packet(self, Movedata):
+        """Pack the MOVE command package
+        """
+        
+        Robot = struct.pack('I', Movedata["Robot"])
+        Station= struct.pack('I', Movedata["Station"])
+        moveType= struct.pack('I', Movedata["moveSpeedType"])
+        speed= struct.pack('I', Movedata["speed"])
+        # 需經過轉換，先將degree to Pulse，再將Pulse轉換成Byte data
+        SaxisPulse = self.signDecide(Movedata["JointAngle"][0]*self.S_pulse, 1)
+        LaxisPulse = self.signDecide(Movedata["JointAngle"][1]*self.L_pulse, 1)
+        UaxisPulse = self.signDecide(Movedata["JointAngle"][2]*self.U_pulse, 1)
+        RaxisPulse = self.signDecide(Movedata["JointAngle"][3]*self.R_pulse, 1)
+        BaxisPulse = self.signDecide(Movedata["JointAngle"][4]*self.B_pulse, 1)
+        TaxisPulse = self.signDecide(Movedata["JointAngle"][5]*self.T_pulse, 1)
+        Tool_No= struct.pack('I', Movedata["Tool No"])
+        Base_axis_1= struct.pack('I', Movedata["Base axis"][0])
+        Base_axis_2= struct.pack('I', Movedata["Base axis"][1])
+        Base_axis_3= struct.pack('I', Movedata["Base axis"][2])
+        Station_axis_1= struct.pack('I', Movedata["Station axis"][0])
+        Station_axis_2= struct.pack('I', Movedata["Station axis"][1])
+        Station_axis_3= struct.pack('I', Movedata["Station axis"][2])
+        Station_axis_4= struct.pack('I', Movedata["Station axis"][3])
+        Station_axis_5= struct.pack('I', Movedata["Station axis"][4])
+        Station_axis_6= struct.pack('I', Movedata["Station axis"][5])
+        # Move command data 
+        MovePacket = Robot+Station+moveType+speed+SaxisPulse+LaxisPulse+UaxisPulse\
+                +RaxisPulse+BaxisPulse+TaxisPulse+Tool_No+Base_axis_1+Base_axis_2\
+                +Base_axis_3+Station_axis_1+Station_axis_2+Station_axis_3+Station_axis_4+Station_axis_5+Station_axis_6
+        
+        return MovePacket, Movedata["moveType"]
+    
+    def MoveJointAngleCMD_req(self, moveType, data):
+
+        if moveType < 1 and moveType > 2:
+            print("moveType value Error!!!")
+
+        reqSubHeader = { 'Command_No': (0x8B, 0x00),
+                    'Instance': [moveType, 0],  
+                    'Attribute': 1,
+                    'Service':  0x02,
+                    'Padding': (0, 0)}
+        reqData = data
+
+        Ans_packet = self.sendCmd(reqSubHeader, reqData)
+        
+        status = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
+
+        return status
+    
+    def moveJointSapceMH(self, moveType, moveSpeedType, speed, JointAngle:list):
+        """Move JointSapce Command
+        Use me!!! 
+        - moveType:
+            - 1: Link absolute position operation() ➜ Joint space ➜ 走弧線
+            - 2: Straight absolute position operation ➜ Catesian space ➜ 走直線
+        - moveSpeedType :
+            - 0: Link operation(0.01%)
+            - 1: V(Cartesian operation)(0.1 mm/s)
+            - 2: VR(Cartesian operation)(0.1 degree/s)➜ 此選項移動速度極快，請小心使用!!!
+        - speed:
+            - 0: unit (0.01%)
+            - 1: unit (0.1 mm/s)
+            - 2: unit (0.1 degree/s)
+        - coordinate : [S axis degree, L axis degree, U axis degree, R axis degree, B axis degree, T axis degree] -list
+        - Type : Please read the manual!
+        - Expanded type : Please read the manual!
+        - Tool No.: 
+            - 5: default
+        - User_coordinate:
+            - 0: default
+        """
+        # TODO: 未測試
+
+        # 參數
+        # 填寫參數，並轉字典形式
+        dict_data = self.MoveJointAngleCMD_data(moveType, moveSpeedType, speed, JointAngle)
+        # 把字典打包成封包
+        Movedata_packet, moveType = self.Pack_MoveCMD_Packet(dict_data)
+        # 加入標題、子標題並完成封包後寄出
+        status = self.MoveCMD_req(moveType, Movedata_packet)
+
+        return status
+
     def arconMH(self):
         """ARC ON
         - Network input: #27012 and # 27013 ON.
@@ -691,17 +847,7 @@ dB = dataBase()
 # 位置讀取
 # result, coordinate = udp.getcoordinateMH()
 # print(coordinate)
-GoalEnd = [955.386, -19.8, -75.117, -165.2853, -7.1884, 17.5443]
-count = 0
-Servo_status = udp.ServoMH(1)
-while count<=100:
-    b = Time.ReadNowTime()
-    udp.moveMH(2,1, 14, 17, GoalEnd)
-    a = Time.ReadNowTime()
-    err = Time.TimeError(b, a)
-    dB.Save_time(err["millisecond"], "dataBase/moveCMDtime_3.csv")
-    count+=1
-Servo_status = udp.ServoMH(2)
+
 # 伺服電源開啟
 # status = udp.ServoMH(1)
 

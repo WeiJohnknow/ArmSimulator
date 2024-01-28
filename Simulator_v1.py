@@ -19,7 +19,7 @@ class Simulator:
 
 
         # 現實長度與OpenGL長度為1:0.01
-        self.Unit = 0.01
+        self.Unit = 1
 
         # 銲接工作台尺寸參數(mm)
         '''
@@ -92,14 +92,14 @@ class Simulator:
         glEnd()
         glPopMatrix()
 
-    def draw_chessboard(self, Worldcoordinate,TatamiNumber=40, TatamiSize=2):
+    def draw_chessboard(self, Worldcoordinate,TatamiNumber=2000, TatamiSize=100):
         '''
         TatamiNumber 地板組成(塌塌米數量)
         TatamiSize 單格塌塌米大小(n*n)
         '''
-        Unit = 0.01
+        
         is_gray = True 
-        z = Worldcoordinate @ Mat.TransXYZ(0,0,-450*Unit)
+        z = Worldcoordinate @ Mat.TransXYZ(0,0,-450*self.Unit)
         Height = z[2,3]
         glPushMatrix()
         glBegin(GL_QUADS)
@@ -188,9 +188,9 @@ class Simulator:
         self.BaseToWorkTable_lenght = 571.054 * self.Unit
         self.BlackBoard_Height = 12.5 * self.Unit 
         '''
-        Unit = 0.01
+        
         # 此Base是為配合世界坐標系與地板的顯示
-        Base = WorldCoordinate @ Mat.TransXYZ(0, 0, -450*Unit)
+        Base = WorldCoordinate @ Mat.TransXYZ(0, 0, -450*self.Unit)
         BaseHeight = Base[2,3]
 
         StartX = self.BaseToWorkTable_lenght 
@@ -370,7 +370,10 @@ class Simulator:
             textData = pygame.image.tostring(textSurface, "RGBA", True)
             glWindowPos2d(x, y-i*scale)
             glDrawPixels(textSurface.get_width(), textSurface.get_height(), GL_RGBA, GL_UNSIGNED_BYTE, textData)
-    
+
+        # 讓輸出矩陣不會使用科學記號顯示
+        np.set_printoptions(suppress=True)
+
     def draw_Var(self, dis, x, y):
         """於畫面中繪製變數
         """
@@ -413,7 +416,7 @@ class Simulator:
 
         for Index in range(0, iter, 5):
             self.draw_Point(Path[Index])
-            self.draw_axis(Path[Index],0.8)
+            self.draw_axis(Path[Index],70)
 
     def init_dynamicCurve(self, y_axisData):
         
@@ -507,8 +510,8 @@ class Simulator:
         # NowEnd = NowEnd @ Mat.TransXYZ(4.85,0,2.34) @ Mat.RotaXYZ(d2r(180), d2r(20.2111), d2r(21.6879)) 
         # GoalEnd = GoalEnd @ Mat.TransXYZ(9,-4,z=-2) @ Mat.RotaXYZ(d2r(-165.2922), d2r(-7.1994), d2r(17.5635))
         unit = 1
-        NowEnd = NowEnd @ Mat.TransXYZ(485.364*unit,-1.213*unit,234.338*unit) @ Mat.RotaXYZ(d2r(179.984), d2r(20.2111), d2r(1.6879)) 
-        GoalEnd = GoalEnd @ Mat.TransXYZ(955.386*unit,-19.8*unit,z=-75.117*unit) @ Mat.RotaXYZ(d2r(-165.2853), d2r(-7.1884), d2r(17.5443))
+        NowEnd = NowEnd @ Mat.TransXYZ(485.364*self.Unit,-1.213*self.Unit,234.338*self.Unit) @ Mat.RotaXYZ(d2r(179.984), d2r(20.2111), d2r(1.6879)) 
+        GoalEnd = GoalEnd @ Mat.TransXYZ(955.386*self.Unit,-19.8*self.Unit,z=-75.117*self.Unit) @ Mat.RotaXYZ(d2r(-165.2853), d2r(-7.1884), d2r(17.5443))
 
         alltime = 11.223
         sampleTime = 0.04
@@ -560,7 +563,8 @@ class Simulator:
         Mainloopiter = 0
         
         # 視角移動參數
-        cameraDir = 20
+        # cameraDir = 20
+        cameraDir = 2000
         cameraθ = 45
         cameraφ = 0
 
@@ -577,9 +581,11 @@ class Simulator:
                     quit()
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 4:
-                        cameraDir -= 1
+                        # cameraDir -= 1
+                        cameraDir -= 20
                     elif event.button == 5:
-                        cameraDir += 1
+                        # cameraDir += 1
+                        cameraDir += 20
            
             keys = pygame.key.get_pressed()
 
@@ -634,7 +640,7 @@ class Simulator:
             glLoadIdentity()
 
             aspect = self.display[0] / float(self.display[1])
-            gluPerspective(45, aspect, 0.1, 50.0)
+            gluPerspective(45, aspect, 0.1, 5000.0)
             
 
             # 極座標系統
@@ -642,7 +648,7 @@ class Simulator:
             cameraY = cameraDir * np.sin(cameraθ) * np.sin(cameraφ)
             cameraZ = cameraDir * np.cos(cameraθ)
 
-            
+            # 設定OpenGL Lookat(觀察者視角)
             gluLookAt(cameraX, cameraY, cameraZ,
                       World_coordinate[0,3], World_coordinate[1,3], World_coordinate[2,3]
                       ,0,0,1)
@@ -654,7 +660,7 @@ class Simulator:
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
             
             # 繪製世界坐標系
-            self.draw_axis(World_coordinate, 1)
+            self.draw_axis(World_coordinate, 100)
             
             # 繪製地板
             self.draw_chessboard(World_coordinate)
@@ -679,12 +685,12 @@ class Simulator:
                      JointAngle_np[3, Mainloopiter],
                      JointAngle_np[4, Mainloopiter],
                      JointAngle_np[5, Mainloopiter],
-                    0.01)
-                self.draw_axis(NowEnd,1)
-                self.draw_axis(GoalEnd,1)
+                    1)
+                self.draw_axis(NowEnd,100)
+                self.draw_axis(GoalEnd,100)
                 
             self.draw_Matrix4X4(EndEffector, 550)
-            self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector, 1)
+            self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector, 100)
             self.draw_Trajectory(path_np_4X4, Mainloopiter)
 
 

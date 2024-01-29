@@ -200,7 +200,7 @@ def Analyze_Position(PoseMat_file, Time_file):
 
     title_header = ["x", "y", "z", "Rx", "Ry", "Rz"]
     title = "Position curve"
-    xlabel = "time(s)"
+    xlabel = "time(ms)"
     ylable = "Position(mm)"
 
     # 繪製圖表
@@ -304,7 +304,7 @@ def Analyze_Velocity(sampleTime, PoseMat_file, Time_file):
 
     title_header = ["x", "y", "z", "Rx", "Ry", "Rz"]
     title = "Velocity curve"
-    xlabel = "time(s)"
+    xlabel = "time(ms)"
     ylable = "Velocity(mm/s)"
 
     plot_6_chart_1curve(vx, vy, vz, vRx, vRy, vRz, t, title_header, title, xlabel, ylable)
@@ -372,7 +372,7 @@ def Analyze_Acceleration(sampleTime, PoseMat_file, Time_file):
 
     title_header = ["x", "y", "z", "Rx", "Ry", "Rz"]
     title = "Acceleration curve"
-    xlabel = "time(s)"
+    xlabel = "time(ms)"
     ylable = "Acceleration(mm/s²)"
     
     plot_6_chart_1curve(ax, ay, az, aRx, aRy, aRz, t, title_header, title, xlabel, ylable)
@@ -748,20 +748,24 @@ if __name__ == "__main__" :
     # PoseMat_file = "dataBase/MatrixPath_Scurve_PoseMatrix.csv"
     # Time_file = "dataBase/MatrixPath_Scurve.csv"
 
+    PoseMat_file = "Experimental_data/20240129/13_3mms/trajectoryEL.csv"
+    Time_file = "Experimental_data/20240129/13_3mms/timeEL.csv"
 
-    Real_PoseMat_file = "Experimental_data/Trajectory.csv"
-    Real_Time_file = "Experimental_data/time.csv"
-    Sim_PoseMat_file = "dataBase/MatrixPathPlanning_PoseMatrix.csv"
-    Sim_Time_file = "dataBase/MatrixPathPlanning.csv"
+    Analyze_Position(PoseMat_file, Time_file)
+    Analyze_Velocity(0.04, PoseMat_file, Time_file)
+    Analyze_Acceleration(0.04, PoseMat_file, Time_file)
 
-    sampleTime = 0.04
-    Analyze_2curve_Position(Real_PoseMat_file, Real_Time_file, Sim_PoseMat_file, Sim_Time_file)
-    Analyze_2curve_Velocity(sampleTime, Real_PoseMat_file, Real_Time_file, Sim_PoseMat_file, Sim_Time_file)
-    Analyze_2curve_Acceleration(sampleTime, Real_PoseMat_file, Real_Time_file, Sim_PoseMat_file, Sim_Time_file)
+    # Real_PoseMat_file = "Experimental_data/Trajectory.csv"
+    # Real_Time_file = "Experimental_data/time.csv"
+    # Sim_PoseMat_file = "dataBase/MatrixPathPlanning_PoseMatrix.csv"
+    # Sim_Time_file = "dataBase/MatrixPathPlanning.csv"
 
-    # Analyze_Position(PoseMat_file, Time_file)
-    # Analyze_Velocity(0.04, PoseMat_file, Time_file)
-    # Analyze_Acceleration(0.04, PoseMat_file, Time_file)
+    # sampleTime = 0.04
+    # Analyze_2curve_Position(Real_PoseMat_file, Real_Time_file, Sim_PoseMat_file, Sim_Time_file)
+    # Analyze_2curve_Velocity(sampleTime, Real_PoseMat_file, Real_Time_file, Sim_PoseMat_file, Sim_Time_file)
+    # Analyze_2curve_Acceleration(sampleTime, Real_PoseMat_file, Real_Time_file, Sim_PoseMat_file, Sim_Time_file)
+
+
 
     """
     Joint Angle專區

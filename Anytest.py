@@ -1106,112 +1106,148 @@ PyQt5 與 OpenGL 結合
     
 #     sys.exit(app.exec_())
 #%% 
-import sys
-import pygame
-from pygame.locals import *
-from OpenGL.GL import *
-from OpenGL.GLU import *
-from OpenGL.GLUT import *
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget, QOpenGLWidget
-from PyQt5.QtCore import QTimer
+# import sys
+# import pygame
+# from pygame.locals import *
+# from OpenGL.GL import *
+# from OpenGL.GLU import *
+# from OpenGL.GLUT import *
+# from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget, QOpenGLWidget
+# from PyQt5.QtCore import QTimer
 
-# 定義立方體的頂點和面
-class paintGL:
-    def __init__(self):
-        self.roatdirection = True
-        pass
+# # 定義立方體的頂點和面
+# class paintGL:
+#     def __init__(self):
+#         self.roatdirection = True
+#         pass
 
-    def Cube(self):
-        vertices = (
-        (1, -1, -1),
-        (1, 1, -1),
-        (-1, 1, -1),
-        (-1, -1, -1),
-        (1, -1, 1),
-        (1, 1, 1),
-        (-1, -1, 1),
-        (-1, 1, 1)
-        )
+#     def Cube(self):
+#         vertices = (
+#         (1, -1, -1),
+#         (1, 1, -1),
+#         (-1, 1, -1),
+#         (-1, -1, -1),
+#         (1, -1, 1),
+#         (1, 1, 1),
+#         (-1, -1, 1),
+#         (-1, 1, 1)
+#         )
 
-        edges = (
-            (0,1),
-            (1,2),
-            (2,3),
-            (3,0),
-            (0,4),
-            (1,5),
-            (2,6),
-            (3,7),
-            (4,5),
-            (5,6),
-            (6,7),
-            (7,4)
-        )
-        glBegin(GL_LINES)
-        for edge in edges:
-            for vertex in edge:
-                glVertex3fv(vertices[vertex])
-        glEnd()
+#         edges = (
+#             (0,1),
+#             (1,2),
+#             (2,3),
+#             (3,0),
+#             (0,4),
+#             (1,5),
+#             (2,6),
+#             (3,7),
+#             (4,5),
+#             (5,6),
+#             (6,7),
+#             (7,4)
+#         )
+#         glBegin(GL_LINES)
+#         for edge in edges:
+#             for vertex in edge:
+#                 glVertex3fv(vertices[vertex])
+#         glEnd()
 
-    def draw(self):
-        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
-        if self.roatdirection is True:
-            glRotatef(1, 3, 1, 1)
-        else:
-            glRotatef(-5, 3, 1, 1)
-        self.Cube()
-        pygame.display.flip()
-        pygame.time.wait(10)
+#     def draw(self):
+#         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
+#         if self.roatdirection is True:
+#             glRotatef(1, 3, 1, 1)
+#         else:
+#             glRotatef(-5, 3, 1, 1)
+#         self.Cube()
+#         pygame.display.flip()
+#         pygame.time.wait(10)
 
-    def main(self):
-        pygame.init()
-        display = (800,600)
-        pygame.display.set_mode(display, DOUBLEBUF|OPENGL)
-        gluPerspective(45, (display[0]/display[1]), 0.1, 50.0)
-        glTranslatef(0.0,0.0, -5)
+#     def main(self):
+#         pygame.init()
+#         display = (800,600)
+#         pygame.display.set_mode(display, DOUBLEBUF|OPENGL)
+#         gluPerspective(45, (display[0]/display[1]), 0.1, 50.0)
+#         glTranslatef(0.0,0.0, -5)
 
-        while True:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    quit()
-            self.draw()
+#         while True:
+#             for event in pygame.event.get():
+#                 if event.type == pygame.QUIT:
+#                     pygame.quit()
+#                     quit()
+#             self.draw()
 
-class MainWindow(QMainWindow, paintGL):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("PyQt5 OpenGL Control")
-        self.setGeometry(100, 100, 400, 200)
+# class MainWindow(QMainWindow, paintGL):
+#     def __init__(self):
+#         super().__init__()
+#         self.setWindowTitle("PyQt5 OpenGL Control")
+#         self.setGeometry(100, 100, 400, 200)
 
-        self.central_widget = QWidget()
-        self.setCentralWidget(self.central_widget)
+#         self.central_widget = QWidget()
+#         self.setCentralWidget(self.central_widget)
 
-        self.start_button = QPushButton("forward Rotation")
-        self.stop_button = QPushButton("backward Rotation")
+#         self.start_button = QPushButton("forward Rotation")
+#         self.stop_button = QPushButton("backward Rotation")
 
-        layout = QVBoxLayout()
-        layout.addWidget(self.start_button)
-        layout.addWidget(self.stop_button)
-        self.central_widget.setLayout(layout)
+#         layout = QVBoxLayout()
+#         layout.addWidget(self.start_button)
+#         layout.addWidget(self.stop_button)
+#         self.central_widget.setLayout(layout)
 
-        self.start_button.clicked.connect(self.forward_rotation)
-        self.stop_button.clicked.connect(self.backward_rotation)
+#         self.start_button.clicked.connect(self.forward_rotation)
+#         self.stop_button.clicked.connect(self.backward_rotation)
 
-        self.rotating = False
+#         self.rotating = False
 
-    def forward_rotation(self):
-        self.roatdirection = True
+#     def forward_rotation(self):
+#         self.roatdirection = True
 
-    def backward_rotation(self):
-        self.roatdirection = False
+#     def backward_rotation(self):
+#         self.roatdirection = False
 
-    def update_rotation(self):
-        self.draw()
-# TODO　無法更新旋轉狀態
-if __name__ == "__main__":
-    GL = paintGL()
-    app = QApplication(sys.argv)
-    main_window = MainWindow()
-    main_window.show()
-    GL.main()
-    sys.exit(app.exec_())
+#     def update_rotation(self):
+#         self.draw()
+# # TODO　無法更新旋轉狀態
+# if __name__ == "__main__":
+#     GL = paintGL()
+#     app = QApplication(sys.argv)
+#     main_window = MainWindow()
+#     main_window.show()
+#     GL.main()
+#     sys.exit(app.exec_())
+#%%
+import struct
+"""
+用16bit表示12bit
+"""
+# data_12_bits = 0b101010101010  # 假設您有一個 12 位元的資料
+
+# # 將 12 位元資料左移 4 位元，以將其放置在 16 位元資料中的最高位元組
+# data_16_bits = data_12_bits << 4
+
+# # 打包成16位元無符號整數
+# packed_data = struct.pack('>H', data_16_bits)
+
+# print(packed_data)
+
+# Data = 65535
+# packet = struct.pack('H', Data)
+# print(packet)
+#%%
+# from Toolbox import TimeTool
+# TIme= TimeTool()
+# b = Time.ReadNowTime()
+# Time.time_sleep(1)
+# a = Time.ReadNowTime()
+# err = Time.TimeError(b,a)
+# print(err)
+ORG = np.array([485.364, -1.213, 234.338, 179.984, 20.2111, 1.6879])
+GoalEnd = np.array([955.386, -19.8, -75.117, -165.2853, -7.1884, 17.5443])
+
+test1 =     np.array([544.116, -3.536, 195.656, 179.984, 20.2111, 1.6879])
+testTotal = np.array([602.869, -5.859, 156.974, 179.984, 20.2111, 1.6879])
+# err = (GoalEnd-ORG)/4
+# testGoal = ORG+err
+test1 = ORG + ((testTotal-ORG)/2)
+
+print(test1)

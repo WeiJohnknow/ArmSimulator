@@ -486,17 +486,25 @@ class Simulator:
         # Jointθ Buffer
         θ_Buffer = d2r(np.zeros((6,1)))
 
-        # 示教模式 Jointθ Buffer
-        teachθ = [0, 0, 0, 0, 0, 0]
+
 
         # Yaskawa Ma1440 Work Org Point
-        θ_Buffer[0, 0] =  d2r(-1.6671311132785285)
-        θ_Buffer[1, 0] =  d2r(-38.81651799446324)
-        θ_Buffer[2, 0] =  d2r(-41.087751371115175)
-        θ_Buffer[3, 0] =  d2r(-0.0020620682544592226)
-        θ_Buffer[4, 0] =  d2r(-76.44358294225668)
-        θ_Buffer[5, 0] =  d2r(1.071035847811744)
+        # θ_Buffer[0, 0] =  d2r(-1.6671311132785285)
+        # θ_Buffer[1, 0] =  d2r(-38.81651799446324)
+        # θ_Buffer[2, 0] =  d2r(-41.087751371115175)
+        # θ_Buffer[3, 0] =  d2r(-0.0020620682544592226)
+        # θ_Buffer[4, 0] =  d2r(-76.44358294225668)
+        # θ_Buffer[5, 0] =  d2r(1.071035847811744)
 
+        θ_Buffer[0, 0] =  d2r(-0.006)
+        θ_Buffer[1, 0] =  d2r(-38.8189)
+        θ_Buffer[2, 0] =  d2r(-41.0857)
+        θ_Buffer[3, 0] =  d2r(-0.0030)
+        θ_Buffer[4, 0] =  d2r(-76.4394)
+        θ_Buffer[5, 0] =  d2r(1.0687)
+
+        # 示教模式 Jointθ Buffer
+        teachθ = [θ_Buffer[0, 0], θ_Buffer[1, 0], θ_Buffer[2, 0], θ_Buffer[3, 0], θ_Buffer[4, 0], θ_Buffer[5, 0]]
 
         """
         矩陣軌跡法參數設置區:
@@ -670,29 +678,42 @@ class Simulator:
             self.draw_WorkTable(World_coordinate)
             # self.BlackBoard( World_coordinate)
 
-            
+            """
+            teach mode
+            """
+            Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.Mh12_FK\
+                    (World_coordinate,
+                     teachθ[0],
+                     teachθ[1],
+                     teachθ[2],
+                     teachθ[3],
+                     teachθ[4],
+                     teachθ[5],
+                    1)
+            self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector, 100)
+            self.draw_Matrix4X4(EndEffector, 550)
             """
             矩陣軌跡法
             """
             # if Mainloopiter < len(θ):
-            if Mainloopiter < JointAngle_np.shape[1]:
-                # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.Mh12_FK\
-                    # (World_coordinate,θ[Mainloopiter,0,0],θ[Mainloopiter,1,0],θ[Mainloopiter,2,0],θ[Mainloopiter,3,0],θ[Mainloopiter,4,0],θ[Mainloopiter,5,0], 0.01)
-                Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.Mh12_FK\
-                    (World_coordinate,
-                     JointAngle_np[0, Mainloopiter],
-                     JointAngle_np[1, Mainloopiter],
-                     JointAngle_np[2, Mainloopiter],
-                     JointAngle_np[3, Mainloopiter],
-                     JointAngle_np[4, Mainloopiter],
-                     JointAngle_np[5, Mainloopiter],
-                    1)
-                self.draw_axis(NowEnd,100)
-                self.draw_axis(GoalEnd,100)
+            # if Mainloopiter < JointAngle_np.shape[1]:
+            #     # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.Mh12_FK\
+            #         # (World_coordinate,θ[Mainloopiter,0,0],θ[Mainloopiter,1,0],θ[Mainloopiter,2,0],θ[Mainloopiter,3,0],θ[Mainloopiter,4,0],θ[Mainloopiter,5,0], 0.01)
+            #     Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.Mh12_FK\
+            #         (World_coordinate,
+            #          JointAngle_np[0, Mainloopiter],
+            #          JointAngle_np[1, Mainloopiter],
+            #          JointAngle_np[2, Mainloopiter],
+            #          JointAngle_np[3, Mainloopiter],
+            #          JointAngle_np[4, Mainloopiter],
+            #          JointAngle_np[5, Mainloopiter],
+            #         1)
+            #     self.draw_axis(NowEnd,100)
+            #     self.draw_axis(GoalEnd,100)
                 
-            self.draw_Matrix4X4(EndEffector, 550)
-            self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector, 100)
-            # self.draw_Trajectory(path_np_4X4, Mainloopiter)
+            # self.draw_Matrix4X4(EndEffector, 550)
+            # self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector, 100)
+            # # self.draw_Trajectory(path_np_4X4, Mainloopiter)
 
 
             """

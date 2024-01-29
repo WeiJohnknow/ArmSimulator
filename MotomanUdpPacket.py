@@ -373,6 +373,28 @@ class MotomanUDP:
                 elif i == 40:
                     databuffer = round(databuffer*0.0001,4)
                 result.append(databuffer)
+
+        # Pulse
+        if len(data) == 44:
+            for i in range(0, len(data), 4):
+                databuffer = (data[i+3] << 24) | (data[i+2] << 16) | (data[i+1] << 8) | data[i]
+                
+                if databuffer & (1 << 31):
+                    databuffer -= 1 << 32
+                
+                # if i == 20:
+                #     databuffer = round(databuffer*0.001,3)
+                # elif i == 24:
+                #     databuffer = round(databuffer*0.001,3)
+                # elif i == 28:
+                #     databuffer = round(databuffer*0.001,3)
+                # elif i == 32:
+                #     databuffer = round(databuffer*0.0001,4)
+                # elif i == 36:
+                #     databuffer = round(databuffer*0.0001,4)
+                # elif i == 40:
+                #     databuffer = round(databuffer*0.0001,4)
+                result.append(databuffer)
         
         # Torque
         if len(data) == 24:
@@ -490,7 +512,14 @@ class MotomanUDP:
                         'Attribute': 1,
                         'Service':  0x10,
                         'Padding': (0, 0)}
-        reqData = [data]
+        if Pin >= 560:
+            # M560 - M599 Register是以12bit資料格式表示，但封包型式則以16bit格式傳送
+            data_ = data << 4
+            packed_data = struct.pack('>H', data_)
+            reqData = packed_data
+            
+        else:
+            reqData = [data]
         
         Ans_packet = self.sendCmd( reqSubHeader, reqData)
         data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
@@ -788,7 +817,7 @@ class MotomanUDP:
 
     def arconMH(self):
         """ARC ON
-        - Network input: #27012 and # 27013 ON.
+        Network input: #27012 and # 27013 ON.
         Ans = 8 + 4
         """
         udp.WriteIO(2701, 12)
@@ -844,9 +873,23 @@ dB = dataBase()
 # data = udp.ReadIO(2701)
 # print(data)
 
-# 位置讀取
-# result, coordinate = udp.getcoordinateMH()
+# 位置讀取(Cartesian)
+# result, coordinate = udp.getcoordinateMH(101)
 # print(coordinate)
+
+# 位置讀取(Joint)
+# result, coordinate = udp.getcoordinateMH(1)
+# print(coordinate)
+i=0
+while i<50:
+    b = Time.ReadNowTime()
+    result, coordinate = udp.getcoordinateMH(1)
+    a = Time.ReadNowTime()
+    err = Time.TimeError(b,a)
+    dB.Save_time(err["millisecond"], "dataBase\ReadPosJtime.csv")
+    i += 1
+    
+
 
 # 伺服電源開啟
 # status = udp.ServoMH(1)
@@ -872,11 +915,11 @@ dB = dataBase()
 # print(data)
 
 # Read Register
-# data = udp.ReadRegister(560)
+# data = udp.ReadRegister(561)
 # print(data)
 
 # Write Register
-# data = udp.WriteRegister(548, 0)
+# data = udp.WriteRegister(620, 0)
 # print(data)
 
 # Move指令
@@ -888,13 +931,17 @@ dB = dataBase()
 
 # Cariten space
 # Real speed = speed * 0.1 mm/s
-# status = udp.moveMH(1,13, 17, weldstart)
+# status = udp.moveMH(2,1, 13, 17, weldstart)
 # print(status)
 
-# Joint space
+# Point to Point
 # Real speed = speed * 0.01%
 # status = udp.moveMH(0,500, 17, coord)
 # print(status)
+
+# pmov
+# udp.moveJointSapceMH( 1, 0, 100, JointAngle)
+
 
 # test
 

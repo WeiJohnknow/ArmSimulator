@@ -10,10 +10,11 @@ import time
 from Matrix import Matrix4x4
 from dataBase import dataBase
 from sklearn.linear_model import LinearRegression
+from scipy.stats import norm
 
 dB = dataBase()
 
-def plot_6_chart_1curve(x, y, z, Rx, Ry, Rz, time, title_header, title, xlable, ylable):
+def plot_6_chart_1curve(x, y, z, Rx, Ry, Rz, time, title_header, title, xlable, ylable:list):
     """畫出六張子圖，每張圖有一條曲線
     - Args: x, y, z, Rx, Ry, Rz, time, title, xlable, ylable
         - data type :list、ndarray
@@ -21,7 +22,7 @@ def plot_6_chart_1curve(x, y, z, Rx, Ry, Rz, time, title_header, title, xlable, 
         - title :子圖表標題，該曲線名稱，ex: Position curve.
             - title_header + title = "x" + "Position curve"
         - xlable :x軸標量名稱，ex :time(s).
-        - ylable :y軸標量名稱，ex :Position.
+        - ylable :y軸標量名稱，ex :Position、deg
     """
 
     # 图1：Px vs. time
@@ -30,7 +31,7 @@ def plot_6_chart_1curve(x, y, z, Rx, Ry, Rz, time, title_header, title, xlable, 
     plt.plot(time, x)
     plt.title(f"{title_header[0]} {title}")
     plt.xlabel(xlable)
-    plt.ylabel(ylable)
+    plt.ylabel(ylable[0])
 
     # 图2：Py vs. time
     # plt.subplot(3, 2, 2)
@@ -38,7 +39,7 @@ def plot_6_chart_1curve(x, y, z, Rx, Ry, Rz, time, title_header, title, xlable, 
     plt.plot(time, y)
     plt.title(f"{title_header[1]} {title}")
     plt.xlabel(xlable)
-    plt.ylabel(ylable)
+    plt.ylabel(ylable[0])
 
     # 图3：Pz vs. time
     # plt.subplot(3, 2, 3)
@@ -46,31 +47,31 @@ def plot_6_chart_1curve(x, y, z, Rx, Ry, Rz, time, title_header, title, xlable, 
     plt.plot(time, z)
     plt.title(f"{title_header[2]} {title}")
     plt.xlabel(xlable)
-    plt.ylabel(ylable)
+    plt.ylabel(ylable[0])
 
-    # 图4：Px vs. time
+    # 图4：Rx vs. time
     # plt.subplot(3, 2, 4)
     plt.subplot2grid((3, 2), (0, 1))
     plt.plot(time, Rx)
     plt.title(f"{title_header[3]} {title}")
     plt.xlabel(xlable)
-    plt.ylabel(ylable)
+    plt.ylabel(ylable[1])
 
-    # 图5：Py vs. time
+    # 图5：Ry vs. time
     # plt.subplot(3, 2, 5)
     plt.subplot2grid((3, 2), (1, 1))
     plt.plot(time, Ry)
     plt.title(f"{title_header[4]} {title}")
     plt.xlabel(xlable)
-    plt.ylabel(ylable)
+    plt.ylabel(ylable[1])
 
-    # 图6：Pz vs. time
+    # 图6：Rz vs. time
     # plt.subplot(3, 2, 6)
     plt.subplot2grid((3, 2), (2, 1))
     plt.plot(time, Rz)
     plt.title(f"{title_header[5]} {title}")
     plt.xlabel(xlable)
-    plt.ylabel(ylable)
+    plt.ylabel(ylable[1])
 
 
     # 调整布局
@@ -178,30 +179,195 @@ def plot_6_chart_2curve(data1, data2, title_header, title, xlable, ylable, line_
     # 显示图形
     plt.show()
 
+def plotMean_Std(y_data, x_data, xlabel:str, ylabel:str, title:str):
+    """繪製出data的平均值(虛線)與1倍標準差範圍
+    - Args:
+        - y_data : 主要需要分析的資料集，dataType: ndarray，ex:Velocity
+        - x_data : 該資料所對應之x軸資料，ex:時間
+    """
+    
+    # 原數據
+    mean = np.mean(y_data)
+    std = np.std(y_data)
+
+    # 繪製過濾前資料與mean、std
+    plt.plot(x_data, y_data, label = ylabel[0])
+
+    # 绘制平均值水平线
+    plt.axhline(mean, color='red', linestyle='--', label='Mean')
+
+    # 在水平线上添加平均值的数值标签
+    plt.text(0, mean, f'{mean:.3f}', color='red', ha='right', va='bottom')
+
+    # 绘制標準差  上限與下限
+    plt.axhline(mean - std, color='orange', linestyle='-.', label='std')
+    plt.axhline(mean + std, color='orange', linestyle='-.', label='std')
+
+    # 添加图例和标签
+    plt.legend()
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel[0])
+    plt.title(title)
+
+    # 显示图形
+    plt.show()
+
+
+    # # 過濾後的數據
+    # # 利用一倍標準差過濾數據(會移除不符合標準之資料)
+    # # filtered_data = y_data[(y_data >= mean - std) & (y_data <= mean + std)]
+
+    # # 将大于一倍标准差的值替换为标准差的上限，将小于一倍标准差的值替换为标准差的下限
+    # filtered_data = np.clip(y_data, mean - std, mean + std)
+
+    # filtered_data_mean = np.mean(filtered_data)
+    # filtered_data_std = np.std(filtered_data)
+
+    # # 繪製過濾後的資料與其mean與std
+    # # 繪製原數據
+    # plt.plot(x_data, filtered_data, label = ylabel[0])
+
+    # # 绘制過濾後平均值水平线
+    # plt.axhline(filtered_data_mean, color='red', linestyle='--', label='Mean')
+    # plt.text(-1, mean, f'{mean:.3f}', color='red', ha='right', va='bottom')
+
+    # # 绘制過濾後標準差  上限與下限
+    # plt.axhline(filtered_data_mean - filtered_data_std, color='orange', linestyle='-.', label='std')
+    # plt.axhline(filtered_data_mean + filtered_data_std, color='orange', linestyle='-.', label='std')
+
+    # # 添加图例和标签
+    # plt.legend()
+    # plt.xlabel(xlabel)
+    # plt.ylabel(ylabel[0])
+    # plt.title(title)
+
+    # # 显示图形
+    # plt.show()
+
+def calculate_distance_speed(PoseMat_file, Time_file, sampleTime):
+    """計算軌跡之歐式距離與平均速度
+    - Unit:
+        - distance :mm
+        - sampleTime :s
+        - Time_file: 依原資料之單位為主
+    - 注意計算總位移與平均速度時，時間之單位
+    """
+    PoseMat6x1 = pd.read_csv(PoseMat_file)
+    pathdata_df = pd.read_csv( Time_file)
+    x =np.zeros(PoseMat6x1.shape[0])
+    y =np.zeros(PoseMat6x1.shape[0])
+    z =np.zeros(PoseMat6x1.shape[0])
+    Rx=np.zeros(PoseMat6x1.shape[0])
+    Ry=np.zeros(PoseMat6x1.shape[0])
+    Rz=np.zeros(PoseMat6x1.shape[0])
+    time = np.zeros(pathdata_df.shape[0])
+
+    for i in range(len(PoseMat6x1)):
+        x[i] = PoseMat6x1["X"][i]
+        y[i] = PoseMat6x1["Y"][i]
+        z[i] = PoseMat6x1["Z"][i]
+        Rx[i]= PoseMat6x1["Rx"][i]
+        Ry[i]= PoseMat6x1["Ry"][i]
+        Rz[i]= PoseMat6x1["Rz"][i]
+        time[i] = pathdata_df['time'][i]
+    
+    Euclidean_distance = np.zeros(PoseMat6x1.shape[0])
+    average_speed = np.zeros(PoseMat6x1.shape[0])
+
+    for i in range(PoseMat6x1.shape[0]):
+        if i == 0:
+            Euclidean_distance[0] = 0
+        else:
+            Euclidean_distance[i] = Euclidean_distance[i-1] + np.sqrt((x[i] - x[i-1])**2 + (y[i] - y[i-1])**2 + (z[i] - z[i-1])**2)
+    
+    # 總位移與平均速度
+    """
+    注意時間單位(以秒為主)，需換算至秒
+    """
+    totaldistance = np.sqrt((x[-1] - x[0])**2 + (y[-1] - y[0])**2 + (z[-1] - z[0])**2)
+    avgSpeed = totaldistance/(time[-1]/1000)
+
+    print("軌跡總位移(mm) :", round(totaldistance, 3))
+    print("軌跡平均速度(mm/s) :", round(avgSpeed, 3))
+        
+    # 瞬時速度
+    average_speed = np.diff(Euclidean_distance) / sampleTime
+    average_speed = np.insert(average_speed, 0, 0)
+
+    # 计算 time 的中位数
+    median_time_ = time[-1]/2
+
+    # 设置全局字体大小
+    plt.rcParams.update({'font.size': 20})
+
+    # 在中位数位置绘制垂直虚线
+    plt.axvline(x=median_time_, color='orange', linestyle='--', label='Median')
+
+    plt.plot(time, Euclidean_distance, color='blue', label='Euclidean distance')
+    plt.plot(time, average_speed, color='green', label='Speed')
+
+
+    speed_mean = np.mean(average_speed)
+    # 绘制平均值水平线
+    plt.axhline(speed_mean, color='red', linestyle='--', label='Speed mean')
+
+    # 添加图例和标签
+    plt.legend()
+    plt.xlabel("time(ms)")
+    plt.ylabel("Euclidean distance(mm) and speed(mm/s)")
+    plt.title("Euclidean distance and speed")
+
+    # 显示图形
+    plt.show()
+    
+    return Euclidean_distance, average_speed
+
+def calculate_sampleTime(time):
+    dt = np.diff(time)
+
+    plt.plot(dt, label = "CMD time diff")
+    # 绘制平均值水平线
+    mean = np.mean(dt)
+    plt.axhline(mean, color='red', linestyle='--', label='Mean')
+
+    # 在水平线上添加平均值的数值标签
+    plt.text(0, mean, f'{mean:.3f}', color='red', ha='right', va='bottom')
+    # 添加图例和标签
+    plt.legend()
+    # plt.xlabel(xlabel)
+    plt.ylabel("CMD time rate of change")
+    plt.title("CMD time diff")
+
+    # 显示图形
+    plt.show()
+
     
 def Analyze_Position(PoseMat_file, Time_file):
     PoseMat6x1 = pd.read_csv(PoseMat_file)
     pathdata_df = pd.read_csv( Time_file)
-    x=[]
-    y=[]
-    z=[]
-    Rx=[]
-    Ry=[]
-    Rz=[]
-    time = []
-    for i in range(len(PoseMat6x1)):
-        x.append(PoseMat6x1["X"][i])
-        y.append(PoseMat6x1["Y"][i])
-        z.append(PoseMat6x1["Z"][i])
-        Rx.append(PoseMat6x1["Rx"][i])
-        Ry.append(PoseMat6x1["Ry"][i])
-        Rz.append(PoseMat6x1["Rz"][i])
-        time.append(pathdata_df['time'][i])
+    x =np.zeros(PoseMat6x1.shape[0])
+    y =np.zeros(PoseMat6x1.shape[0])
+    z =np.zeros(PoseMat6x1.shape[0])
+    Rx=np.zeros(PoseMat6x1.shape[0])
+    Ry=np.zeros(PoseMat6x1.shape[0])
+    Rz=np.zeros(PoseMat6x1.shape[0])
+    time = np.zeros(pathdata_df.shape[0])
 
+    for i in range(len(PoseMat6x1)):
+        x[i] = PoseMat6x1["X"][i]
+        y[i] = PoseMat6x1["Y"][i]
+        z[i] = PoseMat6x1["Z"][i]
+        Rx[i]= PoseMat6x1["Rx"][i]
+        Ry[i]= PoseMat6x1["Ry"][i]
+        Rz[i]= PoseMat6x1["Rz"][i]
+        time[i] = pathdata_df['time'][i]
+    
+    
+    
     title_header = ["x", "y", "z", "Rx", "Ry", "Rz"]
     title = "Position curve"
-    xlabel = "time(ms)"
-    ylable = "Position(mm)"
+    xlabel = "time(us)"
+    ylable = ["Position(mm)", "Angle(deg.)"]
 
     # 繪製圖表
     plot_6_chart_1curve(x, y, z, Rx, Ry, Rz, time, title_header, title, xlabel, ylable)
@@ -274,7 +440,6 @@ def Analyze_Velocity(sampleTime, PoseMat_file, Time_file):
     vRy =np.insert(vRy, 0, 0)
     vRz =np.insert(vRz, 0, 0)
 
-
     # 線性回歸
     # t = np.zeros((len(pathdata_df['time']), 1))
     # for i in range(len(pathdata_df['time'])):
@@ -304,11 +469,19 @@ def Analyze_Velocity(sampleTime, PoseMat_file, Time_file):
 
     title_header = ["x", "y", "z", "Rx", "Ry", "Rz"]
     title = "Velocity curve"
-    xlabel = "time(ms)"
-    ylable = "Velocity(mm/s)"
+    xlabel = "time(us)"
+    ylable = ["Velocity(mm/s)", "Angular velocity(deg/s)"]
 
+    # 計算歐式距離與平均速度
+    Euclidean_distance, average_speed = calculate_distance_speed(x, y, z, t)
+
+    # 額外分析平均值標準差
+    plotMean_Std(vx, t, xlabel, ylable[0], "x Velocity curve")
+    plotMean_Std(vz, t, xlabel, ylable[0], "z Velocity curve")
+
+    # 繪製資料總曲線圖
     plot_6_chart_1curve(vx, vy, vz, vRx, vRy, vRz, t, title_header, title, xlabel, ylable)
-
+    
 
 def Analyze_Acceleration(sampleTime, PoseMat_file, Time_file):
     PoseMat6x1 = pd.read_csv(PoseMat_file)
@@ -372,8 +545,8 @@ def Analyze_Acceleration(sampleTime, PoseMat_file, Time_file):
 
     title_header = ["x", "y", "z", "Rx", "Ry", "Rz"]
     title = "Acceleration curve"
-    xlabel = "time(ms)"
-    ylable = "Acceleration(mm/s²)"
+    xlabel = "time(us)"
+    ylable = ["Acceleration(mm/s²)", "Angular acceleration(deg/s²)"]
     
     plot_6_chart_1curve(ax, ay, az, aRx, aRy, aRz, t, title_header, title, xlabel, ylable)
 
@@ -543,6 +716,8 @@ def Analyze_2curve_Velocity(sampleTime, PoseMat_file_1, Time_file_1, PoseMat_fil
 
     data1 = [vx1, vy1, vz1, vRx1, vRy1, vRz1, t1]
     data2 = [vx2, vy2, vz2, vRx2, vRy2, vRz2, t2]
+
+    
 
     title_header = ["x", "y", "z", "Rx", "Ry", "Rz"]
     title = "Volicity curve"
@@ -732,6 +907,7 @@ def Analyze_2curve_JointAngle(PoseMat_file_1, Time_file_1, PoseMat_file_2, Time_
         
     plot_6_chart_2curve(data1, data2, title_header, title, xlabel, ylable)
 
+
 if __name__ == "__main__" :
     '''
     Pose Matrix專區
@@ -749,11 +925,14 @@ if __name__ == "__main__" :
     # Time_file = "dataBase/MatrixPath_Scurve.csv"
 
     PoseMat_file = "Experimental_data/20240129/13_3mms/trajectoryEL.csv"
-    Time_file = "Experimental_data/20240129/13_3mms/timeEL.csv"
+    Time_file =    "Experimental_data/20240129/13_3mms/timeEL.csv"
 
-    Analyze_Position(PoseMat_file, Time_file)
-    Analyze_Velocity(0.04, PoseMat_file, Time_file)
-    Analyze_Acceleration(0.04, PoseMat_file, Time_file)
+    sampleTime = 0.46
+    calculate_distance_speed(PoseMat_file, Time_file, sampleTime)
+
+    # Analyze_Position(PoseMat_file, Time_file)
+    # Analyze_Velocity(0.046, PoseMat_file, Time_file)
+    # Analyze_Acceleration(0.046, PoseMat_file, Time_file)
 
     # Real_PoseMat_file = "Experimental_data/Trajectory.csv"
     # Real_Time_file = "Experimental_data/time.csv"

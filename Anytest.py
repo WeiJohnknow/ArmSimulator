@@ -1234,20 +1234,61 @@ import struct
 # packet = struct.pack('H', Data)
 # print(packet)
 #%%
-# from Toolbox import TimeTool
-# TIme= TimeTool()
-# b = Time.ReadNowTime()
-# Time.time_sleep(1)
-# a = Time.ReadNowTime()
-# err = Time.TimeError(b,a)
-# print(err)
-ORG = np.array([485.364, -1.213, 234.338, 179.984, 20.2111, 1.6879])
-GoalEnd = np.array([955.386, -19.8, -75.117, -165.2853, -7.1884, 17.5443])
+# import numpy as np
+# import matplotlib.pyplot as plt
+# from scipy.stats import norm
 
-test1 =     np.array([544.116, -3.536, 195.656, 179.984, 20.2111, 1.6879])
-testTotal = np.array([602.869, -5.859, 156.974, 179.984, 20.2111, 1.6879])
-# err = (GoalEnd-ORG)/4
-# testGoal = ORG+err
-test1 = ORG + ((testTotal-ORG)/2)
+# # 生成 x 值范围
+# x = np.linspace(-5, 5, 1000)
 
-print(test1)
+# # 标准正态分布的均值和标准差
+# mean = 0
+# std_dev = 2
+
+# # 计算正态分布的概率密度函数（PDF）
+# pdf = norm.pdf(x, mean, std_dev)
+
+# # 绘制正态分布曲线
+# plt.plot(x, pdf, label='正态分布')
+
+# # 添加标签和图例
+# plt.xlabel('x')
+# plt.ylabel('Probability Density')
+# plt.title('Standard Normal Distribution')
+# plt.legend()
+
+# # 显示图形
+# plt.show()
+#%%
+# import numpy as np
+# import matplotlib.pyplot as plt
+# from scipy.stats import norm
+
+# # 生成身高数据，平均值为 170 厘米，标准差为 5 厘米，共 30 人
+# mean_height = 170
+# std_deviation = 5
+# heights = np.random.normal(loc=mean_height, scale=std_deviation, size=30)
+
+# # 生成 x 值范围
+# x = np.linspace(mean_height - 3 * std_deviation, mean_height + 3 * std_deviation, 100)
+
+# # 计算身高的正态分布概率密度函数（PDF）
+# pdf = norm.pdf(x, mean_height, std_deviation)
+
+# # 绘制曲线图
+# plt.plot(x, pdf, label='身高分布曲线')
+
+# # 添加标签和标题
+# plt.xlabel('身高 (厘米)')
+# plt.ylabel('概率密度')
+# plt.title('班级30人的身高分布')
+
+# # 显示图形
+# plt.legend()
+# plt.grid(True)
+# plt.show()
+#%%
+ORG =[485.364, -1.213, 234.338, 179.984, 20.2111, 1.6879]
+testTotal = [602.869, -5.859, 156.974, 179.984, 20.2111, 1.6879]
+dis = np.sqrt((testTotal[0] - ORG[0])**2 + (testTotal[1] - ORG[1])**2 + (testTotal[2] - ORG[2])**2)
+print(round(dis,4))

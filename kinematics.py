@@ -449,7 +449,11 @@ class Kinematics:
         return J
 
     def IK_4x4(self, Goal_4x4, θ_Buffer):
-
+        """使用4x4齊次變換矩陣來迭代Jacobian matrix
+        - Args:
+            - Goal_4x4: 目標點之齊次變換矩陣
+            - θ_Buffer: 此時此刻之關節角度
+        """
         World_Point = np.eye(4)
         
         Jbuffer = 0

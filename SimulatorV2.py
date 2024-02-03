@@ -470,7 +470,7 @@ class Simulator:
     
 
         
-    def paitGL(self):
+    def paitGL(self, pathData_JointAngle, pathData_np_4X4):
         self.Pygameinit()
         
         # 世界坐標系原點
@@ -487,16 +487,7 @@ class Simulator:
         # Jointθ Buffer
         θ_Buffer = d2r(np.zeros((6,1)))
 
-
-
         # Yaskawa Ma1440 Work Org Point
-        # θ_Buffer[0, 0] =  d2r(-1.6671311132785285)
-        # θ_Buffer[1, 0] =  d2r(-38.81651799446324)
-        # θ_Buffer[2, 0] =  d2r(-41.087751371115175)
-        # θ_Buffer[3, 0] =  d2r(-0.0020620682544592226)
-        # θ_Buffer[4, 0] =  d2r(-76.44358294225668)
-        # θ_Buffer[5, 0] =  d2r(1.071035847811744)
-
         θ_Buffer[0, 0] =  d2r(-0.006)
         θ_Buffer[1, 0] =  d2r(-38.8189)
         θ_Buffer[2, 0] =  d2r(-41.0857)
@@ -507,77 +498,11 @@ class Simulator:
         # 示教模式 Jointθ Buffer
         teachθ = [θ_Buffer[0, 0], θ_Buffer[1, 0], θ_Buffer[2, 0], θ_Buffer[3, 0], θ_Buffer[4, 0], θ_Buffer[5, 0]]
 
-        """
-        矩陣軌跡法參數設置區:
-        """
-        NowEnd = np.eye(4)
-        GoalEnd = np.eye(4)
-        """
-        ORG = [485.364, -1.213, 234.338, 179.984, 20.2111, 1.6879]
-        weldstart = [955.398, -87.132, -166.811, -165.2914, -7.1824, 17.5358]
-        weldend = [955.421, -8.941, -166.768, -165.288, -7.1896, 17.5397]
-        """
-
-        # NowEnd = NowEnd @ Mat.TransXYZ(4.85,0,2.34) @ Mat.RotaXYZ(d2r(180), d2r(20.2111), d2r(21.6879)) 
-        # GoalEnd = GoalEnd @ Mat.TransXYZ(9,-4,z=-2) @ Mat.RotaXYZ(d2r(-165.2922), d2r(-7.1994), d2r(17.5635))
-        NowEnd = NowEnd @ Mat.TransXYZ(485.364*self.Unit,-1.213*self.Unit,234.338*self.Unit) @ Mat.RotaXYZ(d2r(179.984), d2r(20.2111), d2r(1.6879)) 
-        GoalEnd = GoalEnd @ Mat.TransXYZ(955.386*self.Unit,-19.8*self.Unit,z=-75.117*self.Unit) @ Mat.RotaXYZ(d2r(-165.2853), d2r(-7.1884), d2r(17.5443))
-
-        alltime = 12
-        sampleTime = 0.04
-        startTime = 0
-
-        # 線性插值版本
-        pathData, timeData = self.Plan.MatrixPathPlanning( GoalEnd, NowEnd, alltime, sampleTime)
-        self.dB.saveMatrix4x4(pathData, timeData, "w", "dataBase\MatrixPathPlanning.csv")
-        # self.dB.Save(pathData, timeData,"dataBase\MatrixPathPlanning.csv")
-        # self.Plan.QuaternionsInterpolation(GoalEnd, NowEnd, 5)
-        
-        # 434差值版本
-        # self.Plan.MatrixPath434( "dataBase/MatrixPath434.csv", GoalEnd, NowEnd, alltime, startTime, sampleTime)
-
-        # Scurve版本
-        # self.Plan.MatrixPath_Scurve("dataBase/MatrixPath_Scurve.csv", GoalEnd, NowEnd, sampleTime)
-
-        # 由資料庫取得路徑資訊
-        path_dict_4X4, path_df_4X4, path_np_4X4, path_np_6X1 = self.dB.LoadMatrix4x4("dataBase\MatrixPathPlanning.csv")
-        # path_dict_4X4, path_df_4X4, path_np_4X4, path_np_6X1 = self.dB.LoadMatrix4x4("dataBase/MatrixPath434.csv")
-        # path_dict_4X4, path_df_4X4, path_np_4X4, path_np_6X1 = self.dB.LoadMatrix4x4("dataBase/MatrixPath_Scurve.csv")
-
-        # 建立path buffer
-        θ = np.zeros((len(path_np_4X4),6,1))
-
-
-        # 取出資料後放入IK，將coordinate data ➔ Joint Angle data
-        for i in range(len(path_np_4X4)):
-            θ[i] = self.Kin.IK_4x4(path_np_4X4[i], θ_Buffer)
-
-        """
-        存取JointAngle data
-        """    
-        self.dB.saveJointAngle(θ, "w", "dataBase/MatrixPathPlanning_JointAngle.csv")
-        # self.dB.Save(θ, 0, "dataBase/MatrixPathPlanning_JointAngle.csv")
-        # self.dB.Save(θ, 0, "dataBase/MatrixPath434_JointAngle.csv")
-        # self.dB.Save(θ, 0, "dataBase/MatrixPath_Scurve_JointAngle.csv")
-
-        """
-        存取Pose Matrix data
-        """
-        self.dB.savePoseMatrix(path_np_6X1, "w", "dataBase/MatrixPathPlanning_PoseMatrix.csv")
-        # self.dB.Save(path_np_6X1, 0, "dataBase/MatrixPathPlanning_PoseMatrix.csv")
-        # self.dB.Save(path_np_6X1, 0, "dataBase/MatrixPath434_PoseMatrix.csv")
-        # self.dB.Save(path_np_6X1, 0, "dataBase/MatrixPath_Scurve_PoseMatrix.csv")
-
-        """
-        載入Joint Angle data
-        """
-        JointAngle_df, JointAngle_np = self.dB.LoadJointAngle("dataBase/MatrixPathPlanning_JointAngle.csv")
 
         # 迴圈疊代次數
         Mainloopiter = 0
         
         # 視角移動參數
-        # cameraDir = 20
         cameraDir = 2500
         cameraθ = 45
         cameraφ = 0
@@ -702,24 +627,24 @@ class Simulator:
             矩陣軌跡法
             """
             # if Mainloopiter < len(θ):
-            if Mainloopiter < JointAngle_np.shape[1]:
+            if Mainloopiter < pathData_JointAngle.shape[0]:
                 # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.Mh12_FK\
                     # (World_coordinate,θ[Mainloopiter,0,0],θ[Mainloopiter,1,0],θ[Mainloopiter,2,0],θ[Mainloopiter,3,0],θ[Mainloopiter,4,0],θ[Mainloopiter,5,0], 0.01)
                 Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.Mh12_FK\
                     (World_coordinate,
-                     JointAngle_np[0, Mainloopiter],
-                     JointAngle_np[1, Mainloopiter],
-                     JointAngle_np[2, Mainloopiter],
-                     JointAngle_np[3, Mainloopiter],
-                     JointAngle_np[4, Mainloopiter],
-                     JointAngle_np[5, Mainloopiter],
+                     pathData_JointAngle[Mainloopiter, 0, 0],
+                     pathData_JointAngle[Mainloopiter, 1, 0],
+                     pathData_JointAngle[Mainloopiter, 2, 0],
+                     pathData_JointAngle[Mainloopiter, 3, 0],
+                     pathData_JointAngle[Mainloopiter, 4, 0],
+                     pathData_JointAngle[Mainloopiter, 5, 0],
                     1)
                 
-            self.draw_axis(NowEnd,100)    
-            self.draw_axis(GoalEnd,100)    
+            self.draw_axis(pathData_np_4X4[0],100)    
+            self.draw_axis(pathData_np_4X4[-1],100)    
             self.draw_Matrix4X4(EndEffector, 550)
             self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector, 100)
-            self.draw_Trajectory(path_np_4X4, Mainloopiter)
+            self.draw_Trajectory(pathData_np_4X4, Mainloopiter)
 
 
             """

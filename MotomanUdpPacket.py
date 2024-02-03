@@ -652,7 +652,7 @@ class MotomanUDP:
 
         return status
 
-    def moveMH(self, moveType, moveSpeedType, speed, coordinateType, coordinate):
+    def moveCoordinateMH(self, moveType, moveSpeedType, speed, coordinateType, coordinate):
         """Move Command
         Use me!!! 
         - moveType:
@@ -931,12 +931,12 @@ while i<50:
 
 # Cariten space
 # Real speed = speed * 0.1 mm/s
-# status = udp.moveMH(2,1, 13, 17, weldstart)
+# status = udp.moveCoordinateMH(2,1, 13, 17, weldstart)
 # print(status)
 
 # Point to Point
 # Real speed = speed * 0.01%
-# status = udp.moveMH(0,500, 17, coord)
+# status = udp.moveCoordinateMH(0,500, 17, coord)
 # print(status)
 
 # pmov
@@ -993,7 +993,7 @@ while i<50:
 
 #             # 增量型
 #             dp = [10, 0, 0, 0, 0, 0]
-#             status = udp.moveMH(3, 1, 100, 17, dp)
+#             status = udp.moveCoordinateMH(3, 1, 100, 17, dp)
 #             print(status)
 
 #             while True:
@@ -1003,7 +1003,7 @@ while i<50:
 
 #                 if sys_status[0] == 194:
 #                     # 回歸原本路徑
-#                     status = udp.moveMH(2,1, 100, 17, weldend)
+#                     status = udp.moveCoordinateMH(2,1, 100, 17, weldend)
 #                     print(status)
 #                     break
 #                 else:
@@ -1028,7 +1028,7 @@ while i<50:
 #         # elif key == ord('n'):
 #         #     print('Arc ON')
 #         #     udp.WriteIO(2701, 12)
-#         #     status = udp.moveMH(2,1, 14, 17, weldend)
+#         #     status = udp.moveCoordinateMH(2,1, 14, 17, weldend)
 #         #     print(status)
 
 #         # elif key == ord('f'):
@@ -1037,7 +1037,7 @@ while i<50:
 
 #         elif key == ord('m'):
 #             print('Move to Goal')
-#             status = udp.moveMH(2,1, 50, 17, ORG)
+#             status = udp.moveCoordinateMH(2,1, 50, 17, ORG)
 #             print(status)
 
 #     # 釋放資源
@@ -1078,8 +1078,8 @@ while i<50:
 
 #     # Cariten space
 #     # Real speed = speed * 0.1 mm/s
-#     # status = udp.moveMH(0,500, 17, weldend)
-#     status = udp.moveMH(1,13, 17,  weldend)
+#     # status = udp.moveCoordinateMH(0,500, 17, weldend)
+#     status = udp.moveCoordinateMH(1,13, 17,  weldend)
 #     print(status)
 
 #     if status == []:

@@ -434,7 +434,6 @@ def rpy_to_homogeneous(xyz,rpy):
     return H
 
 
-
 def main(urdf_file):
     global shader_program
 
@@ -447,6 +446,8 @@ def main(urdf_file):
     pygame.init()
     display = (800, 600)
     pygame.display.set_mode(display, DOUBLEBUF | OPENGL)
+
+
     shader_program = compileProgram(
         compileShader(vertex_shader, GL_VERTEX_SHADER),
         compileShader(fragment_shader, GL_FRAGMENT_SHADER)
@@ -467,31 +468,31 @@ def main(urdf_file):
     θ_Buffer[4, 0] =  d2r(-76.44358294225668)
     θ_Buffer[5, 0] =  d2r(1.071035847811744)
     
-    # 矩陣軌跡法
-    scale = 0.078
-    NowEnd = np.eye(4)
-    # NowEnd = NowEnd @ Mat.TransXYZ(4.85364,-00.1213,2.34338) @ Mat.RotaXYZ(d2r(179.984), d2r(20.2111), d2r(21.6879))  
-    NowEnd = NowEnd @ Mat.TransXYZ(4.85*scale,0,2.34*scale) @ Mat.RotaXYZ(d2r(-180), d2r(20.2111), d2r(21.6879))
-    GoalEnd = np.eye(4)
-    # GoalEnd = GoalEnd @ Mat.TransXYZ(9.5858,-1.02274,z=-1.64748) @ Mat.RotaXYZ(d2r(-165.2922), d2r(-7.1994), d2r(17.5635))
-    GoalEnd = GoalEnd @ Mat.TransXYZ(9*scale,-4*scale,z=-2*scale) @ Mat.RotaXYZ(d2r(-165.2922), d2r(-7.1994), d2r(17.5635))  
-    # 矩陣差值法
-    alltime = 6
-    sampleTime = 0.03
-    startTime = 0
-    PosBuffer4X4 = Plan.MatrixPathPlanning("dataBase\MatrixPathPlanning.csv", GoalEnd, NowEnd, alltime, startTime, sampleTime)
-    # self.Plan.QuaternionsInterpolation(GoalEnd, NowEnd, 5)
+    # # 矩陣軌跡法
+    # scale = 0.078
+    # NowEnd = np.eye(4)
+    # # NowEnd = NowEnd @ Mat.TransXYZ(4.85364,-00.1213,2.34338) @ Mat.RotaXYZ(d2r(179.984), d2r(20.2111), d2r(21.6879))  
+    # NowEnd = NowEnd @ Mat.TransXYZ(4.85*scale,0,2.34*scale) @ Mat.RotaXYZ(d2r(-180), d2r(20.2111), d2r(21.6879))
+    # GoalEnd = np.eye(4)
+    # # GoalEnd = GoalEnd @ Mat.TransXYZ(9.5858,-1.02274,z=-1.64748) @ Mat.RotaXYZ(d2r(-165.2922), d2r(-7.1994), d2r(17.5635))
+    # GoalEnd = GoalEnd @ Mat.TransXYZ(9*scale,-4*scale,z=-2*scale) @ Mat.RotaXYZ(d2r(-165.2922), d2r(-7.1994), d2r(17.5635))  
+    # # 矩陣差值法
+    # alltime = 6
+    # sampleTime = 0.03
+    # startTime = 0
+    # PosBuffer4X4 = Plan.MatrixPathPlanning("dataBase\MatrixPathPlanning.csv", GoalEnd, NowEnd, alltime, startTime, sampleTime)
+    # # self.Plan.QuaternionsInterpolation(GoalEnd, NowEnd, 5)
     
-    # 由資料庫取得路徑資訊
-    # pathData = self.dB.Load()
-    path = dB.LoadMatrix4x4("dataBase\MatrixPathPlanning.csv")
-    θ = np.zeros((len(path),6,1))
-    # 取出資料後放入IK，將coordinate data ➔ Joint Angle data
-    # for i in range(len(PosBuffer4X4)):
-    #     θ[i] = self.Kin.IK_4x4(PosBuffer4X4[i], θ_Buffer)
-    for i in range(len(path)):
-        i_ = round(i*sampleTime,2)
-        θ[i] = Kin.IK_4x4(path[i_], θ_Buffer)
+    # # 由資料庫取得路徑資訊
+    # # pathData = self.dB.Load()
+    # path = dB.LoadMatrix4x4("dataBase\MatrixPathPlanning.csv")
+    # θ = np.zeros((len(path),6,1))
+    # # 取出資料後放入IK，將coordinate data ➔ Joint Angle data
+    # # for i in range(len(PosBuffer4X4)):
+    # #     θ[i] = self.Kin.IK_4x4(PosBuffer4X4[i], θ_Buffer)
+    # for i in range(len(path)):
+    #     i_ = round(i*sampleTime,2)
+    #     θ[i] = Kin.IK_4x4(path[i_], θ_Buffer)
 
 
 
@@ -507,6 +508,8 @@ def main(urdf_file):
     joints['joint_6_t']['rad'] = θ_Buffer[5, 0]
 
     loopCount = 0
+
+    
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -595,26 +598,27 @@ def main(urdf_file):
 
 
 
-        # mh12 kinematics
-        world_croodinate = np.eye(4) @ Mat.TransXYZ(0, 0, -0.45)
-        # Base, S, L, U, R, B, T, Endeffector = Kin.Mh12_FK(world_croodinate, θ_Buffer[0,0], θ_Buffer[1,0], θ_Buffer[2, 0], θ_Buffer[3, 0], θ_Buffer[4, 0], θ_Buffer[5, 0])
-        if loopCount < θ.shape[0]:
-            Base, S, L, U, R, B, T, Endeffector = Kin.Mh12_FK(world_croodinate, θ[loopCount,0,0], θ[loopCount,1,0], θ[loopCount,2, 0], θ[loopCount,3, 0], θ[loopCount,4, 0], θ[loopCount,5, 0])
-            Sim.draw_Arm(Base,  S, L, U, R, B, T, Endeffector, 0.1)
-            joints['joint_1_s']['rad'] = θ[loopCount,0,0]
-            joints['joint_2_l']['rad'] = θ[loopCount,1,0]
-            joints['joint_3_u']['rad'] = θ[loopCount,2,0]
-            joints['joint_4_r']['rad'] = θ[loopCount,3,0]
-            joints['joint_5_b']['rad'] = θ[loopCount,4,0]
-            joints['joint_6_t']['rad'] = θ[loopCount,5,0]
-            Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis = draw_urdf(links, joints,view,projection)
-        # Sim.draw_axis(world_croodinate, 0.2)
-        Sim.draw_Arm(Base,  S, L, U, R, B, T, Endeffector, 0.1)
-        Sim.draw_Trajectory(Endeffector, loopCount)
+        # # mh12 kinematics
+        # world_croodinate = np.eye(4) @ Mat.TransXYZ(0, 0, -0.45)
+        # # Base, S, L, U, R, B, T, Endeffector = Kin.Mh12_FK(world_croodinate, θ_Buffer[0,0], θ_Buffer[1,0], θ_Buffer[2, 0], θ_Buffer[3, 0], θ_Buffer[4, 0], θ_Buffer[5, 0])
+        # if loopCount < θ.shape[0]:
+        #     Base, S, L, U, R, B, T, Endeffector = Kin.Mh12_FK(world_croodinate, θ[loopCount,0,0], θ[loopCount,1,0], θ[loopCount,2, 0], θ[loopCount,3, 0], θ[loopCount,4, 0], θ[loopCount,5, 0])
+        #     Sim.draw_Arm(Base,  S, L, U, R, B, T, Endeffector, 0.1)
+        #     joints['joint_1_s']['rad'] = θ[loopCount,0,0]
+        #     joints['joint_2_l']['rad'] = θ[loopCount,1,0]
+        #     joints['joint_3_u']['rad'] = θ[loopCount,2,0]
+        #     joints['joint_4_r']['rad'] = θ[loopCount,3,0]
+        #     joints['joint_5_b']['rad'] = θ[loopCount,4,0]
+        #     joints['joint_6_t']['rad'] = θ[loopCount,5,0]
+        #     Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis = draw_urdf(links, joints,view,projection)
+        # # Sim.draw_axis(world_croodinate, 0.2)
+        # Sim.draw_Arm(Base,  S, L, U, R, B, T, Endeffector, 0.1)
+        # Sim.draw_Trajectory(Endeffector, loopCount)
+
+
+
         Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis = draw_urdf(links, joints,view,projection)
         
-        
-
         glPushMatrix()
         draw_object(floor_vao,floor_lens,np.eye(4).T,view,projection)
         glPopMatrix()

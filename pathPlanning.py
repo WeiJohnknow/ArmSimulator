@@ -167,20 +167,21 @@ class PathPlanning:
 
         return TimeList, PosList, VelList, AccList, samplePoint
 
-    def TrajectoryPlanning_434(self, θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t1, t2, t3, sampleTime=0.001, StartTime=0):
+    # def TrajectoryPlanning_434(self, Pinit, Vinit, Ainit, Plift_off, Pset_down, Pfinal, Vfinal, Afinal, t1, t2, t3, sampleTime=0.001, StartTime=0)
+    def TrajectoryPlanning_434(self, Pinit, Plift_off, Pset_down, Pfinal, t1, t2, t3, sampleTime=0.001, Vinit=0, Ainit=0, Vfinal=0, Afinal=0, StartTime=0):
         """
-        Args:
-            θinit, Vinit, Ainit
-            θlift_off, θset_down
-            final, Vfinal, Afinal
-            t1, t2, t3
+        - Args:
+            - Pinit, Plift_off, Pset_down, Pfinal, t1, t2, t3, sampleTime
+            - default: sampleTime=0.001, StartTime=0, Plift_off=0, Pset_down=0, Vfinal=0, Afinal=0
 
-        retrun:
-            TimeList, PosList , VelList, AccList, samplePoint
+        - Retrun:
+            timeData, positionData, velocityData, accelerationData
         """
-        P1 = θlift_off - θinit
-        P2 = θset_down - θlift_off
-        P3 = θfinal - θset_down
+
+
+        P1 = Plift_off - Pinit
+        P2 = Pset_down - Plift_off
+        P3 = Pfinal - Pset_down
 
         X =  np.array([0, 0, 0, 0, 0, 0, 0])
         C =  np.array([  [      1,        1,     0,        0,       0,       0,         0],
@@ -216,96 +217,30 @@ class PathPlanning:
         c_1 = np.linalg.inv(C)
         X = c_1 @ Y 
 
-        a10 = θinit
+        a10 = Pinit
         a11 = Vinit*t1
         a12 = (Ainit*t1**2)/2
         a13 = X[0]
         a14 = X[1]
-        a20 = θlift_off
+        a20 = Plift_off
         a21 = X[2]
         a22 = X[3]
         a23 = X[4]
-        a30 = θfinal
+        a30 = Pfinal
         a31 = Vfinal*t3
         a32 = (Afinal*t3**2)/2
         a33 = X[5]
         a34 = X[6]
 
-        # # Real time
-        # alltime_ = np.round(np.linspace(StartTime, t1+t2+t3,  150), 2)
-        # alltime = np.ceil(alltime_ * 100) / 100
-        # time1 = np.round(np.linspace(StartTime, t1,  int(t1/sampleTime)), 3)
-        # time2 = np.round(np.linspace(StartTime, t2,  int(t2/sampleTime)+1), 3)
-        # time3 = np.round(np.linspace(StartTime, t3,  int(t3/sampleTime)+1), 3)
-
-        # # normalized time
-        # min_time1 = np.min(time1)
-        # max_time1 = np.max(time1)
-        # normTime1 = (time1 - min_time1) / (max_time1 - min_time1)
-
-        # min_time2 = np.min(time2)
-        # max_time2 = np.max(time2)
-        # normTime2 = (time2 - min_time2) / (max_time2 - min_time2)
-        
-
-        # min_time3 = np.min(time3)
-        # max_time3 = np.max(time3)
-        # normTime3 =  -1 + 1* (time3 - min_time3) / (max_time3 - min_time3)
-
-        # # TODO 多項式係數有誤
-        # # t1 curve
-        # t1_PosCoefficients = [a14, a13, a12, a11, a10]
-        # t1_VelCoefficients = [4*a14, 3*a13, 2*a12, a11]
-        # t1_AccCoefficients = [12*a14, 6*a13, 2*a12]
-        # t1_Poscurve = np.polyval(t1_PosCoefficients, normTime1)
-        # t1_Velcurve = np.polyval(t1_VelCoefficients, normTime1)
-        # t1_Acccurve = np.polyval(t1_AccCoefficients, normTime1)
-
-        # # t2 curve
-        # t2_PosCoefficients = [a23, a22, a21, a20]
-        # t2_VelCoefficients = [3*a23, 2*a22, a21]
-        # t2_AccCoefficients = [6*a23, 2*a22]
-        # t2_Poscurve = np.polyval(t2_PosCoefficients, normTime2)
-        # t2_Velcurve = np.polyval(t2_VelCoefficients, normTime2)
-        # t2_Acccurve = np.polyval(t2_AccCoefficients, normTime2)
-        # print("a23 :", a23)
-        # # t3 curve
-        # t3_PosCoefficients = [a34, a33, a32, a31, a30]
-        # t3_VelCoefficients = [4*a34, 3*a33, 2*a32, a31]
-        # t3_AccCoefficients = [12*a34, 6*a33, 2*a32]
-        # t3_Poscurve = np.polyval(t3_PosCoefficients, normTime3)
-        # t3_Velcurve = np.polyval(t3_VelCoefficients, normTime3)
-        # t3_Acccurve = np.polyval(t3_AccCoefficients, normTime3)
-
-
-
-        # # 繪製多項式曲線
-        # plt.plot(alltime[:len(t1_Poscurve)+1], t1_Poscurve, color='red', label='Position1')
-        # # plt.plot(time1, t1_Velcurve, color='green', label='Velocity')
-        # # plt.plot(time1, t1_Acccurve, color='blue', label='Acceleration')
-        # plt.plot(alltime[len(t1_Poscurve):len(t1_Poscurve)+len(t2_Poscurve)], t2_Poscurve, color='green', label='Position2')
-        # # plt.plot(time2, t2_Velcurve, color='green', label='Velocity')
-        # # plt.plot(time2, t2_Acccurve, color='blue', label='Acceleration')
-        # plt.plot(alltime[len(t1_Poscurve)+len(t2_Poscurve):len(t1_Poscurve)+len(t2_Poscurve)+len(t3_Poscurve)], t3_Poscurve, color='blue', label='Position3')
-        # # plt.plot(time3, t3_Velcurve, color='green', label='Velocity')
-        # # plt.plot(time3, t3_Acccurve, color='blue', label='Acceleration')
-        # # plt.plot(alltime, np.concatenate((t1_Poscurve, t2_Poscurve, t3_Poscurve), axis=0), color='red', label='Position')
-        # plt.xlabel('time')
-        # plt.ylabel('Value')
-        # plt.title('Plot of the Polynomial')
-        # plt.legend()
-        # # plt.grid(True)
-        # plt.show()
-        
 
         samplePoint = [int(t1/sampleTime), int(t2/sampleTime), int(t3/sampleTime)]
         
         
         DataSize = samplePoint[0]+samplePoint[1]+samplePoint[2]
-        TimeList = np.zeros((DataSize))
-        PosList = np.zeros((DataSize))
-        VelList = np.zeros((DataSize))
-        AccList = np.zeros((DataSize))
+        timeData = np.zeros((DataSize))
+        positionData = np.zeros((DataSize))
+        velocityData = np.zeros((DataSize))
+        accelerationData = np.zeros((DataSize))
 
 
         # 記憶前一段軌跡的時間節點
@@ -314,40 +249,31 @@ class PathPlanning:
         for _u in range(0,1*samplePoint[0]+1):
             u = _u/samplePoint[0]
             # TimeList[_u] = round(StartTime + t1*u , 2)
-            TimeList[_u] = StartTime + t1*u 
+            timeData[_u] = StartTime + t1*u 
 
             P = a10 + a11*u + a12*u**2 + a13*u**3 + a14*u**4
             V = a11 + 2*a12*u + 3*a13*u**2 + 4*a14*u**3
             A = 2*a12 + 6*a13*u + 12*a14*u**2
 
-            PosList[_u] = P
-            VelList[_u] = V
-            AccList[_u] = A 
- 
-
-        # plt.plot(TimeList[:samplePoint[0]-1], PosList[:samplePoint[0]-1], label='Position1')       
-        # plt.legend()
-        # plt.show()
+            positionData[_u] = P
+            velocityData[_u] = V
+            accelerationData[_u] = A 
         
         PreviousNode += samplePoint[0]
 
         for _u in range(0,1*samplePoint[1]):
             u = _u/samplePoint[1]
-            TimeList[PreviousNode+_u] = TimeList[PreviousNode] + t2*u
+            timeData[PreviousNode+_u] = timeData[PreviousNode] + t2*u
 
             P = a20 + a21*u + a22*u**2 + a23*u**3
             V = a21 + 2*a22*u + 3*a23*u**2
             A = 2*a22 + 6*a23*u
 
-            PosList[PreviousNode+_u] = P
-            VelList[PreviousNode+_u] = V
-            AccList[PreviousNode+_u] = A
+            positionData[PreviousNode+_u] = P
+            velocityData[PreviousNode+_u] = V
+            accelerationData[PreviousNode+_u] = A
 
         PreviousNode += samplePoint[1]
-
-        # plt.plot(TimeList[:samplePoint[0]+samplePoint[1]-1], PosList[:samplePoint[0]+samplePoint[1]-1], label='Position1')       
-        # plt.legend()
-        # plt.show()
 
         # 第三段真實時間
         ut = 0
@@ -357,24 +283,23 @@ class PathPlanning:
             ut += sampleTime
             if _u == 0:
                 print("test")
-            TimeList[PreviousNode+counter] = TimeList[PreviousNode-1] + ut
+            timeData[PreviousNode+counter] = timeData[PreviousNode-1] + ut
 
 
             P = a30 + a31*u + a32*u**2 + a33*u**3 + a34*u**4
             V = a31 + 2*a32*u + 3*a33*u**2 + 4*a34*u**3
             A = 2*a32 + 6*a33*u + 12*a34*u**2
 
-            PosList[PreviousNode+counter] = P
-            VelList[PreviousNode+counter] = V
-            AccList[PreviousNode+counter] = A
+            positionData[PreviousNode+counter] = P
+            velocityData[PreviousNode+counter] = V
+            accelerationData[PreviousNode+counter] = A
+
             if counter == samplePoint[1]-1:
                 counter = samplePoint[1]-1
             else:
                 counter += 1
         
-        # del TimeList[0]
-
-        return TimeList, PosList , VelList, AccList, samplePoint
+        return timeData, positionData, velocityData, accelerationData
     
     def S_curve(self, Smax, Vmax, Amax, Aavg, sampleTime=0.001):
         '''
@@ -604,11 +529,16 @@ class PathPlanning:
 
         return AccList, VelList, SList, TimeList
     
-    def MatrixPathPlanning(self, filePath, GoalEnd, NowEnd, allTime, startTime=0, sampleTime = 0.04):
-        """Homogeneous matrix interpolation method
+    def MatrixPathPlanning(self, GoalEnd, NowEnd, allTime, sampleTime = 0.04, startTime=0):
+        """Homogeneous matrix interpolation method, it's a Cartesian space trajectory planning method.
+        - Args:
+            - GoalEnd(Homogeneous matrix), NowEnd(Homogeneous matrix), allTime, filePath
+            - default : sampleTime = 0.04, startTime=0
+        
+        - Return:
+            - pathData(Homogeneous matrix), timeData
+
         - Ref. 2023hurocup file robot.py fun.GetDmat
-        - return:
-            dshape: n*4*4 \n 
         """ 
         sin = np.sin
         cos = np.cos
@@ -616,7 +546,6 @@ class PathPlanning:
         inv  = np.linalg.inv
         pi = np.pi
         
-
         D = inv(NowEnd) @ GoalEnd
         θ = arccos(round((D[0,0] + D[1,1] + D[2,2] - 1.0)/2.0,4))
         if type(θ) !=type(np.arccos(0.5)):
@@ -631,9 +560,6 @@ class PathPlanning:
             kx = (D[2,1] - D[1,2]) / u
             ky = (D[0,2] - D[2,0]) / u
             kz = (D[1,0] - D[0,1]) / u
-        # kx = (D[2,1]-D[1,2]) / (2*sin(θ))
-        # ky = (D[0,2]-D[2,0]) / (2*sin(θ))
-        # kz = (D[1,0]-D[0,1]) / (2*sin(θ))
         
         Δx = GoalEnd[0,3] - NowEnd[0,3]
         Δy = GoalEnd[1,3] - NowEnd[1,3]
@@ -646,29 +572,9 @@ class PathPlanning:
         # 儲存軌跡資料(Homogeneous transformation)
         TBuffer = np.zeros(((int(sampleInterval)+1,4,4)))
         
-        
-
         for λ_ in range(int(sampleInterval)+1):
             λ = λ_ / int(sampleInterval)
             V = (1-cos(θ*λ))
-            
-            # D[0,0] = kx**2*V+cos(θ*λ)
-            # D[0,1] = kx*ky*V+kz*sin(θ*λ)
-            # D[0,2] = kx*kz*V-ky*sin(θ*λ)
-            # D[1,0] = kx*ky*V-kz*sin(θ*λ)
-            # D[1,1] = ky**2*V+cos(θ*λ)
-            # D[1,2] = ky*kz*V+kx*sin(θ*λ)
-            # D[2,1] = kx*kz*V+ky*sin(θ*λ)
-            # D[2,2] = ky*kz*V-kx*sin(θ*λ)
-            # D[2,3] = kz**2*V+cos(θ*λ)
-            # D[3,0] = Δx*λ
-            # D[3,1] = Δy*λ
-            # D[3,2] = Δz*λ
-            # D = np.array(([  [kx**2*V+cos(θ*λ), kx*ky*V-kz*sin(θ*λ), kx*kz*V+ky*sin(θ*λ), Δx*λ],
-            #                         [kx*ky*V+kz*sin(θ*λ), ky**2*V+cos(θ*λ), ky*kz*V-kx*sin(θ*λ), Δy*λ],
-            #                         [kx*kz*V-ky*sin(θ*λ), ky*kz*V+kx*sin(θ*λ), kz**2*V+cos(θ*λ), Δz*λ],
-            #
-            #                          [0, 0, 0, 1]]))
             
             # Transformation matrix
             D_ = np.array(([ [kx**2*V+cos(θ*λ), kx*ky*V-kz*sin(θ*λ), kx*kz*V+ky*sin(θ*λ), D[0,3]*λ],
@@ -676,19 +582,13 @@ class PathPlanning:
                                     [kx*kz*V-ky*sin(θ*λ), ky*kz*V+kx*sin(θ*λ), kz**2*V+cos(θ*λ), D[2,3]*λ],
                                     [0, 0, 0, 1]]))
             
-            # T 是 NowEnd ➜ GoalEnd 過程的插值矩陣(軌跡點)
+            # T 是笛卡兒空間中 NowEnd ➜ GoalEnd 過程中每一個軌跡點的齊次變換矩陣(軌跡點)
             T = NowEnd @ D_ 
             TBuffer[λ_] = T
             
-
-        # Save data
-        self.dB.Save(TBuffer, timeData,filePath)
-
-
-
         return TBuffer, timeData
     
-    def MatrixPath434(self, filePath, GoalEnd, NowEnd, allTime, startTime=0, sampleTime = 0.04):
+    def MatrixPath434(self, GoalEnd, NowEnd, allTime, filePath, sampleTime = 0.04, startTime=0):
         """Homogeneous matrix interpolation method
         - Ref. 2023hurocup file robot.py fun.GetDmat
         - return:
@@ -696,15 +596,13 @@ class PathPlanning:
         """ 
         # 4-3-4
         rate = 0.25
-        θinit, Vinit, Ainit, Vfinal, Afinal = 0, 0, 0, 0, 0
-        θfinal = 1
-        θlift_off = θfinal*rate
-        θset_down = θfinal*(1-rate)
+        Pinit, Vinit, Ainit, Vfinal, Afinal = 0, 0, 0, 0, 0
+        Pfinal = 1
+        Plift_off = Pfinal*rate
+        Pset_down = Pfinal*(1-rate)
         t1, t2, t3 = allTime/3, allTime/3, allTime/3
-        timeData , λ, VelList, AccList, samplePoint = self.TrajectoryPlanning_434\
-        (θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t1, t2, t3, sampleTime)
-
-
+        timeData , λ, VelList, AccList = self.TrajectoryPlanning_434\
+        (Pinit, Plift_off, Pset_down, Pfinal, t1, t2, t3, sampleTime)
 
 
         sin = np.sin
@@ -884,43 +782,41 @@ class PathPlanning:
         """
         4-3-4 Trajectory Planning Test
         """
-
-        
         # rate = 0.25
-        # alltime = 6
-        # t1, t2, t3 = 5, 5, 5
-        # θinit, Vinit, Ainit, Vfinal, Afinal = 0, 0, 0, 0, 0
-        # θfinal = 1
-        # θlift_off = θfinal*0.25
-        # θset_down = θfinal*0.75
-
-        rate = 0.25
-        alltime = 6
-        t1, t2, t3 = 5, 5, 5
-        θinit, Vinit, Ainit, Vfinal, Afinal = 0, 0, 0, 0, 0
-        θfinal = 1
-        θlift_off = θfinal*0.25
-        θset_down = θfinal*0.75
-
-
+        # alltime = 7
+        # t1, t2, t3 = alltime/3, alltime/3, alltime/3
+        # Pinit, Vinit, Ainit, Vfinal, Afinal = 0, 0, 0, 0, 0
+        # Pfinal = 1
+        # Plift_off = Pfinal*rate
+        # Pset_down = Pfinal*(1-rate)
+        # sampleTime = 0.001
         
-        
-        TimeList, PosList , VelList, AccList, samplePoint = self.TrajectoryPlanning_434\
-            (θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t1, t2, t3, 0.001)
-        # TimeList, PosList , VelList, AccList, samplePoint = self.TP_434\
-            # (θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t1, t2, t3, 0.001)
-        # self.TrajectoryPlanning_434\
-        #     (θinit, Vinit, Ainit, θlift_off, θset_down, θfinal, Vfinal, Afinal, t1, t2, t3, 0.001)
+        # TimeData, PosData , VelData, AccData = self.TrajectoryPlanning_434\
+        #     (Pinit, Plift_off, Pset_down, Pfinal, t1, t2, t3, sampleTime)
 
-        plt.plot(TimeList,AccList, label='Acc')
-        plt.plot(TimeList,VelList, label='Vel')
-        plt.plot(TimeList,PosList, label='S')
-        plt.title('4-3-4 motion planning')
-        plt.xlabel('time')
-        plt.ylabel('Unit')
-        # plt.tight_layout()
-        plt.show()
+        # plt.plot(TimeData, AccData, label='Acc')
+        # plt.plot(TimeData, VelData, label='Vel')
+        # plt.plot(TimeData, PosData, label='S')
+        # plt.title('4-3-4 motion planning')
+        # plt.xlabel('time')
+        # plt.ylabel('Unit')
+        # # plt.tight_layout()
+        # plt.show()
 
+        """
+        MatrixPathPlanning
+        """
+        # d2r = np.deg2rad
+        # NowEnd = np.eye(4)  
+        # GoalEnd = np.eye(4)
+        # NowEnd = NowEnd @ self.Mat.TransXYZ(4.85,0,2.34) @ self.Mat.RotaXYZ(d2r(-180), d2r(20.2111), d2r(21.6879))
+        # GoalEnd = GoalEnd @ self.Mat.TransXYZ(9,-4,z=-2) @ self.Mat.RotaXYZ(d2r(-165.2922), d2r(-7.1994), d2r(17.5635)) 
+        # sampleTime = 0.04
+        # alltime = 8
+        # file_path = "dataBase/testMatrixPathPlanning.csv"
+
+        # pathData, timeData = self.MatrixPathPlanning(GoalEnd, NowEnd, alltime, file_path, sampleTime)
+        # print(pathData)
 
         """
         MatrixPath + 4-3-4
@@ -933,27 +829,18 @@ class PathPlanning:
         # GoalEnd = GoalEnd @ self.Mat.TransXYZ(9,-4,z=-2) @ self.Mat.RotaXYZ(d2r(-165.2922), d2r(-7.1994), d2r(17.5635)) 
         # sampleTime = 0.04
         # alltime = 8
-        # pathData = self.MatrixPath434( "test.csv", GoalEnd, NowEnd, alltime, sampleTime )
+        # file_path = "dataBase/testMatrixPathPlanning434.csv"
+
+        # pathData = self.MatrixPath434(  GoalEnd, NowEnd, alltime, file_path, sampleTime)
         # print(pathData)
 
-        # Matrix PathPlan test
-        # NowEnd = np.array([[-1,0,0,10],
-        #                             [0,1,0,10],
-        #                             [0,0,1,10],
-        #                             [0,0,0,1]])
-        # GoalEnd = np.array([[0,-1,0,10],
-        #                             [0,0,1,30],
-        #                             [-1,0,0,10],
-        #                             [0,0,0,1]])
-        # T = self.MatrixPathPlanning(GoalEnd, NowEnd)
-        # print(T)
-        # print("test")
 
-
-        # S-curve test
+        """
+        S-curve
+        """
         # AccList, VelList, SList, TimeList = self.S_curve(314.15925, 38, 35, 30, 0.001)
-        # AccList, VelList, SList, TimeList = self.S_curve(100, 38, 35, 30, 0.001)
-        # AccList, VelList, SList, TimeList = self.S_curve(1, 0.3, 0.2, 0.18, 0.001)
+        # # AccList, VelList, SList, TimeList = self.S_curve(100, 38, 35, 30, 0.001)
+        # # AccList, VelList, SList, TimeList = self.S_curve(1, 0.3, 0.2, 0.18, 0.001)
         
         # plt.plot(TimeList,AccList, label='Acc')
         # plt.plot(TimeList,VelList, label='Vel')
@@ -964,9 +851,12 @@ class PathPlanning:
         # # plt.tight_layout()
         # plt.show()
 
-if __name__ == "__main__":
-    PathPlan = PathPlanning()
-    # PathPlan.main()
+
+        
+
+# if __name__ == "__main__":
+#     PathPlan = PathPlanning()
+#     PathPlan.main()
 
     
         

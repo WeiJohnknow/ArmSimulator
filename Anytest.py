@@ -1233,6 +1233,23 @@ import struct
 # Data = 65535
 # packet = struct.pack('H', Data)
 # print(packet)
+# for Pin in range(540, 563):
+#     print("Pin", Pin)
+#     Pin_hex = hex(Pin)
+
+#     # 移除 '0x' 前綴並填充零，確保至少有兩個字元
+#     Pin_hex = Pin_hex[2:].zfill(4)
+    
+#     # 將十六進位表示法分為高位元和低位元
+#     high_byte = int(Pin_hex[:2], 16)
+#     low_byte = int(Pin_hex[2:], 16)
+#     print("打包前 :", low_byte, high_byte)
+
+#     inf = [low_byte , high_byte]
+#     byte_low = struct.pack('B', inf[0])
+#     byte_high = struct.pack('B', inf[1])
+
+#     print("打包後 :", byte_low, byte_high)
 #%%
 # import numpy as np
 # import matplotlib.pyplot as plt
@@ -1260,6 +1277,9 @@ import struct
 # # 显示图形
 # plt.show()
 #%%
+"""
+繪製常態分布圖
+"""
 # import numpy as np
 # import matplotlib.pyplot as plt
 # from scipy.stats import norm
@@ -1288,7 +1308,168 @@ import struct
 # plt.grid(True)
 # plt.show()
 #%%
-ORG =[485.364, -1.213, 234.338, 179.984, 20.2111, 1.6879]
-testTotal = [602.869, -5.859, 156.974, 179.984, 20.2111, 1.6879]
-dis = np.sqrt((testTotal[0] - ORG[0])**2 + (testTotal[1] - ORG[1])**2 + (testTotal[2] - ORG[2])**2)
-print(round(dis,4))
+# ORG =[485.364, -1.213, 234.338, 179.984, 20.2111, 1.6879]
+# testTotal = [602.869, -5.859, 156.974, 179.984, 20.2111, 1.6879]
+# dis = np.sqrt((testTotal[0] - ORG[0])**2 + (testTotal[1] - ORG[1])**2 + (testTotal[2] - ORG[2])**2)
+# print(round(dis,4))
+#%%
+
+"""
+Pyqt5 + pyOpenGL
+"""
+# import sys
+# from PyQt5.QtWidgets import QApplication, QMainWindow, QOpenGLWidget, QVBoxLayout, QWidget, QLabel, QSlider, QHBoxLayout, QGroupBox
+# from PyQt5.QtCore import pyqtSignal, Qt
+# from PyQt5.QtGui import QColor
+# from OpenGL.GL import *
+
+
+# class MyGLWidget(QOpenGLWidget):
+#     def __init__(self, parent=None):
+#         super(MyGLWidget, self).__init__(parent)
+#         self.setMinimumSize(640, 480)
+#         self.triangle_color = QColor(255, 255, 255)
+
+#     def initializeGL(self):
+#         glClearColor(0.0, 0.0, 0.0, 1.0)
+
+#     def paintGL(self):
+#         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+#         glColor3f(self.triangle_color.redF(), self.triangle_color.greenF(), self.triangle_color.blueF())
+#         glBegin(GL_TRIANGLES)
+#         glVertex3f(-0.5, -0.5, 0.0)
+#         glVertex3f(0.5, -0.5, 0.0)
+#         glVertex3f(0.0, 0.5, 0.0)
+#         glEnd()
+
+#     def resizeGL(self, w, h):
+#         glViewport(0, 0, w, h)
+#         glMatrixMode(GL_PROJECTION)
+#         glLoadIdentity()
+#         glOrtho(-1, 1, -1, 1, -1, 1)
+#         glMatrixMode(GL_MODELVIEW)
+
+
+# class ControlWindow(QWidget):
+#     colorChanged = pyqtSignal(QColor)
+
+#     def __init__(self):
+#         super().__init__()
+#         self.setWindowTitle("Control Panel")
+#         layout = QVBoxLayout(self)
+
+#         self.colorLabel = QLabel("Triangle Color: ", self)
+#         layout.addWidget(self.colorLabel)
+
+#         self.redSlider = QSlider(Qt.Horizontal, self)
+#         self.redSlider.setRange(0, 255)
+#         self.redSlider.setValue(255)
+#         self.redSlider.valueChanged.connect(self.updateColor)
+#         layout.addWidget(self.redSlider)
+
+#         self.greenSlider = QSlider(Qt.Horizontal, self)
+#         self.greenSlider.setRange(0, 255)
+#         self.greenSlider.setValue(255)
+#         self.greenSlider.valueChanged.connect(self.updateColor)
+#         layout.addWidget(self.greenSlider)
+
+#         self.blueSlider = QSlider(Qt.Horizontal, self)
+#         self.blueSlider.setRange(0, 255)
+#         self.blueSlider.setValue(255)
+#         self.blueSlider.valueChanged.connect(self.updateColor)
+#         layout.addWidget(self.blueSlider)
+
+#     def updateColor(self):
+#         color = QColor(self.redSlider.value(), self.greenSlider.value(), self.blueSlider.value())
+#         self.colorChanged.emit(color)
+
+
+# class DisplayWindow(QMainWindow):
+#     def __init__(self):
+#         super().__init__()
+#         self.setWindowTitle("OpenGL Display")
+
+#         self.glWidget = MyGLWidget(self)
+#         self.setCentralWidget(self.glWidget)
+
+#     def setColor(self, color):
+#         self.glWidget.triangle_color = color
+#         self.glWidget.update()
+
+
+# if __name__ == '__main__':
+#     app = QApplication(sys.argv)
+
+#     controlWindow = ControlWindow()
+#     displayWindow = DisplayWindow()
+
+#     controlWindow.colorChanged.connect(displayWindow.setColor)
+
+#     controlWindow.show()
+#     displayWindow.show()
+
+#     sys.exit(app.exec_())
+
+"""
+class繼承實作
+"""
+# class A:
+#     def __init__(self, a_value):
+#         self.a_value = a_value
+#         self. var = 10
+
+#     def print_a(self):
+#         print("Value of A:", self.a_value)
+    
+#     def move(self, value):
+#         print("move", value)
+
+
+# class B(A):  # B 继承自 A
+#     def __init__(self, a_value, b_value):
+#         super().__init__(a_value)  # 调用父类 A 的构造函数
+#         self.b_value = b_value
+
+#     def print_b(self):
+#         print("Value of B:", self.b_value)
+
+
+# B(10, 20).move(200)
+
+"""
+函數參數
+"""
+# # Arbitrary Arguments
+# def add(*args):
+#     result = 0
+#     for num in args:
+#         result += num
+#     for i in range(args[-1]):
+#         print(args[i])
+#     # return result
+# a, b, c, d, e = 1, 1, 1, 1, 1
+# add(a, b, c, d, e)
+# # print(add(1, 2, 3, 4, 5))  # Output: 15
+
+# def greet(**kwargs):
+#     # for key, value in kwargs.items():
+#     #     print(f"{key}: {value}")
+#     print(kwargs["sampleTime"])
+#     print(kwargs["alltime"])
+
+# greet(sampleTime=0.04, alltime=12)  # Output: name: Alice, message: How are you?
+
+def my_function(**kwargs):
+    """
+    Process keyword arguments and print them along with a default value.
+    
+    Args:
+        **kwargs: Arbitrary keyword arguments.
+    """
+    default_value = kwargs.get("default", "No default value specified")  # 获取默认值
+    for key, value in kwargs.items():
+        print(f"{key}: {value}")
+    print(f"Default value: {default_value}")
+
+# 使用不定长关键字参数调用函数，其中一个参数使用默认值
+my_function(name="Alice", age=30, city="New York", default="N/A")

@@ -6,7 +6,7 @@
 <robot name="motoman_mh12" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
   <material name="material_yaskawa_blue">
-    <color rgba="0.12941176470588237 0.14901960784313725 0.7490196078431373 0.6"/>
+    <color rgba="0.12941176470588237 0.14901960784313725 0.7490196078431373 0.7"/>
   </material>
   <material name="color_yaskawa_white">
     <color rgba="0.99 0.99 0.99 1"/>

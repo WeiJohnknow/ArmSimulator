@@ -138,7 +138,94 @@ class dataBase:
 
         else:
             print("dtype Error!")
+
+
+
+    def saveMatrix4x4(self, data, timeData, mode:str, filePath):
+        """Multiple data, save Homogeneous Transformation Matrix and Time
+        - mode:
+            - "w" : 寫入模式（默認），會覆蓋已有文件，如果文件不存在則創建新文件。
+            - "a" : 追加模式，將新的內容追加到已有文件的末尾。
+            - "x" : 獨佔創建模式，僅在文件不存在時創建新文件，否則引發 FileExistsError。
+            - "r" : 只讀模式，僅用於讀取文件。
+            - "rb": 以二進制只讀模式打開文件，用於讀取二進制文件。
+        """
         
+        columns = ['Xx', 'Xy', 'Xz', '0', 'Yx', 'Yy', 'Yz', '0', 'Zx', 'Zy', 'Zz', '0', 'Px', 'Py', 'Pz', '1', 'time']
+        num_rows = data.shape[0]
+
+        # 预先指定DataFrame大小
+        df = pd.DataFrame(index=range(num_rows), columns=columns)
+
+        # 使用列表推导式构建data_list
+        data_list = [np.concatenate([datum.T.ravel(), [time]]) for datum, time in zip(data, timeData)]
+
+        # 直接写入文件
+        with open(filePath, mode) as f:
+            f.write(','.join(columns) + '\n')
+            for row in data_list:
+                f.write(','.join(map(str, row)) + '\n')
+    
+    def saveJointAngle(self, data, mode:str, filePath):
+        """Multiple data, save IK calculate Answer ➔ Joint Angle(6x1)
+        - mode:
+            - "w" : 寫入模式（默認），會覆蓋已有文件，如果文件不存在則創建新文件。
+            - "a" : 追加模式，將新的內容追加到已有文件的末尾。
+            - "x" : 獨佔創建模式，僅在文件不存在時創建新文件，否則引發 FileExistsError。
+            - "r" : 只讀模式，僅用於讀取文件。
+            - "rb": 以二進制只讀模式打開文件，用於讀取二進制文件。
+        """
+        
+        # 打开文件，根据 mode 选择写入方式
+        with open(filePath, mode) as f:
+            # 写入列名
+            f.write('S,L,U,R,B,T\n')
+
+            # 遍历数据，逐行写入
+            for dataIndex in range(data.shape[0]):
+                data1x6 = data[dataIndex].copy()
+                flattened_data = data1x6.flatten()
+                # 将一行数据转换为逗号分隔的字符串，然后写入文件
+                row_str = ','.join(map(str, flattened_data))
+                f.write(row_str + '\n')
+
+    def savePoseMatrix(self, data, mode:str, filePath):
+        """Multiple data, save pose matrix (1X6)
+        - mode:
+            - "w" : 寫入模式（默認），會覆蓋已有文件，如果文件不存在則創建新文件。
+            - "a" : 追加模式，將新的內容追加到已有文件的末尾。
+            - "x" : 獨佔創建模式，僅在文件不存在時創建新文件，否則引發 FileExistsError。
+            - "r" : 只讀模式，僅用於讀取文件。
+            - "rb": 以二進制只讀模式打開文件，用於讀取二進制文件。
+        """
+        
+
+        # df = pd.DataFrame(columns=['X', 'Y', 'Z', 'Rx', 'Ry', 'Rz'])
+        # # list用於儲存 Matrix(1x6) 的數據 
+        # data_list = []
+        # for dataIndex in range(data.shape[0]):
+        #     data1x6 = data[dataIndex].copy()
+        #     data_list.append(data1x6.flatten())
+
+        # # 把list中的所有數據一次性加到 DataFrame 中
+        # df = pd.concat([df, pd.DataFrame(data_list, columns=df.columns)], ignore_index=True)
+
+        # # 寫入csv檔
+        # df.to_csv(filePath, mode=mode, index=False)
+
+        with open(filePath, mode) as f:
+            # 写入列名
+            f.write('X, Y, Z, Rx, Ry, Rz\n')
+
+            # 遍历数据，逐行写入
+            for dataIndex in range(data.shape[0]):
+                data1x6 = data[dataIndex].copy()
+                flattened_data = data1x6.flatten()
+                # 将一行数据转换为逗号分隔的字符串，然后写入文件
+                row_str = ','.join(map(str, flattened_data))
+                f.write(row_str + '\n')
+
+
         
     def Load(self, filePath):
         """
@@ -146,14 +233,7 @@ class dataBase:
         """
         try:
             # 使用 pandas 的 read_csv 函数读取整个 CSV 文件
-            
             df = pd.read_csv(filePath)
-            
-            
-            # 打印数据框的内容
-            # print(df)
-
-            # 返回数据框
             return df
 
         except FileNotFoundError:

@@ -838,25 +838,25 @@ class PathPlanning:
         """
         S-curve
         """
-        # AccList, VelList, SList, TimeList = self.S_curve(314.15925, 38, 35, 30, 0.001)
-        # # AccList, VelList, SList, TimeList = self.S_curve(100, 38, 35, 30, 0.001)
-        # # AccList, VelList, SList, TimeList = self.S_curve(1, 0.3, 0.2, 0.18, 0.001)
+        AccList, VelList, SList, TimeList = self.S_curve(314.15925, 38, 35, 30, 0.001)
+        # AccList, VelList, SList, TimeList = self.S_curve(100, 38, 35, 30, 0.001)
+        # AccList, VelList, SList, TimeList = self.S_curve(1, 0.3, 0.2, 0.18, 0.001)
         
-        # plt.plot(TimeList,AccList, label='Acc')
-        # plt.plot(TimeList,VelList, label='Vel')
-        # plt.plot(TimeList,SList, label='S')
-        # plt.title('S-curve motion planning')
-        # plt.xlabel('time')
-        # plt.ylabel('Unit')
-        # # plt.tight_layout()
-        # plt.show()
+        plt.plot(TimeList,AccList, label='Acc')
+        plt.plot(TimeList,VelList, label='Vel')
+        plt.plot(TimeList,SList, label='S')
+        plt.title('S-curve motion planning')
+        plt.xlabel('time')
+        plt.ylabel('Unit')
+        # plt.tight_layout()
+        plt.show()
 
 
         
 
-# if __name__ == "__main__":
-#     PathPlan = PathPlanning()
-#     PathPlan.main()
+if __name__ == "__main__":
+    PathPlan = PathPlanning()
+    PathPlan.main()
 
     
         

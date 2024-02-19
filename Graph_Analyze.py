@@ -254,12 +254,12 @@ def calculate_distance_speed(PoseMat_file, Time_file, sampleTime):
     """
     PoseMat6x1 = pd.read_csv(PoseMat_file)
     pathdata_df = pd.read_csv( Time_file)
-    x =np.zeros(PoseMat6x1.shape[0])
-    y =np.zeros(PoseMat6x1.shape[0])
-    z =np.zeros(PoseMat6x1.shape[0])
-    Rx=np.zeros(PoseMat6x1.shape[0])
-    Ry=np.zeros(PoseMat6x1.shape[0])
-    Rz=np.zeros(PoseMat6x1.shape[0])
+    x  = np.zeros(PoseMat6x1.shape[0])
+    y  = np.zeros(PoseMat6x1.shape[0])
+    z  = np.zeros(PoseMat6x1.shape[0])
+    Rx = np.zeros(PoseMat6x1.shape[0])
+    Ry = np.zeros(PoseMat6x1.shape[0])
+    Rz = np.zeros(PoseMat6x1.shape[0])
     time = np.zeros(pathdata_df.shape[0])
 
     for i in range(len(PoseMat6x1)):
@@ -472,12 +472,7 @@ def Analyze_Velocity(sampleTime, PoseMat_file, Time_file):
     xlabel = "time(us)"
     ylable = ["Velocity(mm/s)", "Angular velocity(deg/s)"]
 
-    # 計算歐式距離與平均速度
-    Euclidean_distance, average_speed = calculate_distance_speed(x, y, z, t)
 
-    # 額外分析平均值標準差
-    plotMean_Std(vx, t, xlabel, ylable[0], "x Velocity curve")
-    plotMean_Std(vz, t, xlabel, ylable[0], "z Velocity curve")
 
     # 繪製資料總曲線圖
     plot_6_chart_1curve(vx, vy, vz, vRx, vRy, vRz, t, title_header, title, xlabel, ylable)
@@ -920,19 +915,23 @@ if __name__ == "__main__" :
     # PoseMat_file = "dataBase/MatrixPath434_PoseMatrix.csv"
     # Time_file = "dataBase/MatrixPath434.csv"
 
+    PoseMat_file = "dataBase/MarPlan_PoseMatrix.csv"
+    Time_file = "dataBase/MarPlan.csv"
+
     # Matrix Planning + S-curve
     # PoseMat_file = "dataBase/MatrixPath_Scurve_PoseMatrix.csv"
     # Time_file = "dataBase/MatrixPath_Scurve.csv"
 
-    PoseMat_file = "Experimental_data/20240129/13_3mms/trajectoryEL.csv"
-    Time_file =    "Experimental_data/20240129/13_3mms/timeEL.csv"
+    # PoseMat_file = "Experimental_data/20240129/13_3mms/trajectoryEL.csv"
+    # Time_file =    "Experimental_data/20240129/13_3mms/timeEL.csv"
 
-    sampleTime = 0.46
-    calculate_distance_speed(PoseMat_file, Time_file, sampleTime)
+    # sampleTime = 0.46
+    # calculate_distance_speed(PoseMat_file, Time_file, sampleTime)
 
+    calculate_distance_speed(PoseMat_file, Time_file, 0.04)
     # Analyze_Position(PoseMat_file, Time_file)
-    # Analyze_Velocity(0.046, PoseMat_file, Time_file)
-    # Analyze_Acceleration(0.046, PoseMat_file, Time_file)
+    # Analyze_Velocity(0.04, PoseMat_file, Time_file)
+    # Analyze_Acceleration(0.04, PoseMat_file, Time_file)
 
     # Real_PoseMat_file = "Experimental_data/Trajectory.csv"
     # Real_Time_file = "Experimental_data/time.csv"

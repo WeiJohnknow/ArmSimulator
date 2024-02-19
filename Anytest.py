@@ -1459,17 +1459,114 @@ class繼承實作
 
 # greet(sampleTime=0.04, alltime=12)  # Output: name: Alice, message: How are you?
 
-def my_function(**kwargs):
-    """
-    Process keyword arguments and print them along with a default value.
+# def my_function(**kwargs):
+#     """
+#     Process keyword arguments and print them along with a default value.
     
-    Args:
-        **kwargs: Arbitrary keyword arguments.
-    """
-    default_value = kwargs.get("default", "No default value specified")  # 获取默认值
-    for key, value in kwargs.items():
-        print(f"{key}: {value}")
-    print(f"Default value: {default_value}")
+#     Args:
+#         **kwargs: Arbitrary keyword arguments.
+#     """
+#     default_value = kwargs.get("default", "No default value specified")  # 获取默认值
+#     for key, value in kwargs.items():
+#         print(f"{key}: {value}")
+#     print(f"Default value: {default_value}")
 
-# 使用不定长关键字参数调用函数，其中一个参数使用默认值
-my_function(name="Alice", age=30, city="New York", default="N/A")
+# # 使用不定长关键字参数调用函数，其中一个参数使用默认值
+# my_function(name="Alice", age=30, city="New York", default="N/A")
+
+"""
+時間正規化
+"""
+# Tstart = 0
+# Tend = 5
+# for t in range(Tend+1):
+#     u = (t - Tstart)/(Tend - Tstart)
+#     t = Tstart + (Tend-Tstart)*u
+#     print("t :", t, "u :", u)
+
+"""
+牛頓插值法(用於動態新增數據點)
+"""
+# def divided_differences(x, y):
+#     n = len(x)
+#     F = [[None] * n for _ in range(n)]  # 创建一个二维数组来存储差商
+#     for i in range(n):
+#         F[i][0] = y[i]
+
+#     for j in range(1, n):
+#         for i in range(n - j):
+#             F[i][j] = (F[i + 1][j - 1] - F[i][j - 1]) / (x[i + j] - x[i])
+
+#     return [F[0][i] for i in range(n)]  # 返回一阶到n阶的差商列表
+
+
+# def newton_interpolation(x, y, target):
+#     coeffs = divided_differences(x, y)  # 计算差商
+#     n = len(x)
+#     result = coeffs[0]
+#     for i in range(1, n):
+#         term = coeffs[i]
+#         for j in range(i):
+#             term *= (target - x[j])
+#         result += term
+
+#     return result
+
+
+# # 示例数据
+# x = [0, 1, 2, 3]
+# y = [1, 2, 3, 4]
+
+# # 目标点
+# target_point = 2.5
+
+# # 计算目标点的插值
+# interpolated_value = newton_interpolation(x, y, target_point)
+# print(f"在 x={target_point} 处的插值为：{interpolated_value}")
+
+"""
+貝塞爾曲線
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+def cubic_bezier(t, p0, p1, p2, p3):
+    x = (1 - t)**3 * p0[0] + 3 * (1 - t)**2 * t * p1[0] + 3 * (1 - t) * t**2 * p2[0] + t**3 * p3[0]
+    y = (1 - t)**3 * p0[1] + 3 * (1 - t)**2 * t * p1[1] + 3 * (1 - t) * t**2 * p2[1] + t**3 * p3[1]
+
+    
+    # return xData, yData
+    return x, y
+
+# Example usage:
+# Define control points
+P0 = (5, 0)
+P1 = (1, 5)
+P2 = (1, -5)
+P3 = (5, 0)
+
+
+xData = np.zeros((101))
+yData = np.zeros((101))
+tData = np.zeros((101))
+
+# Calculate points on the curve for t ranging from 0 to 1
+for t in range(0, 101):  # Increment t from 0 to 1 in steps of 0.01
+    
+    u = t/100.0
+    x, y = cubic_bezier(u, P0, P1, P2, P3)
+    tData[t] = u
+    xData[t] = x
+    yData[t] = y
+    
+
+# 使用 plt.plot() 函數繪製曲線圖
+plt.plot(xData, yData)
+
+# 添加標題和標籤
+plt.title('Sample Curve')
+plt.xlabel('X-axis')
+plt.ylabel('Y-axis')
+
+# 顯示曲線圖
+plt.show()

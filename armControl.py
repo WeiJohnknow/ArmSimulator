@@ -27,15 +27,21 @@ class armControl(Simulator):
         NowEnd = NowEnd @ self.Mat.TransXYZ(485.364*self.Unit,-1.213*self.Unit,234.338*self.Unit) @ self.Mat.RotaXYZ(d2r(179.984), d2r(20.2111), d2r(1.6879)) 
         GoalEnd = GoalEnd @ self.Mat.TransXYZ(955.386*self.Unit,-19.8*self.Unit,z=-75.117*self.Unit) @ self.Mat.RotaXYZ(d2r(-165.2853), d2r(-7.1884), d2r(17.5443))
 
-        alltime = 12
-        sampleTime = 0.04
+        alltime = 80
+        sampleTime = 0.05
 
         # 軌跡規劃演算法
-        pathData, timeData = self.Plan.MatrixPathPlanning(GoalEnd, NowEnd, alltime, sampleTime)
+        # pathData, timeData = self.Plan.MatrixPathPlanning(GoalEnd, NowEnd, alltime, sampleTime)
+        pathData, velData, timeData = self.Plan.MatrixPath434(GoalEnd, NowEnd, alltime, sampleTime)
+        # pathData, timeData = self.Plan.MatrixPath_Scurve(GoalEnd, NowEnd, sampleTime)
 
         # 存入軌跡資料
         filePath = "dataBase/MarPlan.csv"
         self.dB.saveMatrix4x4(pathData, timeData, "w", filePath)
+
+        # 存入速度資料
+        filePath = "dataBase/MarPlan_velocity.csv"
+        self.dB.saveVelocity(velData, "w", filePath)
 
         # 載入軌跡資料
         _, pathData_df, pathData_np4x4, pathData_np6x1 = self.dB.LoadMatrix4x4("dataBase/MarPlan.csv")

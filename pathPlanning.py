@@ -178,7 +178,6 @@ class PathPlanning:
             timeData, positionData, velocityData, accelerationData
         """
 
-
         P1 = Plift_off - Pinit
         P2 = Pset_down - Plift_off
         P3 = Pfinal - Pset_down
@@ -281,10 +280,8 @@ class PathPlanning:
         for _u in range(-1*samplePoint[2],1):
             u = _u/samplePoint[2]
             ut += sampleTime
-            if _u == 0:
-                print("test")
-            timeData[PreviousNode+counter] = timeData[PreviousNode-1] + ut
 
+            timeData[PreviousNode+counter] = timeData[PreviousNode-1] + ut
 
             P = a30 + a31*u + a32*u**2 + a33*u**3 + a34*u**4
             V = a31 + 2*a32*u + 3*a33*u**2 + 4*a34*u**3
@@ -588,11 +585,13 @@ class PathPlanning:
             
         return TBuffer, timeData
     
-    def MatrixPath434(self, GoalEnd, NowEnd, allTime, filePath, sampleTime = 0.04, startTime=0):
+    # def MatrixPath434(self, GoalEnd, NowEnd, allTime, filePath, sampleTime = 0.04, startTime=0):
+    def MatrixPath434(self, GoalEnd, NowEnd, allTime, sampleTime = 0.04, startTime=0):
         """Homogeneous matrix interpolation method
         - Ref. 2023hurocup file robot.py fun.GetDmat
-        - return:
-            dshape: n*4*4 \n 
+        - Return:
+            pathData \n
+            timeData 
         """ 
         # 4-3-4
         rate = 0.25
@@ -661,18 +660,42 @@ class PathPlanning:
             pathData[i] = T
         
         # Save data
-        self.dB.Save(pathData, timeData, filePath)
+        # self.dB.Save(pathData, timeData, filePath)
+            
+        # 計算速度
+        Euclidean_distance = np.zeros((len(pathData)))
+        velData = np.zeros((len(pathData)))
 
-        return pathData
+        for i in range(len(pathData)):
+            if i == 0:
+                prvx = pathData[0, 0, 3]
+                prvy = pathData[0, 1, 3]
+                prvz = pathData[0, 2, 3]
+                Euclidean_distance[i-1] = 0
+            else:
+                prvx = pathData[i-1, 0, 3]
+                prvy = pathData[i-1, 1, 3]
+                prvz = pathData[i-1, 2, 3]
+
+            x = pathData[i, 0, 3]
+            y = pathData[i, 1, 3]
+            z = pathData[i, 2, 3]
+
+            Euclidean_distance[i] = Euclidean_distance[i-1] + np.sqrt((x-prvx)**2 + (y-prvy)**2 + (z-prvz)**2)
+        # velData = np.diff(Euclidean_distance)
+        velData = np.diff(Euclidean_distance)/sampleTime
+        velData = np.insert(velData, 0, 0)
+
+        return pathData, velData, timeData
     
-    def MatrixPath_Scurve(self, filePath, GoalEnd, NowEnd, sampleTime):
+    def MatrixPath_Scurve(self, GoalEnd, NowEnd, sampleTime):
         """Homogeneous matrix interpolation method
         - Ref. 2023hurocup file robot.py fun.GetDmat
         - return:
             dshape: n*4*4 \n 
         """ 
         # S-curve
-        AccList, VelList, PosList, timeData = self.S_curve(1, 0.3, 0.2, 0.18, sampleTime)
+        AccList, VelList, PosList, timeData = self.S_curve(1, 3, 18, 12, sampleTime)
         λ = PosList
         sin = np.sin
         cos = np.cos
@@ -730,9 +753,9 @@ class PathPlanning:
             pathData[i] = T
         
         # Save data
-        self.dB.Save(pathData, timeData, filePath)
+        # self.dB.Save(pathData, timeData, filePath)
 
-        return pathData
+        return pathData, timeData
     
     def QuaternionsInterpolation(self, GoalEnd, NowEnd, Alltime, SampleTime=0.03):
         """Quaternions interpolation method
@@ -782,26 +805,27 @@ class PathPlanning:
         """
         4-3-4 Trajectory Planning Test
         """
-        # rate = 0.25
-        # alltime = 7
-        # t1, t2, t3 = alltime/3, alltime/3, alltime/3
-        # Pinit, Vinit, Ainit, Vfinal, Afinal = 0, 0, 0, 0, 0
-        # Pfinal = 1
-        # Plift_off = Pfinal*rate
-        # Pset_down = Pfinal*(1-rate)
-        # sampleTime = 0.001
+        rate = 0.25
+        alltime = 6
+        t1, t2, t3 = alltime/3, alltime/3, alltime/3
+        # t1, t2, t3 = 0.6, 4.8, 0.6
+        Pinit, Vinit, Ainit, Vfinal, Afinal = 0, 0, 0, 0, 0
+        Pfinal = 1
+        Plift_off = Pfinal*rate
+        Pset_down = Pfinal*(1-rate)
+        sampleTime = 0.04
         
-        # TimeData, PosData , VelData, AccData = self.TrajectoryPlanning_434\
-        #     (Pinit, Plift_off, Pset_down, Pfinal, t1, t2, t3, sampleTime)
+        TimeData, PosData , VelData, AccData = self.TrajectoryPlanning_434\
+            (Pinit, Plift_off, Pset_down, Pfinal, t1, t2, t3, sampleTime)
 
-        # plt.plot(TimeData, AccData, label='Acc')
-        # plt.plot(TimeData, VelData, label='Vel')
-        # plt.plot(TimeData, PosData, label='S')
-        # plt.title('4-3-4 motion planning')
-        # plt.xlabel('time')
-        # plt.ylabel('Unit')
-        # # plt.tight_layout()
-        # plt.show()
+        plt.plot(TimeData, AccData, label='Acc')
+        plt.plot(TimeData, VelData, label='Vel')
+        plt.plot(TimeData, PosData, label='S')
+        plt.title('4-3-4 motion planning')
+        plt.xlabel('time')
+        plt.ylabel('Unit')
+        # plt.tight_layout()
+        plt.show()
 
         """
         MatrixPathPlanning
@@ -824,32 +848,38 @@ class PathPlanning:
         # d2r = np.deg2rad
         # NowEnd = np.eye(4)  
         # GoalEnd = np.eye(4)
+        # Unit = 1
 
-        # NowEnd = NowEnd @ self.Mat.TransXYZ(4.85,0,2.34) @ self.Mat.RotaXYZ(d2r(-180), d2r(20.2111), d2r(21.6879))
-        # GoalEnd = GoalEnd @ self.Mat.TransXYZ(9,-4,z=-2) @ self.Mat.RotaXYZ(d2r(-165.2922), d2r(-7.1994), d2r(17.5635)) 
+        # NowEnd = NowEnd @ self.Mat.TransXYZ(485.364*Unit,-1.213*Unit,234.338*Unit) @ self.Mat.RotaXYZ(d2r(179.984), d2r(20.2111), d2r(1.6879)) 
+        # GoalEnd = GoalEnd @ self.Mat.TransXYZ(955.386*Unit,-19.8*Unit,z=-75.117*Unit) @ self.Mat.RotaXYZ(d2r(-165.2853), d2r(-7.1884), d2r(17.5443)) 
         # sampleTime = 0.04
-        # alltime = 8
+        # alltime = 80
         # file_path = "dataBase/testMatrixPathPlanning434.csv"
 
-        # pathData = self.MatrixPath434(  GoalEnd, NowEnd, alltime, file_path, sampleTime)
-        # print(pathData)
-
+        # pathData, velData, timeData = self.MatrixPath434(GoalEnd, NowEnd, alltime, sampleTime)
+        
+        # # plt.plot(timeData, pathData, label='pos')
+        # plt.plot(timeData, velData, label='Vel')
+        # plt.title('MatrixPlan434 planning')
+        # plt.xlabel('time')
+        # plt.ylabel('Unit')
+        # plt.show()
 
         """
         S-curve
         """
-        AccList, VelList, SList, TimeList = self.S_curve(314.15925, 38, 35, 30, 0.001)
-        # AccList, VelList, SList, TimeList = self.S_curve(100, 38, 35, 30, 0.001)
-        # AccList, VelList, SList, TimeList = self.S_curve(1, 0.3, 0.2, 0.18, 0.001)
+        # AccList, VelList, SList, TimeList = self.S_curve(314.15925, 38, 35, 30, 0.001)
+        # # AccList, VelList, SList, TimeList = self.S_curve(100, 38, 35, 30, 0.001)
+        # # AccList, VelList, SList, TimeList = self.S_curve(1, 0.3, 0.2, 0.18, 0.001)
         
-        plt.plot(TimeList,AccList, label='Acc')
-        plt.plot(TimeList,VelList, label='Vel')
-        plt.plot(TimeList,SList, label='S')
-        plt.title('S-curve motion planning')
-        plt.xlabel('time')
-        plt.ylabel('Unit')
-        # plt.tight_layout()
-        plt.show()
+        # plt.plot(TimeList,AccList, label='Acc')
+        # plt.plot(TimeList,VelList, label='Vel')
+        # plt.plot(TimeList,SList, label='S')
+        # plt.title('S-curve motion planning')
+        # plt.xlabel('time')
+        # plt.ylabel('Unit')
+        # # plt.tight_layout()
+        # plt.show()
 
 
         

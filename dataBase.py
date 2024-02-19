@@ -47,8 +47,6 @@ class dataBase:
         new_df = pd.DataFrame([new_data], columns = Header)
         new_df.to_csv(filePath, mode='a', header=False, index=False)
         
- 
-        
     def Save(self, data, timeData, filePath):
         
         """Save Homogeneous Transformation Matrix 
@@ -60,8 +58,6 @@ class dataBase:
         
         # 文件寫入模式判定
        
-
-        
         if os.path.isfile(filePath):
             # 如果該檔名已存在
             Ans = input("該檔案名稱存在，請選擇處理方式 :\nw.覆寫 \na.追加 \no.程式結束，請重設檔案名稱 \nAnswer :")
@@ -147,10 +143,10 @@ class dataBase:
             - "w" : 寫入模式（默認），會覆蓋已有文件，如果文件不存在則創建新文件。
             - "a" : 追加模式，將新的內容追加到已有文件的末尾。
             - "x" : 獨佔創建模式，僅在文件不存在時創建新文件，否則引發 FileExistsError。
-            - "r" : 只讀模式，僅用於讀取文件。
+            - "r" : 只讀模式，僅用於讀取文件。http://localhost:55680/my/favorite-tracks
             - "rb": 以二進制只讀模式打開文件，用於讀取二進制文件。
         """
-        
+
         columns = ['Xx', 'Xy', 'Xz', '0', 'Yx', 'Yy', 'Yz', '0', 'Zx', 'Zy', 'Zz', '0', 'Px', 'Py', 'Pz', '1', 'time']
         num_rows = data.shape[0]
 
@@ -165,6 +161,34 @@ class dataBase:
             f.write(','.join(columns) + '\n')
             for row in data_list:
                 f.write(','.join(map(str, row)) + '\n')
+        
+    def saveVelocity(self, data, mode, filePath):
+        """Multiple data, save Velocity
+        - mode:
+            - "w" : 寫入模式（默認），會覆蓋已有文件，如果文件不存在則創建新文件。
+            - "a" : 追加模式，將新的內容追加到已有文件的末尾。
+            - "x" : 獨佔創建模式，僅在文件不存在時創建新文件，否則引發 FileExistsError。
+            - "r" : 只讀模式，僅用於讀取文件。http://localhost:55680/my/favorite-tracks
+            - "rb": 以二進制只讀模式打開文件，用於讀取二進制文件。
+        """
+        # TODO 待測試
+        df = pd.DataFrame(columns=['Velocity'])
+        # list用於儲存 Matrix(1x6) 的數據 
+        data_list = []
+        for dataIndex in range(data.shape[0]):
+            data1x6 = data[dataIndex].copy()
+            data_list.append(data1x6.flatten())
+
+        if np.isnan(data_list).any():
+            sys.exit("資料中存在 NaN")
+        else:
+            print("資料中不存在 NaN")
+            
+        # 把list中的所有數據一次性加到 DataFrame 中
+        df = pd.concat([df, pd.DataFrame(data_list, columns=df.columns)], ignore_index=True)
+
+        # 寫入csv檔
+        df.to_csv(filePath, mode=mode, index=False)
     
     def saveJointAngle(self, data, mode:str, filePath):
         """Multiple data, save IK calculate Answer ➔ Joint Angle(6x1)
@@ -175,20 +199,26 @@ class dataBase:
             - "r" : 只讀模式，僅用於讀取文件。
             - "rb": 以二進制只讀模式打開文件，用於讀取二進制文件。
         """
+
+
+        df = pd.DataFrame(columns=['S', 'L', 'U', 'R', 'B', 'T'])
+        # list用於儲存 Matrix(1x6) 的數據 
+        data_list = []
+        for dataIndex in range(data.shape[0]):
+            data1x6 = data[dataIndex].copy()
+            data_list.append(data1x6.flatten())
+
+        if np.isnan(data_list).any():
+            sys.exit("資料中存在 NaN")
+        else:
+            print("資料中不存在 NaN")
+            
+        # 把list中的所有數據一次性加到 DataFrame 中
+        df = pd.concat([df, pd.DataFrame(data_list, columns=df.columns)], ignore_index=True)
+
+        # 寫入csv檔
+        df.to_csv(filePath, mode=mode, index=False)
         
-        # 打开文件，根据 mode 选择写入方式
-        with open(filePath, mode) as f:
-            # 写入列名
-            f.write('S,L,U,R,B,T\n')
-
-            # 遍历数据，逐行写入
-            for dataIndex in range(data.shape[0]):
-                data1x6 = data[dataIndex].copy()
-                flattened_data = data1x6.flatten()
-                # 将一行数据转换为逗号分隔的字符串，然后写入文件
-                row_str = ','.join(map(str, flattened_data))
-                f.write(row_str + '\n')
-
     def savePoseMatrix(self, data, mode:str, filePath):
         """Multiple data, save pose matrix (1X6)
         - mode:
@@ -198,35 +228,27 @@ class dataBase:
             - "r" : 只讀模式，僅用於讀取文件。
             - "rb": 以二進制只讀模式打開文件，用於讀取二進制文件。
         """
-        
 
-        # df = pd.DataFrame(columns=['X', 'Y', 'Z', 'Rx', 'Ry', 'Rz'])
-        # # list用於儲存 Matrix(1x6) 的數據 
-        # data_list = []
-        # for dataIndex in range(data.shape[0]):
-        #     data1x6 = data[dataIndex].copy()
-        #     data_list.append(data1x6.flatten())
+        df = pd.DataFrame(columns=['X', 'Y', 'Z', 'Rx', 'Ry', 'Rz'])
+        # list用於儲存 Matrix(1x6) 的數據 
+        data_list = []
+        for dataIndex in range(data.shape[0]):
+            data1x6 = data[dataIndex].copy()
+            data_list.append(data1x6.flatten())
 
-        # # 把list中的所有數據一次性加到 DataFrame 中
-        # df = pd.concat([df, pd.DataFrame(data_list, columns=df.columns)], ignore_index=True)
+        if np.isnan(data_list).any():
+            sys.exit("資料中存在 NaN")
+        else:
+            print("資料中不存在 NaN")
 
-        # # 寫入csv檔
-        # df.to_csv(filePath, mode=mode, index=False)
+        # 把list中的所有數據一次性加到 DataFrame 中
+        df = pd.concat([df, pd.DataFrame(data_list, columns=df.columns)], ignore_index=True)
 
-        with open(filePath, mode) as f:
-            # 写入列名
-            f.write('X, Y, Z, Rx, Ry, Rz\n')
-
-            # 遍历数据，逐行写入
-            for dataIndex in range(data.shape[0]):
-                data1x6 = data[dataIndex].copy()
-                flattened_data = data1x6.flatten()
-                # 将一行数据转换为逗号分隔的字符串，然后写入文件
-                row_str = ','.join(map(str, flattened_data))
-                f.write(row_str + '\n')
+        # 寫入csv檔
+        df.to_csv(filePath, mode=mode, index=False)
 
 
-        
+
     def Load(self, filePath):
         """
         Loading data with filename.csv

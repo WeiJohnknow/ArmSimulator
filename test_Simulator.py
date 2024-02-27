@@ -385,9 +385,68 @@ def main():
 
 
         glPushMatrix()
+
+        # color
+        red = [1.0, 0.0, 0.0]
+        orange = [1.0, 0.6, 0.0]
+        yellow = [1.0, 1.0, 0]
+        green = [0.0, 1.0, 0.0]
+        blue = [0.0, 0.0, 1.0]
+        Purple = [0.62, 0.125, 0.941]
         
+        """
+        RR manipulator simulator (Static force)
+        """
+        # Fk
+        d2r = np.deg2rad
+        cos = np.cos
+        sin = np.sin
+
+        base = np.eye(4)
+        base_v = np.array([[1],
+                             [0],
+                             [0],
+                             [1]])
+        baseToJ1 = Mat.RotaZ(d2r(30)) 
+        baseToJ1_v = baseToJ1 @ base_v
+        J1 = base @ baseToJ1
+        J1_v = J1 @ base_v
+        draw_vector(baseToJ1_v, 2, yellow)
+
+        J1ToJ2 = Mat.TransXYZ(4,1,0) @ Mat.RotaZ(d2r(75)) 
 
         
+        
+        
+        J2 = J1 @ J1ToJ2
+
+        J2ToJ3 = Mat.TransXYZ(4,1,0) 
+        J3 = J2 @ J2ToJ3
+
+        
+        
+        Sim.draw_axis(base, 0.8)
+        Sim.draw_axis(J1, 0.8)
+        Sim.draw_axis(J2, 0.8)
+        Sim.draw_axis(J3, 0.8)
+
+
+        # static force
+        # fx, fy = -2, 8
+        # _3f3 = np.array([[fx],
+        #                  [fy],
+        #                  [0],
+        #                  [1]])
+        # _3n3 = np.array([[0],
+        #                  [0],
+        #                  [0],
+        #                  [1]])
+        # _2f2 = _3f3.T @ np.linalg.inv(J2ToJ3)
+        # _2n2 = _3n3.T @ np.linalg.inv(J2ToJ3) + cross(J2ToJ3, _3f3.T)
+        # print(_2n2)
+        # _2n2_ = _3n3.T @ np.linalg.inv(J2ToJ3) + cross(J2ToJ3, _2f2)
+        # print(_2n2_)
+
         # color
         # red = [1.0, 0.0, 0.0]
         # orange = [1.0, 0.6, 0.0]
@@ -423,7 +482,7 @@ def main():
         # draw_vector(Vrot_vertical, 10, yellow)
         # draw_vector(Vrot, 10, orange)
 
-        draw_axes(shader_program)
+        
 
 
         # # # Rodrigues' rotation formula

@@ -470,7 +470,7 @@ class Simulator:
     
 
         
-    def paitGL(self):
+    def main(self):
         self.Pygameinit()
         
         # 世界坐標系原點
@@ -686,40 +686,40 @@ class Simulator:
             """
             teach mode
             """
-            # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.Mh12_FK\
-            #         (World_coordinate,
-            #          teachθ[0],
-            #          teachθ[1],
-            #          teachθ[2],
-            #          teachθ[3],
-            #          teachθ[4],
-            #          teachθ[5],
-            #         1)
-            # self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector, 100)
-            # self.draw_Matrix4X4(EndEffector, 550)
+            Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.Mh12_FK\
+                    (World_coordinate,
+                     teachθ[0],
+                     teachθ[1],
+                     teachθ[2],
+                     teachθ[3],
+                     teachθ[4],
+                     teachθ[5],
+                    1)
+            self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector, 100)
+            self.draw_Matrix4X4(EndEffector, 550)
 
             """
             矩陣軌跡法
             """
-            # if Mainloopiter < len(θ):
-            if Mainloopiter < JointAngle_np.shape[1]:
-                # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.Mh12_FK\
-                    # (World_coordinate,θ[Mainloopiter,0,0],θ[Mainloopiter,1,0],θ[Mainloopiter,2,0],θ[Mainloopiter,3,0],θ[Mainloopiter,4,0],θ[Mainloopiter,5,0], 0.01)
-                Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.Mh12_FK\
-                    (World_coordinate,
-                     JointAngle_np[0, Mainloopiter],
-                     JointAngle_np[1, Mainloopiter],
-                     JointAngle_np[2, Mainloopiter],
-                     JointAngle_np[3, Mainloopiter],
-                     JointAngle_np[4, Mainloopiter],
-                     JointAngle_np[5, Mainloopiter],
-                    1)
+            # # if Mainloopiter < len(θ):
+            # if Mainloopiter < JointAngle_np.shape[1]:
+            #     # Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.Mh12_FK\
+            #         # (World_coordinate,θ[Mainloopiter,0,0],θ[Mainloopiter,1,0],θ[Mainloopiter,2,0],θ[Mainloopiter,3,0],θ[Mainloopiter,4,0],θ[Mainloopiter,5,0], 0.01)
+            #     Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.Mh12_FK\
+            #         (World_coordinate,
+            #          JointAngle_np[0, Mainloopiter],
+            #          JointAngle_np[1, Mainloopiter],
+            #          JointAngle_np[2, Mainloopiter],
+            #          JointAngle_np[3, Mainloopiter],
+            #          JointAngle_np[4, Mainloopiter],
+            #          JointAngle_np[5, Mainloopiter],
+            #         1)
                 
-            self.draw_axis(NowEnd,100)    
-            self.draw_axis(GoalEnd,100)    
-            self.draw_Matrix4X4(EndEffector, 550)
-            self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector, 100)
-            self.draw_Trajectory(path_np_4X4, Mainloopiter)
+            # self.draw_axis(NowEnd,100)    
+            # self.draw_axis(GoalEnd,100)    
+            # self.draw_Matrix4X4(EndEffector, 550)
+            # self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector, 100)
+            # self.draw_Trajectory(path_np_4X4, Mainloopiter)
 
 
             """

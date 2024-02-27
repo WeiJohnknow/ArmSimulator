@@ -1527,46 +1527,111 @@ class繼承實作
 """
 貝塞爾曲線
 """
-import numpy as np
+# import numpy as np
+# import matplotlib.pyplot as plt
+
+# def cubic_bezier(t, p0, p1, p2, p3):
+#     x = (1 - t)**3 * p0[0] + 3 * (1 - t)**2 * t * p1[0] + 3 * (1 - t) * t**2 * p2[0] + t**3 * p3[0]
+#     y = (1 - t)**3 * p0[1] + 3 * (1 - t)**2 * t * p1[1] + 3 * (1 - t) * t**2 * p2[1] + t**3 * p3[1]
+
+    
+#     # return xData, yData
+#     return x, y
+
+# # Example usage:
+# # Define control points
+# P0 = (5, 0)
+# P1 = (1, 5)
+# P2 = (1, -5)
+# P3 = (5, 0)
+
+
+# xData = np.zeros((101))
+# yData = np.zeros((101))
+# tData = np.zeros((101))
+
+# # Calculate points on the curve for t ranging from 0 to 1
+# for t in range(0, 101):  # Increment t from 0 to 1 in steps of 0.01
+    
+#     u = t/100.0
+#     x, y = cubic_bezier(u, P0, P1, P2, P3)
+#     tData[t] = u
+#     xData[t] = x
+#     yData[t] = y
+    
+
+# # 使用 plt.plot() 函數繪製曲線圖
+# plt.plot(xData, yData)
+
+# # 添加標題和標籤
+# plt.title('Sample Curve')
+# plt.xlabel('X-axis')
+# plt.ylabel('Y-axis')
+
+# # 顯示曲線圖
+# plt.show()
+
+
+"""
+"""
+import matplotlib.pyplot as plt
+dB = dataBase()
+
+
+# filePath = "dataBase/MatrixPlan434_Experimental/sampleTime_40ms_1/results/MatrixPlan434_moveCMD_is_success.csv"
+# Vel_index = dB.Load(filePath)
+
+# filePath = "dataBase/MatrixPlan434_Experimental/sampleTime_40ms_1/results\MatrixPlan434_moveCMD_w_speed.csv"
+# Vel = dB.Load(filePath)
+
+# filePath = "dataBase/MatrixPlan434_Experimental/sampleTime_40ms_1/results\MatrixPlan434_Experimental_data.csv"
+# path_df = dB.Load(filePath)
+
+# # 軌跡更新之資料索引
+# Vel_index_data = np.zeros((len(Vel_index)))
+# # 軌跡速度
+# Vel_data = np.zeros((len(Vel)))
+# # 軌跡時間
+# Time = np.zeros(len(path_df))
+# # 軌跡實際更新時間
+# validTime = np.zeros((len(Vel)))
+
+# # 
+# for i in range(len(Vel_index)):
+#     Vel_index_data[i] = Vel_index["Time"][i]
+#     Vel_data[i] = Vel["Time"][i]
+
+# # 取出所有實際軌跡時間
+# for i in range(len(path_df)):
+#     Time[i] = path_df["time"][i]
+
+# # 計算出命令更新之系統時間
+# for i in range(len(Vel_index)):
+#     index = Vel_index_data[i]
+#     validTime[i] = path_df["time"][index]
+
+# difftime = np.diff(validTime)
+# difftime = np.insert(difftime, 0, 0)
+
+# plt.plot(Vel_index_data, difftime)
+# # plt.plot(validTime, Vel_data, marker='o', linestyle='-')
+
+# plt.show()
+
 import matplotlib.pyplot as plt
 
-def cubic_bezier(t, p0, p1, p2, p3):
-    x = (1 - t)**3 * p0[0] + 3 * (1 - t)**2 * t * p1[0] + 3 * (1 - t) * t**2 * p2[0] + t**3 * p3[0]
-    y = (1 - t)**3 * p0[1] + 3 * (1 - t)**2 * t * p1[1] + 3 * (1 - t) * t**2 * p2[1] + t**3 * p3[1]
+# 示例数据
+x = [1, 2, 3, 4, 5]
+y = [1, 3, 5, 7, 11]
+errors = [0, 0.3, 0.6, 0.4, 0.8]  # 误差值
 
-    
-    # return xData, yData
-    return x, y
-
-# Example usage:
-# Define control points
-P0 = (5, 0)
-P1 = (1, 5)
-P2 = (1, -5)
-P3 = (5, 0)
-
-
-xData = np.zeros((101))
-yData = np.zeros((101))
-tData = np.zeros((101))
-
-# Calculate points on the curve for t ranging from 0 to 1
-for t in range(0, 101):  # Increment t from 0 to 1 in steps of 0.01
-    
-    u = t/100.0
-    x, y = cubic_bezier(u, P0, P1, P2, P3)
-    tData[t] = u
-    xData[t] = x
-    yData[t] = y
-    
-
-# 使用 plt.plot() 函數繪製曲線圖
-plt.plot(xData, yData)
-
-# 添加標題和標籤
-plt.title('Sample Curve')
+# 绘制带有误差轨迹的数据点
+plt.errorbar(x, y, yerr=errors, fmt='o', linestyle='-')
+# plt.plot(x, y)
+# 添加标题和标签
+plt.title('Data with Error Bars')
 plt.xlabel('X-axis')
 plt.ylabel('Y-axis')
 
-# 顯示曲線圖
+# 显示图表
 plt.show()

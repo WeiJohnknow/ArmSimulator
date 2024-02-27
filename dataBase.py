@@ -22,7 +22,7 @@ class dataBase:
             pd.DataFrame(columns=['Time']).to_csv(filePath, mode='w', header=True, index=False)
 
         # 逐行將新資料存入 CSV 檔案
-        new_df = pd.DataFrame([new_data], columns=['Time'])
+        new_df = pd.DataFrame(new_data, columns=['Time'])
         new_df.to_csv(filePath, mode='a', header=False, index=False)
         
     def Save_singleData_experiment(self, data, Time, filePath, Header:list):
@@ -33,7 +33,7 @@ class dataBase:
         """
        
         # 假設這是一筆新的資料，你想要逐一存入 CSV 檔案
-        new_data = [data[0, 0], data[0, 1], data[0, 2], data[0, 3], data[0, 4], data[0, 5], Time]
+        new_data = [data[0], data[1], data[2], data[3], data[4], data[5], Time]
 
         """
         檔案若存在 追加資料

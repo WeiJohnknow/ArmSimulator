@@ -158,6 +158,9 @@ class UDP_packet:
             elif add_status[0] == '0x9' and add_status[1] == '0xb0':
                 Error = ['Error code: B009','Speed setting error.']
                 return Error
+            elif add_status[0] == '0x3' and add_status[1] == '0xb0':
+                Error = ['Error code: B003','Requiring data size error.']
+                return Error
             else:
                 return add_status
         
@@ -315,13 +318,20 @@ class MotomanUDP:
             coordinate = [result[5], result[6], result[7], result[8], result[9], result[10]]
             return result, coordinate
         elif Type == 1:
+            Pulse = [result[5], 
+                          result[6], 
+                          result[7], 
+                          result[8], 
+                          result[9], 
+                          result[10]]
+            
             JointAngle = [float(result[5]/self.S_pulse), 
                           float(result[6]/self.L_pulse), 
                           float(result[7]/self.U_pulse), 
                           float(result[8]/self.R_pulse), 
                           float(result[9]/self.B_pulse), 
                           float(result[10]/self.T_pulse)]
-            return result, JointAngle
+            return result, JointAngle, Pulse
         else:
             print("Your dataType is Error!!!")
     
@@ -746,6 +756,8 @@ class MotomanUDP:
         RaxisPulse = self.signDecide(Movedata["JointAngle"][3]*self.R_pulse, 1)
         BaxisPulse = self.signDecide(Movedata["JointAngle"][4]*self.B_pulse, 1)
         TaxisPulse = self.signDecide(Movedata["JointAngle"][5]*self.T_pulse, 1)
+        axis7Pulse =  struct.pack('i', Movedata["Axis 78"][0])
+        axis8Pulse =  struct.pack('i', Movedata["Axis 78"][1])
         Tool_No= struct.pack('I', Movedata["Tool No"])
         Base_axis_1= struct.pack('I', Movedata["Base axis"][0])
         Base_axis_2= struct.pack('I', Movedata["Base axis"][1])
@@ -758,7 +770,7 @@ class MotomanUDP:
         Station_axis_6= struct.pack('I', Movedata["Station axis"][5])
         # Move command data 
         MovePacket = Robot+Station+moveType+speed+SaxisPulse+LaxisPulse+UaxisPulse\
-                +RaxisPulse+BaxisPulse+TaxisPulse+Tool_No+Base_axis_1+Base_axis_2\
+                +RaxisPulse+BaxisPulse+TaxisPulse+axis7Pulse+axis8Pulse+Tool_No+Base_axis_1+Base_axis_2\
                 +Base_axis_3+Station_axis_1+Station_axis_2+Station_axis_3+Station_axis_4+Station_axis_5+Station_axis_6
         
         return MovePacket, Movedata["moveType"]
@@ -809,9 +821,9 @@ class MotomanUDP:
         # 填寫參數，並轉字典形式
         dict_data = self.MoveJointAngleCMD_data(moveType, moveSpeedType, speed, JointAngle)
         # 把字典打包成封包
-        Movedata_packet, moveType = self.Pack_MoveCMD_Packet(dict_data)
+        Movedata_packet, moveType = self.Pack_MoveJointAngleCMD_Packet(dict_data)
         # 加入標題、子標題並完成封包後寄出
-        status = self.MoveCMD_req(moveType, Movedata_packet)
+        status = self.MoveJointAngleCMD_req(moveType, Movedata_packet)
 
         return status
 
@@ -878,16 +890,10 @@ dB = dataBase()
 # print(coordinate)
 
 # 位置讀取(Joint)
-# result, coordinate = udp.getcoordinateMH(1)
-# print(coordinate)
-i=0
-while i<50:
-    b = Time.ReadNowTime()
-    result, coordinate = udp.getcoordinateMH(1)
-    a = Time.ReadNowTime()
-    err = Time.TimeError(b,a)
-    dB.Save_time(err["millisecond"], "dataBase\ReadPosJtime.csv")
-    i += 1
+# result, JointAngle, pulse = udp.getcoordinateMH(1)
+# print(JointAngle)
+# print(pulse)
+
     
 
 
@@ -928,19 +934,30 @@ while i<50:
 # ORG = [485.364, -1.213, 234.338, 179.984, 20.2111, 1.6879]
 # weldstart = [955.41, -102.226, -166.726, -165.2919, -7.1991, 17.5642]
 # weldend = [955.404, 14.865, -166.749, -165.2902, -7.1958, 17.5569]
+# GoalEnd = [955.386, -19.8, -75.117, -165.2853, -7.1884, 17.5443]
 
 # Cariten space
 # Real speed = speed * 0.1 mm/s
-# status = udp.moveCoordinateMH(2,1, 13, 17, weldstart)
+# status = udp.ServoMH(1)
+# status = udp.moveCoordinateMH(2,1, 200, 17, GoalEnd)
 # print(status)
 
 # Point to Point
 # Real speed = speed * 0.01%
-# status = udp.moveCoordinateMH(0,500, 17, coord)
+# status = udp.moveCoordinateMH(0, 500, 17, coord)
 # print(status)
 
 # pmov
 # udp.moveJointSapceMH( 1, 0, 100, JointAngle)
+
+# MOVJ
+# status = udp.ServoMH(1)
+# ORG = [-0.0020900097533788488, -38.81728698861888, -41.08704823512867, 0.003093102381688834, -76.45684554172618, 1.071035847811744]
+# ORG_pulse = [-3, -50478, -58434, 3, -74943, 487]
+# GoalEnd = [-13.775254284519994, 4.050292217779145, -45.61383771621431, -71.65996494483967, -32.04448071822077, 87.91071035847811]
+# GoalEnd_pulse = [-19773, 5267, -64872, -69503, -31410, 39973]
+# # status = udp.ServoMH(1)
+# udp.moveJointSapceMH(1, 1, 100, ORG)
 
 
 # test

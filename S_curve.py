@@ -319,11 +319,16 @@ def S_curve_(Jmax, Amax, Aavg, Vs, Vmax, Smax, sampleTime):
         t += sampleTime
         print(t)
     print("T1 :", Tc)
-    A1end = Jmax*Tc
-    V1end = Vs + 0.5*Jmax*Tc**2
-    S1end = Vs*t + (1/6)*Jmax*Tc**3
-    V1[-1] = V1end
-    S1[-1] = S1end
+
+    # A1end = Jmax*Tc
+    # V1end = Vs + 0.5*Jmax*Tc**2
+    # S1end = Vs*t + (1/6)*Jmax*Tc**3
+    # V1[-1] = V1end
+    # S1[-1] = S1end
+
+    V1end = V1[-1]
+    S1end = S1[-1]
+
 
     count = 0
     t = Tc
@@ -346,11 +351,14 @@ def S_curve_(Jmax, Amax, Aavg, Vs, Vmax, Smax, sampleTime):
         print(t)
     print("T2 :", Tc+Tb)
 
-    A2end = Jmax*Tc
-    V2end = V1end + Jmax*Tc*((Tc+Tb)-Tc)
-    S2end = S1end + V1end*((Tc+Tb)-Tc) + 0.5*Jmax*Tc*((Tc+Tb)-Tc)**2
-    V2[-1] = V2end
-    S2[-1] = S2end
+    # A2end = Jmax*Tc
+    # V2end = V1end + Jmax*Tc*((Tc+Tb)-Tc)
+    # S2end = S1end + V1end*((Tc+Tb)-Tc) + 0.5*Jmax*Tc*((Tc+Tb)-Tc)**2
+    # V2[-1] = V2end
+    # S2[-1] = S2end
+
+    V2end = V2[-1]
+    S2end = S2[-1]
 
     count = 0
     t = Tc + Tb
@@ -372,11 +380,15 @@ def S_curve_(Jmax, Amax, Aavg, Vs, Vmax, Smax, sampleTime):
         t += sampleTime
         print(t)
     print("T3 :", Tc+Tb+Tc)
-    A3end = Jmax*Tc-Jmax*(Ta-(Tc+Tb))
-    V3end = V2end + Jmax*Tc*(Ta-(Tc+Tb)) - 0.5*Jmax*(Ta-(Tc+Tb))**2
-    S3end = S2end + V2end*(Ta-(Tc+Tb)) + 0.5*Jmax*Tc*(Ta-(Tc+Tb))**2 - (1/6)*Jmax*Tc*(Ta-(Tc+Tb))**3
-    V3[-1] = V3end
-    S3[-1] = S3end
+
+    # A3end = Jmax*Tc-Jmax*(Ta-(Tc+Tb))
+    # V3end = V2end + Jmax*Tc*(Ta-(Tc+Tb)) - 0.5*Jmax*(Ta-(Tc+Tb))**2
+    # S3end = S2end + V2end*(Ta-(Tc+Tb)) + 0.5*Jmax*Tc*(Ta-(Tc+Tb))**2 - (1/6)*Jmax*Tc*(Ta-(Tc+Tb))**3
+    # V3[-1] = V3end
+    # S3[-1] = S3end
+
+    V3end = V3[-1]
+    S3end = S3[-1]
 
     count = 0
     t = Ta
@@ -398,11 +410,15 @@ def S_curve_(Jmax, Amax, Aavg, Vs, Vmax, Smax, sampleTime):
         t += sampleTime
         print(t)
     print("T4 :", Ta+Ts)
-    A4end = 0
-    V4end = V3end
-    S4end = S3end + V3end*((Ts+Ta)-Ta)
-    V4[-1] = V4end
-    S4[-1] = S4end
+
+    # A4end = 0
+    # V4end = V3end
+    # S4end = S3end + V3end*((Ts+Ta)-Ta)
+    # V4[-1] = V4end
+    # S4[-1] = S4end
+
+    V4end = V4[-1]
+    S4end = S4[-1]
 
     count = 0
     t = Ta+Ts
@@ -424,12 +440,15 @@ def S_curve_(Jmax, Amax, Aavg, Vs, Vmax, Smax, sampleTime):
         t += sampleTime
         print(t)
     print("T5 :", Ta+Ts+Tc)
-    A5end = -Jmax*((Ta+Ts+Tc)-(Ta+Ts))
-    V5end = V4end - 0.5*Jmax*((Ta+Ts+Tc)-(Ta+Ts))**2
-    S5end = S4end + V4end*((Ta+Ts+Tc)-(Ta+Ts)) - (1/6)*Jmax*((Ta+Ts+Tc)-(Ta+Ts))**3
-    V5[-1] = V5end
-    S5[-1] = S5end
 
+    # A5end = -Jmax*((Ta+Ts+Tc)-(Ta+Ts))
+    # V5end = V4end - 0.5*Jmax*((Ta+Ts+Tc)-(Ta+Ts))**2
+    # S5end = S4end + V4end*((Ta+Ts+Tc)-(Ta+Ts)) - (1/6)*Jmax*((Ta+Ts+Tc)-(Ta+Ts))**3
+    # V5[-1] = V5end
+    # S5[-1] = S5end
+
+    V5end = V5[-1]
+    S5end = S5[-1]
 
     count = 0
     t = Ta+Ts+Tc
@@ -451,11 +470,15 @@ def S_curve_(Jmax, Amax, Aavg, Vs, Vmax, Smax, sampleTime):
         t += sampleTime
         print(t)
     print("T6 :", Ta+Ts+Tc+Tb)
-    A6end = -Jmax*Tc
-    V6end = V5end - Jmax*Tc*((Ta+Ts+Tc+Tb)-(Ta+Ts+Tc))
-    S6end = S5end + V5end*((Ta+Ts+Tc+Tb)-(Ta+Ts+Tc)) - 0.5*Jmax*Tc*((Ta+Ts+Tc+Tb)-(Ta+Ts+Tc))**2
-    V6[-1] = V6end
-    S6[-1] = S6end
+
+    # A6end = -Jmax*Tc
+    # V6end = V5end - Jmax*Tc*((Ta+Ts+Tc+Tb)-(Ta+Ts+Tc))
+    # S6end = S5end + V5end*((Ta+Ts+Tc+Tb)-(Ta+Ts+Tc)) - 0.5*Jmax*Tc*((Ta+Ts+Tc+Tb)-(Ta+Ts+Tc))**2
+    # V6[-1] = V6end
+    # S6[-1] = S6end
+
+    V6end = V6[-1]
+    S6end = S6[-1]
 
     count = 0
     t = Ta+Ts+Tc+Tb
@@ -477,11 +500,15 @@ def S_curve_(Jmax, Amax, Aavg, Vs, Vmax, Smax, sampleTime):
         t += sampleTime
         print(t)
     print("T7 :", Ta+Ts+Ta)
-    A7end = -Jmax*Tc + Jmax*((Ta+Ts+Ta)-(Ta+Ts+Tc+Tb))
-    V7end = V6end - Jmax*Tc*((Ta+Ts+Ta)-(Ta+Ts+Tc+Tb)) + 0.5*Jmax*((Ta+Ts+Ta)-(Ta+Ts+Tc+Tb))**2
-    S7end = S6end + V6end*((Ta+Ts+Ta)-(Ta+Ts+Tc+Tb)) - 0.5*Jmax*Tc*((Ta+Ts+Ta)-(Ta+Ts+Tc+Tb))**2 + (1/6)*Jmax*((Ta+Ts+Ta)-(Ta+Ts+Tc+Tb))**3
-    V7[-1] = V7end
-    S7[-1] = S7end
+
+    # A7end = -Jmax*Tc + Jmax*((Ta+Ts+Ta)-(Ta+Ts+Tc+Tb))
+    # V7end = V6end - Jmax*Tc*((Ta+Ts+Ta)-(Ta+Ts+Tc+Tb)) + 0.5*Jmax*((Ta+Ts+Ta)-(Ta+Ts+Tc+Tb))**2
+    # S7end = S6end + V6end*((Ta+Ts+Ta)-(Ta+Ts+Tc+Tb)) - 0.5*Jmax*Tc*((Ta+Ts+Ta)-(Ta+Ts+Tc+Tb))**2 + (1/6)*Jmax*((Ta+Ts+Ta)-(Ta+Ts+Tc+Tb))**3
+    # V7[-1] = V7end
+    # S7[-1] = S7end
+
+    V7end = V7[-1]
+    S7end = S7[-1]
 
 
 
@@ -512,7 +539,7 @@ if __name__ == "__main__":
 
     # 193.421052631579
     # Amax = Jmax * Tc
-    Jmax, Amax, Aavg, Vs, Vmax, Smax, sampleTime = 193.418, 35, 30, 0, 38, 314.15925, 0.001
+    Jmax, Amax, Aavg, Vs, Vmax, Smax, sampleTime = 0, 35, 30, 0, 38, 314.15925, 0.001
     jerk, acc, vel, pos, t = S_curve_(Jmax, Amax, Aavg, Vs, Vmax, Smax, sampleTime)
     plt.plot(t, jerk, label = "jerk", color = "yellow")
     plt.plot(t, acc, label = "Acc", color = "red")

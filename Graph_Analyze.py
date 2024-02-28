@@ -449,17 +449,17 @@ def calculate_distance_speed_2_curve(PoseMat_file, Time_file, ExperimentalData, 
 
     # 期望曲線
     plt.plot(time, Euclidean_distance, color='red', label='Euclidean distance(Expected)')
-    plt.plot(time, average_speed, color='magenta', label='Speed(expected)')
+    plt.plot(time, average_speed, color='magenta', label='Speed(Expected)')
 
     # 實驗曲線
     plt.plot(time_, Euclidean_distance_, color='green', label='Euclidean distance(Estimate)')
     plt.plot(time_, average_speed_, color='turquoise', label='Speed(Estimate)')
 
-    # 期望與實驗(實際)誤差
-    error = np.zeros((len(Euclidean_distance)))
-    for i in range(len(Euclidean_distance)):
-        error[i] = Euclidean_distance[i] - Euclidean_distance_[i]
-    plt.plot(time, error, color='blue', label='Error')
+    # # 期望與實驗(實際)誤差
+    # error = np.zeros((len(Euclidean_distance)))
+    # for i in range(len(Euclidean_distance)):
+    #     error[i] = Euclidean_distance[i] - Euclidean_distance_[i]
+    # plt.plot(time, error, color='blue', label='Error')
 
     # speed_mean = np.mean(average_speed)
     # # 绘制平均值水平线
@@ -1069,9 +1069,9 @@ if __name__ == "__main__" :
     # PoseMat_file = "dataBase/MatrixPath434_PoseMatrix.csv"
     # Time_file = "dataBase/MatrixPath434.csv"
 
-    PoseMat_file =     "dataBase/MatrixPlan434_Experimental/sampleTime_40ms_2/MatritPlan434_PoseMatrix.csv"
-    Time_file =        "dataBase/MatrixPlan434_Experimental/sampleTime_40ms_2/MatritPlan434.csv"
-    ExperimentalData = "dataBase/MatrixPlan434_Experimental/sampleTime_40ms_2/results/MatrixPlan434_Experimental_data.csv"
+    PoseMat_file =     "dataBase/MatrixPlan434_Experimental/sampleTime_60ms_1/MatritPlan434_PoseMatrix.csv"
+    Time_file =        "dataBase/MatrixPlan434_Experimental/sampleTime_60ms_1/MatritPlan434.csv"
+    ExperimentalData = "dataBase/MatrixPlan434_Experimental/sampleTime_60ms_1/results/MatrixPlan434_Experimental_data.csv"
     sampleTime = 0.05
 
     # Matrix Planning + S-curve

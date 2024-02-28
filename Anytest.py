@@ -1578,25 +1578,34 @@ import matplotlib.pyplot as plt
 dB = dataBase()
 
 
-# filePath = "dataBase/MatrixPlan434_Experimental/sampleTime_40ms_1/results/MatrixPlan434_moveCMD_is_success.csv"
-# Vel_index = dB.Load(filePath)
+filePath = "dataBase/MatrixPlan434_Experimental/sampleTime_40ms_1/results/MatrixPlan434_moveCMD_is_success.csv"
+Vel_index = dB.Load(filePath)
 
-# filePath = "dataBase/MatrixPlan434_Experimental/sampleTime_40ms_1/results\MatrixPlan434_moveCMD_w_speed.csv"
-# Vel = dB.Load(filePath)
+filePath = "dataBase/MatrixPlan434_Experimental/sampleTime_40ms_1/results\MatrixPlan434_moveCMD_w_speed.csv"
+Vel = dB.Load(filePath)
 
-# filePath = "dataBase/MatrixPlan434_Experimental/sampleTime_40ms_1/results\MatrixPlan434_Experimental_data.csv"
-# path_df = dB.Load(filePath)
 
-# # 軌跡更新之資料索引
-# Vel_index_data = np.zeros((len(Vel_index)))
-# # 軌跡速度
-# Vel_data = np.zeros((len(Vel)))
-# # 軌跡時間
-# Time = np.zeros(len(path_df))
-# # 軌跡實際更新時間
-# validTime = np.zeros((len(Vel)))
+# 實驗
+filePath = "dataBase/MatrixPlan434_Experimental/sampleTime_60ms_2/results\MatrixPlan434_Experimental_data.csv"
+path_df = dB.Load(filePath)
 
-# # 
+# 期望
+filePath = "dataBase/MatrixPlan434_Experimental/sampleTime_60ms_1/EstimateData/MatritPlan434_PoseMatrix_time.csv"
+expectTime = dB.Load(filePath)
+
+
+
+# 軌跡更新之資料索引
+Vel_index_data = np.zeros((len(Vel_index)))
+# 軌跡速度
+Vel_data = np.zeros((len(Vel)))
+# 軌跡時間
+Time = np.zeros(len(path_df))
+# 軌跡實際更新時間
+validTime = np.zeros((len(Vel)))
+# 期望軌跡時間
+expectTime_ = np.zeros((len(expectTime)))
+
 # for i in range(len(Vel_index)):
 #     Vel_index_data[i] = Vel_index["Time"][i]
 #     Vel_data[i] = Vel["Time"][i]
@@ -1610,28 +1619,28 @@ dB = dataBase()
 #     index = Vel_index_data[i]
 #     validTime[i] = path_df["time"][index]
 
-# difftime = np.diff(validTime)
-# difftime = np.insert(difftime, 0, 0)
+# 實際軌跡時間
+for i in range(len(path_df)):
+    Time[i] = path_df["time"][i]
+
+# 期望軌跡時間
+for i in range(len(expectTime_)):
+    expectTime_[i] = expectTime["time(ms)"][i]
+
+difftime = np.diff(validTime)
+difftime = np.insert(difftime, 0, 0)
+
+plt.rcParams.update({'font.size': 20})
 
 # plt.plot(Vel_index_data, difftime)
-# # plt.plot(validTime, Vel_data, marker='o', linestyle='-')
+plt.plot(expectTime_, color='red', label='Expect Time')
+plt.plot(Time, color='green', label='Estimated Time')
+# plt.plot(validTime, Vel_data, marker='o', linestyle='-')
 
-# plt.show()
+plt.legend()
+plt.xlabel("Index")
+plt.ylabel("Time(ms)")
+plt.title("Trajectory Time Phase")
 
-import matplotlib.pyplot as plt
-
-# 示例数据
-x = [1, 2, 3, 4, 5]
-y = [1, 3, 5, 7, 11]
-errors = [0, 0.3, 0.6, 0.4, 0.8]  # 误差值
-
-# 绘制带有误差轨迹的数据点
-plt.errorbar(x, y, yerr=errors, fmt='o', linestyle='-')
-# plt.plot(x, y)
-# 添加标题和标签
-plt.title('Data with Error Bars')
-plt.xlabel('X-axis')
-plt.ylabel('Y-axis')
-
-# 显示图表
 plt.show()
+

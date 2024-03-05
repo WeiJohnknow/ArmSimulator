@@ -46,11 +46,14 @@ class armControl(Simulator):
         header_filePath = "dataBase/MartixPlan434_Exp_weld_seam_10cm/sampleTime_40ms/"
         
         # Set Now and Goal Point
-        Now = [956.316, -109.275, -159.859, -165.2936, -7.1766, 17.5381]
-        Goal = [956.3, -9.275, -159.871, -165.291, -7.1738, 17.5332]
+        # Now = [956.316, -109.275, -159.859, -165.2936, -7.1766, 17.5381]
+        # Goal = [956.3, -9.275, -159.871, -165.291, -7.1738, 17.5332]
+
+        Now = [485.364, -1.213, 234.338, 179.984, 20.2111, 1.6879]
+        Goal = [955.386, -19.8, -75.117, -165.2853, -7.1884, 17.5443]
 
         # Trajectory total time(second)
-        alltime = 75
+        alltime = 80
 
         # Sample time(second)
         sampleTime = 0.04

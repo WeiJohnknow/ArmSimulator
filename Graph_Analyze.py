@@ -1069,10 +1069,10 @@ if __name__ == "__main__" :
     # PoseMat_file = "dataBase/MatrixPath434_PoseMatrix.csv"
     # Time_file = "dataBase/MatrixPath434.csv"
 
-    PoseMat_file =     "dataBase/MatrixPlan434_Experimental/sampleTime_60ms_1/MatritPlan434_PoseMatrix.csv"
-    Time_file =        "dataBase/MatrixPlan434_Experimental/sampleTime_60ms_1/MatritPlan434.csv"
-    ExperimentalData = "dataBase/MatrixPlan434_Experimental/sampleTime_60ms_1/results/MatrixPlan434_Experimental_data.csv"
-    sampleTime = 0.05
+    # PoseMat_file =     "dataBase/MatrixPlan434_Experimental/sampleTime_60ms_1/MatritPlan434_PoseMatrix.csv"
+    # Time_file =        "dataBase/MatrixPlan434_Experimental/sampleTime_60ms_1/MatritPlan434.csv"
+    # ExperimentalData = "dataBase/MatrixPlan434_Experimental/sampleTime_60ms_1/results/MatrixPlan434_Experimental_data.csv"
+    # sampleTime = 0.05
 
     # Matrix Planning + S-curve
     # PoseMat_file = "dataBase/MatrixPath_Scurve_PoseMatrix.csv"
@@ -1084,8 +1084,10 @@ if __name__ == "__main__" :
     # sampleTime = 0.46
     # calculate_distance_speed(PoseMat_file, Time_file, sampleTime)
 
-    # calculate_distance_speed(PoseMat_file, Time_file, 0.06)
-    calculate_distance_speed_2_curve(PoseMat_file, Time_file, ExperimentalData, sampleTime)
+    PoseMat_file = "Experimental_data/20240304/Teach_mode_Velocity_test.csv"
+    Time_file =    "Experimental_data/20240129/13_3mms/timeEL.csv"
+    calculate_distance_speed(PoseMat_file, Time_file, 0.04)
+    # calculate_distance_speed_2_curve(PoseMat_file, Time_file, ExperimentalData, sampleTime)
     # Analyze_Position(PoseMat_file, Time_file)
     # Analyze_Velocity(0.04, PoseMat_file, Time_file)
     # Analyze_Acceleration(0.04, PoseMat_file, Time_file)

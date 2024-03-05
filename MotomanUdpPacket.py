@@ -433,16 +433,24 @@ class MotomanUDP:
 
         return result
     
-    def ReadIO(self, number):
-        # TODO Instance高、低位元輸入還未完成
-        number_hex = hex(number)
+    ################################################ I/O ################################################
+    
+    def ReadIO(self, Pin):
+        """Read I/O Data
+        * Arg:
+            Pin number.
+
+        * Return:
+            Pin number Data.
+        """
+        Pin_hex = hex(Pin)
 
         # 移除 '0x' 前綴並填充零，確保至少有兩個字元
-        number_hex = number_hex[2:].zfill(4)
+        Pin_hex = Pin_hex[2:].zfill(4)
 
         # 將十六進位表示法分為高位元和低位元
-        high_byte = int(number_hex[:2], 16)
-        low_byte = int(number_hex[2:], 16)
+        high_byte = int(Pin_hex[:2], 16)
+        low_byte = int(Pin_hex[2:], 16)
         
         reqSubHeader = { 'Command_No': (0x78, 0x00),
                         'Instance': [low_byte, high_byte],
@@ -456,7 +464,15 @@ class MotomanUDP:
         return data
     
     def WriteIO(self, Pin, data):
-        # TODO Instance高、低位元輸入還未完成
+        """Write I/O Data
+        * Args:
+            Pin number
+            I/O Data
+
+        * Return:
+            UDP stute
+        """
+
         Pin_hex = hex(Pin)
 
         # 移除 '0x' 前綴並填充零，確保至少有兩個字元
@@ -475,7 +491,99 @@ class MotomanUDP:
         
         Ans_packet = self.sendCmd( reqSubHeader, reqData)
         data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
+
         return data
+    
+    ################################################ Variable ################################################
+    def ReadRPVar(self, address):
+        """Read single Robot Position Variable
+        * Arg:
+            address(0 ~ 127)
+        
+        * Return:
+            Variable data
+        """
+        # TODO 待測試
+
+        Address_hex = hex(address)
+
+        # 移除 '0x' 前綴並填充零，確保至少有兩個字元
+        Address_hex = Address_hex[2:].zfill(4)
+
+        # 將十六進位表示法分為高位元和低位元
+        high_byte = int(Address_hex[:2], 16)
+        low_byte = int(Address_hex[2:], 16)
+
+        reqSubHeader = {'Command_No': (0x7F, 0x00),
+                        'Instance': [low_byte, high_byte],
+                        'Attribute': 1,
+                        'Service':  0x0E,
+                        'Padding': (0, 0)}
+        reqData = []
+        
+        Ans_packet = self.sendCmd( reqSubHeader, reqData)
+        data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
+
+        return data
+
+ 
+    def WriteRPVar(self, address, coordinate):
+        """Write single Robot Position Variable
+        """
+        # TODO 待測試
+
+        dataType = struct.pack('I', 17)
+        Form = struct.pack('I', 0)
+        Toolnumber = struct.pack('I', 5)
+        UserCoordinate = struct.pack('I', 0)
+        ExtendedForm = struct.pack('I', 0)
+        FirstCoordinate  = self.signDecide(coordinate[0], 1000)
+        SecondCoordinate = self.signDecide(coordinate[1], 1000)
+        ThirdCoordinated = self.signDecide(coordinate[2], 1000)
+        FourthCoordinate = self.signDecide(coordinate[3], 1000)
+        FifthCoordinate  = self.signDecide(coordinate[4], 1000)
+        SixthCoordinate  = self.signDecide(coordinate[5], 1000)
+        SeventhCoordinate = struct.pack('I', 0)
+        EighthCoordinate = struct.pack('I', 0)
+
+        Packet = dataType + Form + Toolnumber + UserCoordinate + ExtendedForm + FirstCoordinate + SecondCoordinate + ThirdCoordinated + FourthCoordinate\
+                + FifthCoordinate + SixthCoordinate + SeventhCoordinate + EighthCoordinate
+
+
+        Address_hex = hex(address)
+
+        # 移除 '0x' 前綴並填充零，確保至少有兩個字元
+        Address_hex = Address_hex[2:].zfill(4)
+
+        # 將十六進位表示法分為高位元和低位元
+        high_byte = int(Address_hex[:2], 16)
+        low_byte = int(Address_hex[2:], 16)
+        
+        reqSubHeader = {'Command_No': (0x7F, 0x00),
+                        'Instance': [low_byte, high_byte],
+                        'Attribute': 1,
+                        'Service':  0x10,
+                        'Padding': (0, 0)}
+        reqData = [Packet]
+        
+        Ans_packet = self.sendCmd( reqSubHeader, reqData)
+        data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
+
+        return data
+    
+
+    def multipleReadRPVar(self, address):
+        """Multiple Read Robot Position Variable
+        - Arg:
+            - address(first address)
+        
+        - Retuen:
+
+
+        """
+        pass
+
+    ################################################ Register ################################################
     
     def ReadRegister(self, number):
         """
@@ -534,10 +642,11 @@ class MotomanUDP:
         Ans_packet = self.sendCmd( reqSubHeader, reqData)
         data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
         return data
-#------------------------------------------------------------------------------ Robot Move Cammand-----------------------------------------------------------------------------------------
+    
+
+################################################ Robot Move Cammand ################################################
     def MoveCMD_data(self, moveType, moveSpeedType, speed, coordinateType, coordinate, Type= 4, Expanded_type= 0, Tool_No=5, User_coordinate=0):
 
-        # TODO : 參數已完成，待測驗。
         """Move Joint Angle(Point to Point)
         - Args: data use  Pack_MoveCMD_Packet(fun.)!!!
         - moveType:
@@ -705,7 +814,7 @@ class MotomanUDP:
         status = self.MoveCMD_req(moveType, Movedata_packet)
 
         return status
-#%%    
+
     def MoveJointAngleCMD_data(self, moveType, moveSpeedType, speed, JointAngle:list, Tool_No=5):
         """Move Joint Angle(Point to Point)
         - moveType:

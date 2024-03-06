@@ -1084,7 +1084,7 @@ if __name__ == "__main__" :
     # sampleTime = 0.46
     # calculate_distance_speed(PoseMat_file, Time_file, sampleTime)
 
-    PoseMat_file = "Experimental_data/20240304/Teach_mode_Velocity_test.csv"
+    PoseMat_file = "Experimental_data/20240306/Teach_mode_Multi_Trajectory.csv"
     Time_file =    "Experimental_data/20240129/13_3mms/timeEL.csv"
     calculate_distance_speed(PoseMat_file, Time_file, 0.04)
     # calculate_distance_speed_2_curve(PoseMat_file, Time_file, ExperimentalData, sampleTime)

@@ -161,6 +161,11 @@ class UDP_packet:
             elif add_status[0] == '0x3' and add_status[1] == '0xb0':
                 Error = ['Error code: B003','Requiring data size error.']
                 return Error
+            
+            elif add_status[0] == '0x2' and add_status[1] == '0xa0':
+                Error = ['Error code: A002','Attribute error.']
+                return Error
+            
             else:
                 return add_status
         
@@ -416,6 +421,15 @@ class MotomanUDP:
                     databuffer -= 1 << 32
                 
                 result.append(databuffer)
+
+        if len(data) == 4:
+            databuffer = (data[3] << 24) | (data[2] << 16) | (data[1] << 8) | data[0]
+
+            if databuffer & (1 << 31):
+                databuffer -= 1 << 32
+                
+            result.append(databuffer)
+
         return result
     
     def Cvt_UnsignedInt(self, data):
@@ -514,17 +528,29 @@ class MotomanUDP:
         high_byte = int(Address_hex[:2], 16)
         low_byte = int(Address_hex[2:], 16)
 
+        dataType = 17
+        # dataType 轉換16進制
+        dataType_hex = hex(dataType)
+
+        # 移除 '0x' 前綴並填充零，確保至少有兩個字元
+        dataType_hex = dataType_hex[2:].zfill(4)
+        dataType_high_byte = int(dataType_hex[:2], 16)
+        dataType_low_byte = int(dataType_hex[2:], 16)
+
+
+
         reqSubHeader = {'Command_No': (0x7F, 0x00),
                         'Instance': [low_byte, high_byte],
-                        'Attribute': 1,
+                        'Attribute': dataType_low_byte,
                         'Service':  0x0E,
                         'Padding': (0, 0)}
         reqData = []
         
         Ans_packet = self.sendCmd( reqSubHeader, reqData)
         data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
+        var = self.Cvt_SignInt(data)
 
-        return data
+        return var
 
  
     def WriteRPVar(self, address, coordinate):
@@ -970,103 +996,107 @@ class MotomanUDP:
         """
         udp.WriteIO(2701, 13)
 
-# UDP test
-udp = MotomanUDP()
-Time = TimeTool()
-dB = dataBase()
+if __name__ == "__main__":
+    # UDP test
+    udp = MotomanUDP()
+    Time = TimeTool()
+    dB = dataBase()
 
 
-# 遠端起弧測試OK
+    # 遠端起弧測試OK
 
-# 送線
-# udp.WriteIO(2701, 1)
+    # 送線
+    # udp.WriteIO(2701, 1)
 
-# 收線
-# udp.WriteIO(2701, 2)
+    # 收線
+    # udp.WriteIO(2701, 2)
 
-# 起弧
-# udp.WriteIO(2701, 12)
+    # 起弧
+    # udp.WriteIO(2701, 12)
 
-# IO狀態賦歸
-# udp.WriteIO(2701, 0)
+    # IO狀態賦歸
+    # udp.WriteIO(2701, 0)
 
-# # Read IO
-# data = udp.ReadIO(2701)
-# print(data)
+    # # Read IO
+    # data = udp.ReadIO(2701)
+    # print(data)
 
-# 位置讀取(Cartesian)
-# result, coordinate = udp.getcoordinateMH(101)
-# print(coordinate)
+    # 位置讀取(Cartesian)
+    # result, coordinate = udp.getcoordinateMH(101)
+    # print(coordinate)
 
-# 位置讀取(Joint)
-# result, JointAngle, pulse = udp.getcoordinateMH(1)
-# print(JointAngle)
-# print(pulse)
+    # 位置讀取(Joint)
+    # result, JointAngle, pulse = udp.getcoordinateMH(1)
+    # print(JointAngle)
+    # print(pulse)
 
-    
+    # 變數讀取(Robot Position)
+    # status = udp.ReadRPVar(2)
+    # print(status)
+        
 
 
-# 伺服電源開啟
-# status = udp.ServoMH(1)
+    # 伺服電源開啟
+    # status = udp.ServoMH(1)
 
-# 伺服電源關閉
-# status = udp.ServoMH(2)
-# print(status)
+    # 伺服電源關閉
+    # status = udp.ServoMH(2)
+    # print(status)
 
-# 動作暫停ON
-# status = udp.holdMH(1)
-# print(status)
+    # 動作暫停ON
+    # status = udp.holdMH(1)
+    # print(status)
 
-# 動作暫停OFF
-# status = udp.holdMH(2)
-# print(status)
+    # 動作暫停OFF
+    # status = udp.holdMH(2)
+    # print(status)
 
-# 系統狀態讀取
-# data = udp.getstatusMH()
-# print(data)
+    # 系統狀態讀取
+    # data = udp.getstatusMH()
+    # print(data)
 
-# Read torque
-# data = udp.getTorqueMH()
-# print(data)
+    # Read torque
+    # data = udp.getTorqueMH()
+    # print(data)
 
-# Read Register
-# data = udp.ReadRegister(561)
-# print(data)
+    # Read Register
+    # data = udp.ReadRegister(561)
+    # print(data)
 
-# Write Register
-# data = udp.WriteRegister(620, 0)
-# print(data)
+    # Write Register
+    # data = udp.WriteRegister(620, 0)
+    # print(data)
 
-# Move指令
+    # Move指令
 
-# 設定座標
-# ORG = [485.364, -1.213, 234.338, 179.984, 20.2111, 1.6879]
-# weldstart = [955.41, -102.226, -166.726, -165.2919, -7.1991, 17.5642]
-# weldend = [955.404, 14.865, -166.749, -165.2902, -7.1958, 17.5569]
-# GoalEnd = [955.386, -19.8, -75.117, -165.2853, -7.1884, 17.5443]
+    # 設定座標
+    # ORG = [485.364, -1.213, 234.338, 179.984, 20.2111, 1.6879]
+    # weldstart = [955.41, -102.226, -166.726, -165.2919, -7.1991, 17.5642]
+    # weldend = [955.404, 14.865, -166.749, -165.2902, -7.1958, 17.5569]
+    # GoalEnd = [955.386, -19.8, -75.117, -165.2853, -7.1884, 17.5443]
 
-# Cariten space
-# Real speed = speed * 0.1 mm/s
-# status = udp.ServoMH(1)
-# status = udp.moveCoordinateMH(2,1, 200, 17, GoalEnd)
-# print(status)
+    # Cariten space
+    # Real speed = speed * 0.1 mm/s
+    # status = udp.ServoMH(1)
+    # status = udp.moveCoordinateMH(2,1, 200, 17, GoalEnd)
+    # print(status)
 
-# Point to Point
-# Real speed = speed * 0.01%
-# status = udp.moveCoordinateMH(0, 500, 17, coord)
-# print(status)
+    # Point to Point
+    # Real speed = speed * 0.01%
+    # status = udp.moveCoordinateMH(0, 500, 17, coord)
+    # print(status)
 
-# pmov
-# udp.moveJointSapceMH( 1, 0, 100, JointAngle)
+    # pmov
+    # udp.moveJointSapceMH( 1, 0, 100, JointAngle)
 
-# MOVJ
-# status = udp.ServoMH(1)
-# ORG = [-0.0020900097533788488, -38.81728698861888, -41.08704823512867, 0.003093102381688834, -76.45684554172618, 1.071035847811744]
-# ORG_pulse = [-3, -50478, -58434, 3, -74943, 487]
-# GoalEnd = [-13.775254284519994, 4.050292217779145, -45.61383771621431, -71.65996494483967, -32.04448071822077, 87.91071035847811]
-# GoalEnd_pulse = [-19773, 5267, -64872, -69503, -31410, 39973]
-# # status = udp.ServoMH(1)
-# udp.moveJointSapceMH(1, 1, 100, ORG)
+    # MOVJ
+    # status = udp.ServoMH(1)
+    # ORG = [-0.0020900097533788488, -38.81728698861888, -41.08704823512867, 0.003093102381688834, -76.45684554172618, 1.071035847811744]
+    # ORG_pulse = [-3, -50478, -58434, 3, -74943, 487]
+    # GoalEnd = [-13.775254284519994, 4.050292217779145, -45.61383771621431, -71.65996494483967, -32.04448071822077, 87.91071035847811]
+    # GoalEnd_pulse = [-19773, 5267, -64872, -69503, -31410, 39973]
+    # # status = udp.ServoMH(1)
+    # udp.moveJointSapceMH(1, 1, 100, ORG)
 
 
 # test

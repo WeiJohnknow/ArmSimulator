@@ -681,7 +681,7 @@ class MotomanControlUdp():
     
     def main(self):
         # 載入軌跡資訊
-        headerFile= "Experimental_data/20240304/"
+        headerFile= "Experimental_data/20240306/"
 
         # 系統時間與軌跡節點
         sysTime, Node = 0, 0

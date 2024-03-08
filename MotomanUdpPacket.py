@@ -49,7 +49,14 @@ class UDP_packet:
         self.padding[0] = Sub_header['Padding'][0]
         self.padding[1] = Sub_header['Padding'][1]
 
-        self.Data_part_size[0] = len(data)
+        # 資料長度在4byte範圍內時
+        if len(data) <= 255 :
+            self.Data_part_size[0] = len(data)
+            self.Data_part_size[1] = 0
+        # 資料長度超過8byte時
+        else:
+            self.Data_part_size[0] = 255
+            self.Data_part_size[1] = len(data)-self.Data_part_size[0]
         self.Data = data
 
     
@@ -86,7 +93,7 @@ class UDP_packet:
         if isinstance(self.Data, bytes):
             packet += self.Data
         else:
-            for i in range(self.Data_part_size[0]):
+            for i in range(self.Data_part_size[0] + self.Data_part_size[1]):
                 packet += struct.pack('B', self.Data[i])
 
     
@@ -108,7 +115,8 @@ class UDP_packet:
         dataSize = [Ans_packet[6], Ans_packet[7]]
         
         
-        size = 4 * dataSize[1] * 256 + dataSize[0]
+        # size = 4 * dataSize[1] * 256 + dataSize[0]
+        size =  dataSize[1] * 256 + dataSize[0]
         data = [0] * size
         for i in range(size):
             # self.data[i] = ord(ans_str[32 + i])
@@ -422,6 +430,7 @@ class MotomanUDP:
                 
                 result.append(databuffer)
 
+        # single data
         if len(data) == 4:
             databuffer = (data[3] << 24) | (data[2] << 16) | (data[1] << 8) | data[0]
 
@@ -429,6 +438,16 @@ class MotomanUDP:
                 databuffer -= 1 << 32
                 
             result.append(databuffer)
+
+        # multipleReadVar
+        if len(data) == 472:
+            for i in range(0, len(data), 4):
+                databuffer = (data[i+3] << 24) | (data[i+2] << 16) | (data[i+1] << 8) | data[i]
+
+                if databuffer & (1 << 31):
+                    databuffer -= 1 << 32
+                    
+                result.append(databuffer)
 
         return result
     
@@ -511,13 +530,31 @@ class MotomanUDP:
     ################################################ Variable ################################################
     def ReadRPVar(self, address):
         """Read single Robot Position Variable
-        * Arg:
+        - Arg:
             address(0 ~ 127)
         
-        * Return:
-            Variable data
+        - Return:
+            - Variable data:
+                - dataType:
+                    - 0: Pulse value
+                    - 16: Base coordinated value
+                    - 17: Robot coordinated value
+                    - 18: User coordinated value
+                    - 19: Tool coordinated value
+                - Form
+                - Tool number
+                - User coordinate number
+                - Extended form
+                - First coordinate data
+                - Second coordinate data
+                - Third coordinated data
+                - Fourth coordinate data
+                - Fifth coordinate data
+                - Sixth coordinate data
+                - Seventh coordinate data
+                - Eighth coordinate data
         """
-        # TODO 待測試
+        # TODO 測試成功，函式需優化，讀回之資料還未分類
 
         Address_hex = hex(address)
 
@@ -528,21 +565,16 @@ class MotomanUDP:
         high_byte = int(Address_hex[:2], 16)
         low_byte = int(Address_hex[2:], 16)
 
-        dataType = 17
+        dataType = 1
         # dataType 轉換16進制
         dataType_hex = hex(dataType)
-
-        # 移除 '0x' 前綴並填充零，確保至少有兩個字元
-        dataType_hex = dataType_hex[2:].zfill(4)
-        dataType_high_byte = int(dataType_hex[:2], 16)
-        dataType_low_byte = int(dataType_hex[2:], 16)
-
+        dataType_hex = int(dataType_hex, 16)
 
 
         reqSubHeader = {'Command_No': (0x7F, 0x00),
                         'Instance': [low_byte, high_byte],
-                        'Attribute': dataType_low_byte,
-                        'Service':  0x0E,
+                        'Attribute': 0,
+                        'Service':  0x01,
                         'Padding': (0, 0)}
         reqData = []
         
@@ -552,16 +584,28 @@ class MotomanUDP:
 
         return var
 
- 
-    def WriteRPVar(self, address, coordinate):
+    def WriteRPVar(self, address, coordinate:list, Form=4, dataType=17, Toolnumber=5, UserCoordinate=0):
         """Write single Robot Position Variable
+        - Args:
+            - Address: Variable(No.)
+            - coordinate:
+                - type: dict
+                - format: Data number : [x, y, z, Rx, Ry, Rz]
+            - Form: 
+            - dataType:
+                - 0 : Pulse
+                - 16: Base coordinated value.
+                - 17: Robot coordinated value. (default)
+                - 18: User coordinated value.
+                - 19: Tool coordinated value.
+            - Toolnumber: Tool data number. (default 5)
+            - UserCoordinate: User coordinate system number. (default 0)
         """
-        # TODO 待測試
 
-        dataType = struct.pack('I', 17)
-        Form = struct.pack('I', 0)
-        Toolnumber = struct.pack('I', 5)
-        UserCoordinate = struct.pack('I', 0)
+        dataType = struct.pack('I', dataType)
+        Form = struct.pack('I', Form)
+        Toolnumber = struct.pack('I', Toolnumber)
+        UserCoordinate = struct.pack('I', UserCoordinate)
         ExtendedForm = struct.pack('I', 0)
         FirstCoordinate  = self.signDecide(coordinate[0], 1000)
         SecondCoordinate = self.signDecide(coordinate[1], 1000)
@@ -569,13 +613,13 @@ class MotomanUDP:
         FourthCoordinate = self.signDecide(coordinate[3], 1000)
         FifthCoordinate  = self.signDecide(coordinate[4], 1000)
         SixthCoordinate  = self.signDecide(coordinate[5], 1000)
-        SeventhCoordinate = struct.pack('I', 0)
-        EighthCoordinate = struct.pack('I', 0)
+        SeventhCoordinate = struct.pack('i', 0)
+        EighthCoordinate = struct.pack('i', 0)
 
-        Packet = dataType + Form + Toolnumber + UserCoordinate + ExtendedForm + FirstCoordinate + SecondCoordinate + ThirdCoordinated + FourthCoordinate\
+        Packet = dataType\
+                + Form + Toolnumber + UserCoordinate + ExtendedForm + FirstCoordinate + SecondCoordinate + ThirdCoordinated + FourthCoordinate\
                 + FifthCoordinate + SixthCoordinate + SeventhCoordinate + EighthCoordinate
-
-
+                
         Address_hex = hex(address)
 
         # 移除 '0x' 前綴並填充零，確保至少有兩個字元
@@ -587,10 +631,10 @@ class MotomanUDP:
         
         reqSubHeader = {'Command_No': (0x7F, 0x00),
                         'Instance': [low_byte, high_byte],
-                        'Attribute': 1,
-                        'Service':  0x10,
+                        'Attribute': 0,
+                        'Service':  0x02,
                         'Padding': (0, 0)}
-        reqData = [Packet]
+        reqData = Packet
         
         Ans_packet = self.sendCmd( reqSubHeader, reqData)
         data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
@@ -598,16 +642,116 @@ class MotomanUDP:
         return data
     
 
-    def multipleReadRPVar(self, address):
+    def multipleReadRPVar(self, firstAddress, Number):
         """Multiple Read Robot Position Variable
         - Arg:
-            - address(first address)
+            - address(多筆資料的起始變數編號)
+            - Number: Number of data read. (Maximum 9)
         
-        - Retuen:
-
-
+        - Return:
         """
-        pass
+        # TODO 已測試成功一次讀取9筆資料，函式輸出的資料需要優化處理
+
+        Address_hex = hex(firstAddress)
+
+        # 移除 '0x' 前綴並填充零，確保至少有兩個字元
+        Address_hex = Address_hex[2:].zfill(4)
+
+        # 將十六進位表示法分為高位元和低位元
+        high_byte = int(Address_hex[:2], 16)
+        low_byte = int(Address_hex[2:], 16)
+
+
+        # 要讀取的資料個數
+        Number = struct.pack('I', Number)
+
+
+        reqSubHeader = {'Command_No': (0x07, 0x03),
+                        'Instance': [low_byte, high_byte],
+                        'Attribute': 0,
+                        'Service':  0x33,
+                        'Padding': (0, 0)}
+        reqData = Number
+        
+        Ans_packet = self.sendCmd( reqSubHeader, reqData)
+        data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
+        var = self.Cvt_SignInt(data)
+
+        return var
+
+    def multipleWriteRPVar(self, firstAddress:int, Number:int, coordinate:dict, Form=4, dataType=17, Toolnumber=5, UserCoordinate=0):
+        """Multiple Read Robot Position Variable
+        - Arg:
+            - firstAddress(多筆資料的起始變數編號)
+            - Number: Number of data written (Maximum 9)
+            - coordinate:
+                - type: dict
+                - format: Data number : [x, y, z, Rx, Ry, Rz]
+            - Form: 
+            - dataType:
+                - 0 : Pulse
+                - 16: Base coordinated value.
+                - 17: Robot coordinated value. (default)
+                - 18: User coordinated value.
+                - 19: Tool coordinated value.
+            - Toolnumber: Tool data number. (default 5)
+            - UserCoordinate: User coordinate system number. (default 0)
+                
+        - Return:
+            status: Command Ans. 
+        """
+        # TODO 已測試一次寫入四筆資料，函式輸入需要優化，封裝資料也需優化
+        # TODO 一次寫五筆資料會跳packet error 目前推測有可能是請求封包的Data part[0] Data part[1] 那邊有問題 ，未解決。
+
+        # 寫入的資料個數
+        Number = struct.pack('I', Number)
+        Packet += Number
+
+        # 
+        for n in range(Number):
+
+            dataType = struct.pack('I', dataType)
+            Form = struct.pack('I', Form)
+            Toolnumber = struct.pack('I', Toolnumber)
+            UserCoordinate = struct.pack('I', UserCoordinate)
+            ExtendedForm = struct.pack('I', 0)
+
+            FirstCoordinate  = self.signDecide(coordinate['f{n}'][0], 1000)
+            SecondCoordinate = self.signDecide(coordinate['f{n}'][1], 1000)
+            ThirdCoordinate  = self.signDecide(coordinate['f{n}'][2], 1000)
+            FourthCoordinate = self.signDecide(coordinate['f{n}'][3], 1000)
+            FifthCoordinate  = self.signDecide(coordinate['f{n}'][4], 1000)
+            SixthCoordinate  = self.signDecide(coordinate['f{n}'][5], 1000)
+
+            SeventhCoordinate = struct.pack('i', 0)
+            EighthCoordinate = struct.pack('i', 0)
+
+            # 加入資料封包中
+            Packet =+ dataType + Form + Toolnumber + UserCoordinate + ExtendedForm + FirstCoordinate + SecondCoordinate+ ThirdCoordinate\
+                    + FourthCoordinate + FifthCoordinate + SixthCoordinate + SeventhCoordinate + EighthCoordinate\
+                
+        Address_hex = hex(firstAddress)
+
+        # 移除 '0x' 前綴並填充零，確保至少有兩個字元
+        Address_hex = Address_hex[2:].zfill(4)
+
+        # 將十六進位表示法分為高位元和低位元
+        high_byte = int(Address_hex[:2], 16)
+        low_byte = int(Address_hex[2:], 16)
+        
+        reqSubHeader = {'Command_No': (0x07, 0x03),
+                        'Instance': [low_byte, high_byte],
+                        'Attribute': 0,
+                        'Service':  0x34,
+                        'Padding': (0, 0)}
+        reqData = Packet
+        
+        Ans_packet = self.sendCmd( reqSubHeader, reqData)
+        data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
+
+        return data
+
+        
 
     ################################################ Register ################################################
     
@@ -1030,11 +1174,24 @@ if __name__ == "__main__":
     # print(JointAngle)
     # print(pulse)
 
-    # 變數讀取(Robot Position)
-    # status = udp.ReadRPVar(2)
+
+    # 單筆變數讀取(Robot Position)
+    # status = udp.ReadRPVar(6)
+    # print(status)
+
+    # 單筆變數寫入(Robot Position)
+    # coordinate = [958.535, -37.777, -104.713, -165.2944, -7.1707, 17.5149]
+    # status = udp.WriteRPVar(14, coordinate)
+    # print(status)
+
+    # 多筆變數讀取(Robot Position)
+    # status = udp.multipleReadRPVar(6, 9)
     # print(status)
         
-
+    # 多筆變數寫入(Robot Position)
+    coordinate = [958.535, -37.777, -104.713, -165.2944, -7.1707, 17.5149]
+    status = udp.multipleWriteRPVar(26, 5, coordinate)
+    print(status)
 
     # 伺服電源開啟
     # status = udp.ServoMH(1)

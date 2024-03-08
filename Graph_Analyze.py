@@ -329,7 +329,7 @@ def calculate_distance_speed(PoseMat_file, Time_file, sampleTime):
     plt.rcParams.update({'font.size': 20})
 
     # 在中位数位置绘制垂直虚线
-    plt.axvline(x=median_time_, color='orange', linestyle='--', label='Median')
+    # plt.axvline(x=median_time_, color='orange', linestyle='--', label='Median')
 
     plt.plot(time, Euclidean_distance, color='blue', label='Euclidean distance')
     plt.plot(time, average_speed, color='green', label='Speed')
@@ -337,7 +337,7 @@ def calculate_distance_speed(PoseMat_file, Time_file, sampleTime):
 
     speed_mean = np.mean(average_speed)
     # 绘制平均值水平线
-    plt.axhline(speed_mean, color='red', linestyle='--', label='Speed mean')
+    # plt.axhline(speed_mean, color='red', linestyle='--', label='Speed mean')
 
     # 添加图例和标签
     plt.legend()
@@ -623,7 +623,7 @@ def Analyze_Velocity(sampleTime, PoseMat_file, Time_file):
 
     title_header = ["x", "y", "z", "Rx", "Ry", "Rz"]
     title = "Velocity curve"
-    xlabel = "time(us)"
+    xlabel = "time(ms)"
     ylable = ["Velocity(mm/s)", "Angular velocity(deg/s)"]
 
 
@@ -1084,12 +1084,16 @@ if __name__ == "__main__" :
     # sampleTime = 0.46
     # calculate_distance_speed(PoseMat_file, Time_file, sampleTime)
 
-    PoseMat_file = "Experimental_data/20240306/Teach_mode_Multi_Trajectory.csv"
-    Time_file =    "Experimental_data/20240129/13_3mms/timeEL.csv"
-    calculate_distance_speed(PoseMat_file, Time_file, 0.04)
+    # PoseMat_file = "Experimental_data/20240306/Teach_mode_Multi_Trajectory_welding.csv"
+    # Time_file =    "Experimental_data/20240129/13_3mms/timeEL.csv"
+    # calculate_distance_speed(PoseMat_file, Time_file, 0.04)
+
+    PoseMat_file = "Experimental_data/20240306/Revise/Teach_mode_Multi_Trajectory_No_welding.csv"
+    Time_file =    "Experimental_data/20240306/Revise/No_welding_time.csv"
+
     # calculate_distance_speed_2_curve(PoseMat_file, Time_file, ExperimentalData, sampleTime)
     # Analyze_Position(PoseMat_file, Time_file)
-    # Analyze_Velocity(0.04, PoseMat_file, Time_file)
+    Analyze_Velocity(0.04, PoseMat_file, Time_file)
     # Analyze_Acceleration(0.04, PoseMat_file, Time_file)
 
     # Real_PoseMat_file = "Experimental_data/Trajectory.csv"

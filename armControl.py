@@ -58,48 +58,72 @@ class armControl(Simulator):
         # Sample time(second)
         sampleTime = 0.04
         ################################################################################################
-        NowEnd = np.eye(4)
-        GoalEnd = np.eye(4)
+        # NowEnd = np.eye(4)
+        # GoalEnd = np.eye(4)
         
-        NowEnd = NowEnd @ self.Mat.TransXYZ(Now[0]*self.Unit, Now[1]*self.Unit, Now[2]*self.Unit) @ self.Mat.RotaXYZ(d2r(Now[3]), d2r(Now[4]), d2r(Now[5])) 
-        GoalEnd = GoalEnd @ self.Mat.TransXYZ(Goal[0]*self.Unit, Goal[1]*self.Unit, Goal[2]*self.Unit) @ self.Mat.RotaXYZ(d2r(Goal[3]), d2r(Goal[4]), d2r(Goal[5]))
+        # NowEnd = NowEnd @ self.Mat.TransXYZ(Now[0]*self.Unit, Now[1]*self.Unit, Now[2]*self.Unit) @ self.Mat.RotaXYZ(d2r(Now[3]), d2r(Now[4]), d2r(Now[5])) 
+        # GoalEnd = GoalEnd @ self.Mat.TransXYZ(Goal[0]*self.Unit, Goal[1]*self.Unit, Goal[2]*self.Unit) @ self.Mat.RotaXYZ(d2r(Goal[3]), d2r(Goal[4]), d2r(Goal[5]))
 
-        # 軌跡規劃演算法
-        # pathData, timeData = self.Plan.MatrixPathPlanning(GoalEnd, NowEnd, alltime, sampleTime)
-        pathData, velData, timeData = self.Plan.MatrixPath434(GoalEnd, NowEnd, alltime, sampleTime)
-        # pathData, timeData = self.Plan.MatrixPath_Scurve(GoalEnd, NowEnd, sampleTime)
+        # # 軌跡規劃演算法
+        # # pathData, timeData = self.Plan.MatrixPathPlanning(GoalEnd, NowEnd, alltime, sampleTime)
+        # pathData, velData, timeData = self.Plan.MatrixPath434(GoalEnd, NowEnd, alltime, sampleTime)
+        # # pathData, timeData = self.Plan.MatrixPath_Scurve(GoalEnd, NowEnd, sampleTime)
 
-        # 存入軌跡資料
-        # filePath = "dataBase/MartixPlan434_Exp_weld_seam_10cm/sampleTime_40ms/MatritPlan434.csv"
-        filePath = header_filePath + "MatrixPlan434.csv"
-        self.dB.saveMatrix4x4(pathData, timeData, "w", filePath)
+        # # 存入軌跡資料
+        # # filePath = "dataBase/MartixPlan434_Exp_weld_seam_10cm/sampleTime_40ms/MatritPlan434.csv"
+        # filePath = header_filePath + "MatrixPlan434.csv"
+        # self.dB.saveMatrix4x4(pathData, timeData, "w", filePath)
 
-        # 存入速度資料
-        # filePath = "dataBase/MartixPlan434_Exp_weld_seam_10cm/sampleTime_40ms/MatritPlan434_velocity.csv"
-        filePath = header_filePath + "MatrixPlan434_velocity.csv"
-        self.dB.saveVelocity(velData, "w", filePath)
+        # # 存入速度資料
+        # # filePath = "dataBase/MartixPlan434_Exp_weld_seam_10cm/sampleTime_40ms/MatritPlan434_velocity.csv"
+        # filePath = header_filePath + "MatrixPlan434_velocity.csv"
+        # self.dB.saveVelocity(velData, "w", filePath)
 
-        # 載入軌跡資料
-        filePath = header_filePath + "MatrixPlan434.csv"
-        _, pathData_df, pathData_np4x4, pathData_np6x1 = self.dB.LoadMatrix4x4(filePath)
+        # # 載入軌跡資料
+        # filePath = header_filePath + "MatrixPlan434.csv"
+        # _, pathData_df, pathData_np4x4, pathData_np6x1 = self.dB.LoadMatrix4x4(filePath)
 
-        # 計算逆向運動學
-        path_JointAngle = np.zeros((len(pathData_np4x4), 6, 1))
-        for i in range(len(path_JointAngle)):
-            path_JointAngle[i] = self.Kin.IK_4x4(pathData_np4x4[i], θ_Buffer)
+        # # 計算逆向運動學
+        # path_JointAngle = np.zeros((len(pathData_np4x4), 6, 1))
+        # for i in range(len(path_JointAngle)):
+        #     path_JointAngle[i] = self.Kin.IK_4x4(pathData_np4x4[i], θ_Buffer)
             
 
-        # 儲存關節角度
-        filePath = header_filePath + "MatrixPlan434_JointAngle.csv"
-        # filePath = "dataBase/MartixPlan434_Exp_weld_seam_10cm/sampleTime_40ms/MatritPlan434_JointAngle.csv"
-        self.dB.saveJointAngle(path_JointAngle, "w", filePath)
+        # # 儲存關節角度
+        # filePath = header_filePath + "MatrixPlan434_JointAngle.csv"
+        # # filePath = "dataBase/MartixPlan434_Exp_weld_seam_10cm/sampleTime_40ms/MatritPlan434_JointAngle.csv"
+        # self.dB.saveJointAngle(path_JointAngle, "w", filePath)
 
-        # 儲存姿態矩陣
-        filePath = header_filePath + "MatrixPlan434_PoseMatrix.csv"
-        # filePath = "dataBase/MartixPlan434_Exp_weld_seam_10cm/sampleTime_40ms/MatritPlan434_PoseMatrix.csv"
-        self.dB.savePoseMatrix(pathData_np6x1, "w", filePath)
+        # # 儲存姿態矩陣
+        # filePath = header_filePath + "MatrixPlan434_PoseMatrix.csv"
+        # # filePath = "dataBase/MartixPlan434_Exp_weld_seam_10cm/sampleTime_40ms/MatritPlan434_PoseMatrix.csv"
+        # self.dB.savePoseMatrix(pathData_np6x1, "w", filePath)
 
-        return path_JointAngle, pathData_np4x4
+        # return path_JointAngle, pathData_np4x4
+
+        filePath = "Experimental_data/20240306/Revise/Teach_mode_Multi_Trajectory_welding.csv"
+        rowData = self.dB.Load(filePath)
+        path_Pose = np.zeros((len(rowData), 6))
+        path_4x4 = np.zeros((len(rowData), 4, 4))
+        
+        for i in range(len(path_Pose)):
+            buffer_np = np.zeros((6,1))
+            buffer_np[0, 0] = rowData['X'][i]
+            buffer_np[1, 0] = rowData['Y'][i]
+            buffer_np[2, 0] = rowData['Z'][i]
+            buffer_np[3, 0] = d2r(rowData['Rx'][i])
+            buffer_np[4, 0] = d2r(rowData['Ry'][i])
+            buffer_np[5, 0] = d2r(rowData['Rz'][i])
+
+            path_4x4[i] = self.Mat.AngletoMat(buffer_np)
+        
+        path_JointAngle = np.zeros((len(rowData), 6, 1))
+
+        # 計算逆向運動學
+        for i in range(len(rowData)):
+            path_JointAngle[i] = self.Kin.IK_4x4(path_4x4[i], θ_Buffer)
+
+        return path_JointAngle, path_4x4
 
     def main(self):
         path_JointAngle, pathData_np4x4 = self.generateTrajectory()

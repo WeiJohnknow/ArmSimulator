@@ -1573,74 +1573,86 @@ class繼承實作
 
 
 """
+使用UDP傳送軌跡資訊實驗 後分析
+演算法: Matrix+434
 """
-import matplotlib.pyplot as plt
-dB = dataBase()
+# import matplotlib.pyplot as plt
+# dB = dataBase()
 
 
-filePath = "dataBase/MatrixPlan434_Experimental/sampleTime_40ms_1/results/MatrixPlan434_moveCMD_is_success.csv"
-Vel_index = dB.Load(filePath)
+# filePath = "dataBase/MatrixPlan434_Experimental/sampleTime_40ms_1/results/MatrixPlan434_moveCMD_is_success.csv"
+# Vel_index = dB.Load(filePath)
 
-filePath = "dataBase/MatrixPlan434_Experimental/sampleTime_40ms_1/results\MatrixPlan434_moveCMD_w_speed.csv"
-Vel = dB.Load(filePath)
-
-
-# 實驗
-filePath = "dataBase/MatrixPlan434_Experimental/sampleTime_60ms_2/results\MatrixPlan434_Experimental_data.csv"
-path_df = dB.Load(filePath)
-
-# 期望
-filePath = "dataBase/MatrixPlan434_Experimental/sampleTime_60ms_1/EstimateData/MatritPlan434_PoseMatrix_time.csv"
-expectTime = dB.Load(filePath)
+# filePath = "dataBase/MatrixPlan434_Experimental/sampleTime_40ms_1/results\MatrixPlan434_moveCMD_w_speed.csv"
+# Vel = dB.Load(filePath)
 
 
+# # 實驗
+# filePath = "dataBase/MatrixPlan434_Experimental/sampleTime_60ms_2/results\MatrixPlan434_Experimental_data.csv"
+# path_df = dB.Load(filePath)
 
-# 軌跡更新之資料索引
-Vel_index_data = np.zeros((len(Vel_index)))
-# 軌跡速度
-Vel_data = np.zeros((len(Vel)))
-# 軌跡時間
-Time = np.zeros(len(path_df))
-# 軌跡實際更新時間
-validTime = np.zeros((len(Vel)))
-# 期望軌跡時間
-expectTime_ = np.zeros((len(expectTime)))
+# # 期望
+# filePath = "dataBase/MatrixPlan434_Experimental/sampleTime_60ms_1/EstimateData/MatritPlan434_PoseMatrix_time.csv"
+# expectTime = dB.Load(filePath)
 
-# for i in range(len(Vel_index)):
-#     Vel_index_data[i] = Vel_index["Time"][i]
-#     Vel_data[i] = Vel["Time"][i]
 
-# # 取出所有實際軌跡時間
+
+# # 軌跡更新之資料索引
+# Vel_index_data = np.zeros((len(Vel_index)))
+# # 軌跡速度
+# Vel_data = np.zeros((len(Vel)))
+# # 軌跡時間
+# Time = np.zeros(len(path_df))
+# # 軌跡實際更新時間
+# validTime = np.zeros((len(Vel)))
+# # 期望軌跡時間
+# expectTime_ = np.zeros((len(expectTime)))
+
+# # for i in range(len(Vel_index)):
+# #     Vel_index_data[i] = Vel_index["Time"][i]
+# #     Vel_data[i] = Vel["Time"][i]
+
+# # # 取出所有實際軌跡時間
+# # for i in range(len(path_df)):
+# #     Time[i] = path_df["time"][i]
+
+# # # 計算出命令更新之系統時間
+# # for i in range(len(Vel_index)):
+# #     index = Vel_index_data[i]
+# #     validTime[i] = path_df["time"][index]
+
+# # 實際軌跡時間
 # for i in range(len(path_df)):
 #     Time[i] = path_df["time"][i]
 
-# # 計算出命令更新之系統時間
-# for i in range(len(Vel_index)):
-#     index = Vel_index_data[i]
-#     validTime[i] = path_df["time"][index]
+# # 期望軌跡時間
+# for i in range(len(expectTime_)):
+#     expectTime_[i] = expectTime["time(ms)"][i]
 
-# 實際軌跡時間
-for i in range(len(path_df)):
-    Time[i] = path_df["time"][i]
+# difftime = np.diff(validTime)
+# difftime = np.insert(difftime, 0, 0)
 
-# 期望軌跡時間
-for i in range(len(expectTime_)):
-    expectTime_[i] = expectTime["time(ms)"][i]
+# plt.rcParams.update({'font.size': 20})
 
-difftime = np.diff(validTime)
-difftime = np.insert(difftime, 0, 0)
+# # plt.plot(Vel_index_data, difftime)
+# plt.plot(expectTime_, color='red', label='Expect Time')
+# plt.plot(Time, color='green', label='Estimated Time')
+# # plt.plot(validTime, Vel_data, marker='o', linestyle='-')
 
-plt.rcParams.update({'font.size': 20})
+# plt.legend()
+# plt.xlabel("Index")
+# plt.ylabel("Time(ms)")
+# plt.title("Trajectory Time Phase")
 
-# plt.plot(Vel_index_data, difftime)
-plt.plot(expectTime_, color='red', label='Expect Time')
-plt.plot(Time, color='green', label='Estimated Time')
-# plt.plot(validTime, Vel_data, marker='o', linestyle='-')
+# plt.show()
 
-plt.legend()
-plt.xlabel("Index")
-plt.ylabel("Time(ms)")
-plt.title("Trajectory Time Phase")
+"""
+位元測試
+"""
+dict={}
 
-plt.show()
-
+dict = {'0':[2,3,4,5],
+        '1':[3,4,5,6]}
+for i in range(2):
+    print(dict[str(i)][0])
+    print(dict[f'{i}'][0])

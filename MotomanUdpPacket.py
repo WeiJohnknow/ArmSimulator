@@ -17,7 +17,7 @@ class UDP_packet:
         # 2 Byte
         self.Header_part_size = [0x20, 0x00]
         # 2 Byte
-        self.Data_part_size   = [0x20, 0x00]
+        self.Data_part_size   = [0x00, 0x00]
         # 1 Byte
         self.Reserve_1 = 3
         # 1 Byte
@@ -53,7 +53,7 @@ class UDP_packet:
         if len(data) <= 255 :
             self.Data_part_size[0] = len(data)
             self.Data_part_size[1] = 0
-        # 資料長度超過8byte時
+        # 資料長度超過4byte時
         else:
             self.Data_part_size[0] = 255
             self.Data_part_size[1] = len(data)-self.Data_part_size[0]
@@ -528,6 +528,109 @@ class MotomanUDP:
         return data
     
     ################################################ Variable ################################################
+    def ReadVar(self, varType:str, address:int):
+        """Read variable
+        - Args:
+            - varType: Input str. ex: "Integer".
+                - Byte
+                - Integer
+                - double
+                - Real
+            - address: Pim number.
+
+        - Return:
+            Variable data
+        """
+        # TODO 尚未測試
+
+        command_No = 0x00
+
+        if varType == "Byte":
+            command_No = 0x7A
+        elif varType == "Integer":
+            command_No = 0x7B
+        elif varType == "double":
+            command_No = 0x7C
+        elif varType == "Real":
+            command_No = 0x7D
+        else:
+            print("varType error!!!")
+
+        Address_hex = hex(address)
+
+        # 移除 '0x' 前綴並填充零，確保至少有兩個字元
+        Address_hex = Address_hex[2:].zfill(4)
+
+        # 將十六進位表示法分為高位元和低位元
+        high_byte = int(Address_hex[:2], 16)
+        low_byte = int(Address_hex[2:], 16)
+
+        reqSubHeader = {'Command_No': (command_No, 0x00),
+                        'Instance': [low_byte, high_byte],
+                        'Attribute': 1,
+                        'Service':  0x0E,
+                        'Padding': (0, 0)}
+        reqData = []
+        
+        Ans_packet = self.sendCmd( reqSubHeader, reqData)
+        data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
+        var = self.Cvt_SignInt(data)
+        
+        return var
+    
+    def WriteVar(self, varType, address, data):
+        """Write Variable to address
+         Args:
+            - varType: Input str. ex: "Integer".
+                - Byte
+                - Integer
+                - double
+                - Real
+            - address: Pin number.
+
+        - Return:
+            Variable data
+        """
+        # TODO 尚未測試
+
+        command_No = 0x00
+
+        if varType == "Byte":
+            command_No = 0x7A
+        elif varType == "Integer":
+            command_No = 0x7B
+        elif varType == "double":
+            command_No = 0x7C
+        elif varType == "Real":
+            command_No = 0x7D
+        else:
+            print("varType error!!!")
+
+        Address_hex = hex(address)
+
+        # 移除 '0x' 前綴並填充零，確保至少有兩個字元
+        Address_hex = Address_hex[2:].zfill(4)
+
+        data = struct.pack('I', data)
+
+        # 將十六進位表示法分為高位元和低位元
+        high_byte = int(Address_hex[:2], 16)
+        low_byte = int(Address_hex[2:], 16)
+
+        reqSubHeader = {'Command_No': (command_No, 0x00),
+                        'Instance': [low_byte, high_byte],
+                        'Attribute': 1,
+                        'Service':  0x10,
+                        'Padding': (0, 0)}
+        reqData = data
+        
+        Ans_packet = self.sendCmd( reqSubHeader, reqData)
+        data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
+        
+        return data
+        
+        
+
     def ReadRPVar(self, address):
         """Read single Robot Position Variable
         - Arg:

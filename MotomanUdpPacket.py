@@ -49,14 +49,31 @@ class UDP_packet:
         self.padding[0] = Sub_header['Padding'][0]
         self.padding[1] = Sub_header['Padding'][1]
 
+        # 填入Data_part_size
+        dataSize = hex(len(data))
+
+        # 移除 '0x' 前綴並填充零，確保至少有兩個字元
+        dataSize = dataSize[2:].zfill(4)
+
+        # 將十六進位表示法分為高位元和低位元
+        dataSize_high_byte = int(dataSize[:2], 16)
+        dataSize_low_byte = int(dataSize[2:], 16)
+
         # 資料長度在4byte範圍內時
         if len(data) <= 255 :
-            self.Data_part_size[0] = len(data)
-            self.Data_part_size[1] = 0
+            # self.Data_part_size[0] = len(data)
+            # self.Data_part_size[1] = 0
+            self.Data_part_size[0] = dataSize_low_byte
+            self.Data_part_size[1] = dataSize_high_byte
+
         # 資料長度超過4byte時
         else:
-            self.Data_part_size[0] = 255
-            self.Data_part_size[1] = len(data)-self.Data_part_size[0]
+            # self.Data_part_size[0] = 255
+            # self.Data_part_size[1] = len(data)-self.Data_part_size[0]
+            self.Data_part_size[0] = dataSize_low_byte
+            self.Data_part_size[1] = dataSize_high_byte
+            
+
         self.Data = data
 
     
@@ -69,6 +86,7 @@ class UDP_packet:
         packet += struct.pack('B', self.Header_part_size[1])
         packet += struct.pack('B', self.Data_part_size[0])
         packet += struct.pack('B', self.Data_part_size[1])
+        
         packet += struct.pack('B', self.Reserve_1)
         packet += struct.pack('B', self.Processing_division)
         packet += struct.pack('B', self.ACK)
@@ -137,7 +155,7 @@ class UDP_packet:
             add_status[1] = hex(Ans_packet[29])
 
             if add_status[0] == '0xa7' and  add_status[1] == '0xe4':
-                Error = ['Error code: E4A7','Packet format error!!']
+                Error = ['Error code: E4A7','Packet format error(the size of the requested command and received frame are different)!!']
                 return Error
             elif add_status[0] == '0x1' and add_status[1] == '0xa0':
                 Error = ['Error code: A001','Instance error!!']
@@ -370,7 +388,8 @@ class MotomanUDP:
             return Torque
      
     def Cvt_SignInt(self, data):
-        """Convert 32bit Signed Integer
+        """將4Byte數據轉換成32bit有符整數 or 2Byte數據轉換成16bit有符整數
+        Convert 32bit Signed Integer
         input type: list
         input len: 4
         """
@@ -398,7 +417,7 @@ class MotomanUDP:
                 result.append(databuffer)
 
         # Pulse
-        if len(data) == 44:
+        elif len(data) == 44:
             for i in range(0, len(data), 4):
                 databuffer = (data[i+3] << 24) | (data[i+2] << 16) | (data[i+1] << 8) | data[i]
                 
@@ -420,7 +439,7 @@ class MotomanUDP:
                 result.append(databuffer)
         
         # Torque
-        if len(data) == 24:
+        elif len(data) == 24:
             for i in range(0, len(data), 4):
                 # Combine the four bytes into a 32-bit unsigned integer
                 databuffer = (data[i+3] << 24) | (data[i+2] << 16) | (data[i+1] << 8) | data[i]
@@ -430,8 +449,27 @@ class MotomanUDP:
                 
                 result.append(databuffer)
 
-        # single data
-        if len(data) == 4:
+        # single data(4Byte)
+        elif len(data) == 4:
+            databuffer = (data[3] << 24) | (data[2] << 16) | (data[1] << 8) | data[0]
+
+            if databuffer & (1 << 31):
+                databuffer -= 1 << 32
+                
+            result.append(databuffer)
+        
+        # single data(2Byte)
+        elif len(data) == 2:
+            databuffer = (data[1] << 8) | data[0]
+
+            if databuffer & (1 << 15):
+                databuffer -= 1 << 16
+                
+            result.append(databuffer)
+
+        # multiple data(2Byte) multiple Integer
+        elif len(data) == 22:
+            # 首4Byte 是資料筆數
             databuffer = (data[3] << 24) | (data[2] << 16) | (data[1] << 8) | data[0]
 
             if databuffer & (1 << 31):
@@ -439,8 +477,17 @@ class MotomanUDP:
                 
             result.append(databuffer)
 
+            # 之後每2Byte是變數資料(Integer)
+            for i in range(4, len(data), 2):
+                databuffer = (data[i+1] << 8) | data[i]
+
+                if databuffer & (1 << 15):
+                    databuffer -= 1 << 16
+                    
+                result.append(databuffer)
+
         # multipleReadVar
-        if len(data) == 472:
+        elif len(data) == 472:
             for i in range(0, len(data), 4):
                 databuffer = (data[i+3] << 24) | (data[i+2] << 16) | (data[i+1] << 8) | data[i]
 
@@ -541,12 +588,13 @@ class MotomanUDP:
         - Return:
             Variable data
         """
-        # TODO 尚未測試
+        # TODO Integer測試成功，其餘三個未測試
 
         command_No = 0x00
 
         if varType == "Byte":
             command_No = 0x7A
+            
         elif varType == "Integer":
             command_No = 0x7B
         elif varType == "double":
@@ -564,6 +612,7 @@ class MotomanUDP:
         # 將十六進位表示法分為高位元和低位元
         high_byte = int(Address_hex[:2], 16)
         low_byte = int(Address_hex[2:], 16)
+
 
         reqSubHeader = {'Command_No': (command_No, 0x00),
                         'Instance': [low_byte, high_byte],
@@ -583,9 +632,9 @@ class MotomanUDP:
          Args:
             - varType: Input str. ex: "Integer".
                 - Byte
-                - Integer
-                - double
-                - Real
+                - Integer: -32768 to 32767
+                - double: -2147483648 to 2147483647
+                - Real: 3.4E+38 to 3.4E38. E:10的次方數
             - address: Pin number.
 
         - Return:
@@ -599,6 +648,7 @@ class MotomanUDP:
             command_No = 0x7A
         elif varType == "Integer":
             command_No = 0x7B
+            data = struct.pack('h', data)
         elif varType == "double":
             command_No = 0x7C
         elif varType == "Real":
@@ -610,8 +660,6 @@ class MotomanUDP:
 
         # 移除 '0x' 前綴並填充零，確保至少有兩個字元
         Address_hex = Address_hex[2:].zfill(4)
-
-        data = struct.pack('I', data)
 
         # 將十六進位表示法分為高位元和低位元
         high_byte = int(Address_hex[:2], 16)
@@ -629,6 +677,81 @@ class MotomanUDP:
         
         return data
         
+    def multipleReadVar(self, firstAddress, Number):
+        """
+        """
+        Address_hex = hex(firstAddress)
+
+        # 移除 '0x' 前綴並填充零，確保至少有兩個字元
+        Address_hex = Address_hex[2:].zfill(4)
+
+        # 將十六進位表示法分為高位元和低位元
+        high_byte = int(Address_hex[:2], 16)
+        low_byte = int(Address_hex[2:], 16)
+
+
+        # 要讀取的資料個數
+        Number = struct.pack('I', Number)
+
+
+        reqSubHeader = {'Command_No': (0x03, 0x03),
+                        'Instance': [low_byte, high_byte],
+                        'Attribute': 0,
+                        'Service':  0x33,
+                        'Padding': (0, 0)}
+        reqData = Number
+        
+        Ans_packet = self.sendCmd( reqSubHeader, reqData)
+        data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
+        var = self.Cvt_SignInt(data)
+
+        return var
+    
+    def multipleWriteVar(self, firstAddress:int, Number:int, data:list):
+        """Multiple Write Variable
+        - Arg:
+            - firstAddress: 多筆資料的起始變數編號.
+            - Number: Number of data written (Maximum 9)
+            - data:
+                
+            
+        - Return:
+            - status: Command Ans. 
+        """
+    
+        # 寫入的資料個數
+        Number_byte = struct.pack('I', Number)
+
+        Packet = Number_byte 
+
+        # 將資料轉為Byte格式
+        for n in range(Number):
+            
+            var = struct.pack('h', data[n])
+        
+            # 加入資料封包中
+            Packet +=  var
+                
+        Address_hex = hex(firstAddress)
+
+        # 移除 '0x' 前綴並填充零，確保至少有兩個字元
+        Address_hex = Address_hex[2:].zfill(4)
+
+        # 將十六進位表示法分為高位元和低位元
+        high_byte = int(Address_hex[:2], 16)
+        low_byte = int(Address_hex[2:], 16)
+        
+        reqSubHeader = {'Command_No': (0x03, 0x03),
+                        'Instance': [low_byte, high_byte],
+                        'Attribute': 0,
+                        'Service':  0x34,
+                        'Padding': (0, 0)}
+        reqData = Packet
+        
+        Ans_packet = self.sendCmd( reqSubHeader, reqData)
+        data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
+
+        return data
         
 
     def ReadRPVar(self, address):
@@ -687,35 +810,42 @@ class MotomanUDP:
 
         return var
 
-    def WriteRPVar(self, address, coordinate:list, Form=4, dataType=17, Toolnumber=5, UserCoordinate=0):
+    def WriteRPVar(self, address, data:list):
         """Write single Robot Position Variable
-        - Args:
-            - Address: Variable(No.)
-            - coordinate:
-                - type: dict
-                - format: Data number : [x, y, z, Rx, Ry, Rz]
-            - Form: 
-            - dataType:
-                - 0 : Pulse
-                - 16: Base coordinated value.
-                - 17: Robot coordinated value. (default)
-                - 18: User coordinated value.
-                - 19: Tool coordinated value.
-            - Toolnumber: Tool data number. (default 5)
-            - UserCoordinate: User coordinate system number. (default 0)
+            - address: 變數編號.
+            - data:
+                - Type: dict
+                - format: [dataType, Form, Toolnumber, UserCoordinate, coordinate]
+
+                - Note:
+                    - dataType(default 17):
+                        - 0 : Pulse
+                        - 16: Base coordinated value.
+                        - 17: Robot coordinated value. 
+                        - 18: User coordinated value.
+                        - 19: Tool coordinated value.
+                    - Form: Arm pose(請看手冊定義)
+                    - Toolnumber: Tool data number. (default 5)
+                    - UserCoordinate: User coordinate system number. (default 0)
+                    - Extended form: None(default 0).
+                    - coordinate( 1st~6th data):
+                        - type: list
+                        - format: [x(first), y(second), z(third), Rx(fourth), Ry(Fifth), Rz(Sixth)]
+                    - SeventhCoordinate: None(default 0).
+                    - Eighthcoordinate: None(default 0).
         """
 
-        dataType = struct.pack('I', dataType)
-        Form = struct.pack('I', Form)
-        Toolnumber = struct.pack('I', Toolnumber)
-        UserCoordinate = struct.pack('I', UserCoordinate)
+        dataType = struct.pack('I', data[0])
+        Form = struct.pack('I', data[1])
+        Toolnumber = struct.pack('I', data[2])
+        UserCoordinate = struct.pack('I', data[3])
         ExtendedForm = struct.pack('I', 0)
-        FirstCoordinate  = self.signDecide(coordinate[0], 1000)
-        SecondCoordinate = self.signDecide(coordinate[1], 1000)
-        ThirdCoordinated = self.signDecide(coordinate[2], 1000)
-        FourthCoordinate = self.signDecide(coordinate[3], 1000)
-        FifthCoordinate  = self.signDecide(coordinate[4], 1000)
-        SixthCoordinate  = self.signDecide(coordinate[5], 1000)
+        FirstCoordinate  = self.signDecide(data[4], 1000)
+        SecondCoordinate = self.signDecide(data[5], 1000)
+        ThirdCoordinated = self.signDecide(data[6], 1000)
+        FourthCoordinate = self.signDecide(data[7], 1000)
+        FifthCoordinate  = self.signDecide(data[8], 1000)
+        SixthCoordinate  = self.signDecide(data[9], 1000)
         SeventhCoordinate = struct.pack('i', 0)
         EighthCoordinate = struct.pack('i', 0)
 
@@ -782,56 +912,63 @@ class MotomanUDP:
 
         return var
 
-    def multipleWriteRPVar(self, firstAddress:int, Number:int, coordinate:dict, Form=4, dataType=17, Toolnumber=5, UserCoordinate=0):
+    def multipleWriteRPVar(self, firstAddress:int, Number:int, data:dict):
         """Multiple Read Robot Position Variable
         - Arg:
-            - firstAddress(多筆資料的起始變數編號)
+            - firstAddress: 多筆資料的起始變數編號.
             - Number: Number of data written (Maximum 9)
-            - coordinate:
-                - type: dict
-                - format: Data number : [x, y, z, Rx, Ry, Rz]
-            - Form: 
-            - dataType:
-                - 0 : Pulse
-                - 16: Base coordinated value.
-                - 17: Robot coordinated value. (default)
-                - 18: User coordinated value.
-                - 19: Tool coordinated value.
-            - Toolnumber: Tool data number. (default 5)
-            - UserCoordinate: User coordinate system number. (default 0)
-                
+            - data:
+                - Type: dict
+                - format: 'data number' : [dataType, Form, Toolnumber, UserCoordinate, coordinate]
+
+                - Note:
+                    - dataType:
+                        - 0 : Pulse
+                        - 16: Base coordinated value.
+                        - 17: Robot coordinated value. (default)
+                        - 18: User coordinated value.
+                        - 19: Tool coordinated value.
+                    - Form: Arm pose(請看手冊定義)
+                    - Toolnumber: Tool data number. (default 5)
+                    - UserCoordinate: User coordinate system number. (default 0)
+                    - Extended form: None(default 0).
+                    - coordinate( 1st~6th data):
+                        - type: list
+                        - format: [x(first), y(second), z(third), Rx(fourth), Ry(Fifth), Rz(Sixth)]
+                    - SeventhCoordinate: None(default 0).
+                    - Eighthcoordinate: None(default 0).
+            
         - Return:
-            status: Command Ans. 
+            - status: Command Ans. 
         """
-        # TODO 已測試一次寫入四筆資料，函式輸入需要優化，封裝資料也需優化
-        # TODO 一次寫五筆資料會跳packet error 目前推測有可能是請求封包的Data part[0] Data part[1] 那邊有問題 ，未解決。
-
+    
         # 寫入的資料個數
-        Number = struct.pack('I', Number)
-        Packet += Number
+        Number_byte = struct.pack('I', Number)
 
-        # 
+        Packet = Number_byte 
+
+        # 將資料轉為Byte格式
         for n in range(Number):
 
-            dataType = struct.pack('I', dataType)
-            Form = struct.pack('I', Form)
-            Toolnumber = struct.pack('I', Toolnumber)
-            UserCoordinate = struct.pack('I', UserCoordinate)
+            dataType = struct.pack('I', data[f'{n}'][0])
+            Form = struct.pack('I', data[f'{n}'][1])
+            Toolnumber = struct.pack('I', data[f'{n}'][2])
+            UserCoordinate = struct.pack('I', data[f'{n}'][3])
             ExtendedForm = struct.pack('I', 0)
 
-            FirstCoordinate  = self.signDecide(coordinate['f{n}'][0], 1000)
-            SecondCoordinate = self.signDecide(coordinate['f{n}'][1], 1000)
-            ThirdCoordinate  = self.signDecide(coordinate['f{n}'][2], 1000)
-            FourthCoordinate = self.signDecide(coordinate['f{n}'][3], 1000)
-            FifthCoordinate  = self.signDecide(coordinate['f{n}'][4], 1000)
-            SixthCoordinate  = self.signDecide(coordinate['f{n}'][5], 1000)
+            FirstCoordinate  = self.signDecide(data[f'{n}'][4], 1000)
+            SecondCoordinate = self.signDecide(data[f'{n}'][5], 1000)
+            ThirdCoordinate  = self.signDecide(data[f'{n}'][6], 1000)
+            FourthCoordinate = self.signDecide(data[f'{n}'][7], 1000)
+            FifthCoordinate  = self.signDecide(data[f'{n}'][8], 1000)
+            SixthCoordinate  = self.signDecide(data[f'{n}'][9], 1000)
 
             SeventhCoordinate = struct.pack('i', 0)
             EighthCoordinate = struct.pack('i', 0)
 
             # 加入資料封包中
-            Packet =+ dataType + Form + Toolnumber + UserCoordinate + ExtendedForm + FirstCoordinate + SecondCoordinate+ ThirdCoordinate\
-                    + FourthCoordinate + FifthCoordinate + SixthCoordinate + SeventhCoordinate + EighthCoordinate\
+            Packet +=  dataType + Form + Toolnumber + UserCoordinate + ExtendedForm + FirstCoordinate + SecondCoordinate\
+                     + ThirdCoordinate + FourthCoordinate + FifthCoordinate + SixthCoordinate + SeventhCoordinate + EighthCoordinate\
                 
         Address_hex = hex(firstAddress)
 
@@ -1248,6 +1385,7 @@ if __name__ == "__main__":
     udp = MotomanUDP()
     Time = TimeTool()
     dB = dataBase()
+    import numpy as np
 
 
     # 遠端起弧測試OK
@@ -1277,24 +1415,90 @@ if __name__ == "__main__":
     # print(JointAngle)
     # print(pulse)
 
-
     # 單筆變數讀取(Robot Position)
     # status = udp.ReadRPVar(6)
     # print(status)
 
     # 單筆變數寫入(Robot Position)
+    # 命令時間(ms) :
+    # 最大值: 31.0
+    # 最小值: 15.0
+    # 平均值: 21.15
     # coordinate = [958.535, -37.777, -104.713, -165.2944, -7.1707, 17.5149]
     # status = udp.WriteRPVar(14, coordinate)
     # print(status)
 
-    # 多筆變數讀取(Robot Position)
+    # 單筆變數讀取(Integer)
+    # 命令時間(ms) :
+    # 最大值: 11.0
+    # 最小值: 5.0
+    # 平均值: 7.31
+    # varType = "Integer"
+    # address = 1
+    # status = udp.ReadVar(varType, address)
+    # print(status)
+
+    # 單筆變數寫入(Integer)
+    # 命令時間(ms) :
+    # 最大值: 30.0
+    # 最小值: 15.0
+    # 平均值: 21.65
+    # varType = "Integer"
+    # address = 2
+    # data = 160
+    # status = udp.WriteVar(varType, address, data)
+    # print(status)
+
+    # 多筆變數讀取(Integer)
+    # firstAddress  = 0
+    # Number = 9
+    # status = udp.multipleReadVar(firstAddress, Number)
+    # print(status)
+
+    # 多筆變數寫入(Integer)
+    firstAddress  = 0
+    Number = 9
+    data = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+    status = udp.multipleWriteVar(firstAddress, Number, data)
+    print(status)
+
+    # 多筆位置變數讀取(Robot Position)
+    # 命令時間(ms) :
+    # 最大值: 11.0
+    # 最小值: 3.0
+    # 平均值: 7.23
     # status = udp.multipleReadRPVar(6, 9)
     # print(status)
         
-    # 多筆變數寫入(Robot Position)
-    coordinate = [958.535, -37.777, -104.713, -165.2944, -7.1707, 17.5149]
-    status = udp.multipleWriteRPVar(26, 5, coordinate)
-    print(status)
+    # 多筆位置變數寫入(Robot Position)
+    # 命令時間(ms) :
+    # n = 9
+    # 最大值: 149.0
+    # 最小值: 125.0
+    # 平均值: 133.63
+    # n = 8
+    # 最大值: 130.0
+    # 最小值: 115.0
+    # 平均值: 120.19
+    # n = 7
+    # 最大值: 110.0
+    # 最小值: 97.0
+    # 平均值: 105.66
+    # n = 6
+    # 最大值: 100.0
+    # 最小值: 83.0
+    # 平均值: 91.62
+    # format : {'number' :[dataType, Form, Toolnumber, UserCoordinate, firstCoordinate, SecondCoordinate, ThirdCoordinate, FourthCoordinate, FifthCoordinate, SixthCoordinate]}
+    # data = {'0':[17, 4, 5, 0, 958.535, -37.777, -104.713, -165.2944, -7.1707, 17.5149],
+    #         '1':[17, 4, 5, 0, 959.535, -37.777, -104.713, -165.2944, -7.1707, 17.5149],
+    #         '2':[17, 4, 5, 0, 960.535, -37.777, -104.713, -165.2944, -7.1707, 17.5149],
+    #         '3':[17, 4, 5, 0, 961.535, -37.777, -104.713, -165.2944, -7.1707, 17.5149],
+    #         '4':[17, 4, 5, 0, 962.535, -37.777, -104.713, -165.2944, -7.1707, 17.5149],
+    #         '5':[17, 4, 5, 0, 963.535, -37.777, -104.713, -165.2944, -7.1707, 17.5149],
+    #         '6':[17, 4, 5, 0, 964.535, -37.777, -104.713, -165.2944, -7.1707, 17.5149],
+    #         '7':[17, 4, 5, 0, 965.535, -37.777, -104.713, -165.2944, -7.1707, 17.5149],
+    #         '8':[17, 4, 5, 0, 966.535, -37.777, -104.713, -165.2944, -7.1707, 17.5149]}
+    # status = udp.multipleWriteRPVar(36, 9, data)
 
     # 伺服電源開啟
     # status = udp.ServoMH(1)
@@ -1357,6 +1561,39 @@ if __name__ == "__main__":
     # GoalEnd_pulse = [-19773, 5267, -64872, -69503, -31410, 39973]
     # # status = udp.ServoMH(1)
     # udp.moveJointSapceMH(1, 1, 100, ORG)
+
+"""
+cmdTime test
+"""
+cmdtimeData = np.zeros((100))
+for i in range(100):
+    b = Time.ReadNowTime()
+    
+    
+    firstAddress  = 0
+    Number = 9
+    data = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+    status = udp.multipleWriteVar(firstAddress, Number, data)
+
+    a = Time.ReadNowTime()
+    cmdTime = Time.TimeError(b,a)
+    print(cmdTime["millisecond"], "毫秒")
+    dB.Save_time(cmdTime["millisecond"], "Experimental_data/cmdTime/multipleWriteVar/multipleWriteVar_cmdTime_n9.csv")
+    cmdtimeData[i] = cmdTime["millisecond"]
+
+# 计算最大值
+max_val = np.max(cmdtimeData)
+
+# 计算最小值
+min_val = np.min(cmdtimeData)
+
+# 计算平均值
+mean_val = np.mean(cmdtimeData)
+
+print("最大值:", max_val)
+print("最小值:", min_val)
+print("平均值:", mean_val)
+print("End")
 
 
 # test

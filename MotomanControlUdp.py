@@ -671,7 +671,7 @@ class MotomanControlUdp():
         
         # 儲存現在位置至資料庫
         header = ["X", "Y", "Z", "Rx", "Ry", "Rz", "time"]
-        filePath = headerFile + "Teach_mode_Multi_Trajectory.csv"
+        filePath = headerFile + "Velocity_test.csv"
         self.dB.Save_singleData_experiment(coordinate, sysTime, filePath, header)
 
         # 紀錄寫入次數
@@ -681,7 +681,7 @@ class MotomanControlUdp():
     
     def main(self):
         # 載入軌跡資訊
-        headerFile= "Experimental_data/20240306/"
+        headerFile= "Experimental_data/20240311/"
 
         # 系統時間與軌跡節點
         sysTime, Node = 0, 0

@@ -1088,12 +1088,14 @@ if __name__ == "__main__" :
     # Time_file =    "Experimental_data/20240129/13_3mms/timeEL.csv"
     # calculate_distance_speed(PoseMat_file, Time_file, 0.04)
 
-    PoseMat_file = "Experimental_data/20240306/Revise/Teach_mode_Multi_Trajectory_No_welding.csv"
-    Time_file =    "Experimental_data/20240306/Revise/No_welding_time.csv"
+    PoseMat_file = "Experimental_data/20240311/Teach_mode_Multi_Trajectory_No_welding.csv"
+    Time_file =    "Experimental_data/20240311/No_welding_time.csv"
+
+    calculate_distance_speed(PoseMat_file, Time_file, 0.04)
 
     # calculate_distance_speed_2_curve(PoseMat_file, Time_file, ExperimentalData, sampleTime)
     # Analyze_Position(PoseMat_file, Time_file)
-    Analyze_Velocity(0.04, PoseMat_file, Time_file)
+    # Analyze_Velocity(0.04, PoseMat_file, Time_file)
     # Analyze_Acceleration(0.04, PoseMat_file, Time_file)
 
     # Real_PoseMat_file = "Experimental_data/Trajectory.csv"

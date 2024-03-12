@@ -582,8 +582,33 @@ class PathPlanning:
             # T 是笛卡兒空間中 NowEnd ➜ GoalEnd 過程中每一個軌跡點的齊次變換矩陣(軌跡點)
             T = NowEnd @ D_ 
             TBuffer[λ_] = T
+        
+        # 計算速度
+        pathData = TBuffer
+        Euclidean_distance = np.zeros((len(pathData)))
+        velData = np.zeros((len(pathData)))
+
+        for i in range(len(pathData)):
+            if i == 0:
+                prvx = pathData[0, 0, 3]
+                prvy = pathData[0, 1, 3]
+                prvz = pathData[0, 2, 3]
+                Euclidean_distance[i-1] = 0
+            else:
+                prvx = pathData[i-1, 0, 3]
+                prvy = pathData[i-1, 1, 3]
+                prvz = pathData[i-1, 2, 3]
+
+            x = pathData[i, 0, 3]
+            y = pathData[i, 1, 3]
+            z = pathData[i, 2, 3]
+
+            Euclidean_distance[i] = Euclidean_distance[i-1] + np.sqrt((x-prvx)**2 + (y-prvy)**2 + (z-prvz)**2)
+        # velData = np.diff(Euclidean_distance)
+        velData = np.diff(Euclidean_distance)/sampleTime
+        velData = np.insert(velData, 0, 0)
             
-        return TBuffer, timeData
+        return TBuffer, velData, timeData
     
     # def MatrixPath434(self, GoalEnd, NowEnd, allTime, filePath, sampleTime = 0.04, startTime=0):
     def MatrixPath434(self, GoalEnd, NowEnd, allTime, sampleTime = 0.04, startTime=0):

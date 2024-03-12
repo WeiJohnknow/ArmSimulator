@@ -249,7 +249,8 @@ class CsvTool:
         # 顯示圖表
         plt.show()
 
-# if __name__ == "__main__":
+if __name__ == "__main__":
+    Time = TimeTool()
     # Csv = CsvTool()
     # testdata = np.array([[0,4,8,12],
     #                             [1,5,9,13],
@@ -289,7 +290,10 @@ class CsvTool:
     #     if nowNode >= 200:
     #         break
         
-
-        
-
+    # time sleep test
+    # b = Time.ReadNowTime()
+    # Time.time_sleep(-0.01)
+    # a = Time.ReadNowTime()
+    # err = Time.TimeError(b, a)
+    # print(err["microsecond"])
         

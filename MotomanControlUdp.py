@@ -648,11 +648,98 @@ MatrixPlan+434 軌跡實驗(上機)
 
 """
 測試示教模式下的軌跡速度是否連續
+2024/03/06
 """
 
+# import sys
+# import cv2
+# from MotomanUdpPacket import MotomanUDP
+# from dataBase import dataBase
+# from Toolbox import TimeTool
+
+# class MotomanControlUdp():
+#     def __init__(self):
+#         self.dB = dataBase()
+#         self.Time = TimeTool()
+#         self.Udp = MotomanUDP()
+
+
+#     def Cmd(self, sysTime, Node, runNumber, headerFile):
+        
+#         # Read coordinate
+#         pos_result, coordinate = self.Udp.getcoordinateMH(101)
+        
+#         # 儲存現在位置至資料庫
+#         header = ["X", "Y", "Z", "Rx", "Ry", "Rz", "time"]
+#         filePath = headerFile + "Velocity_test.csv"
+#         self.dB.Save_singleData_experiment(coordinate, sysTime, filePath, header)
+
+#         # 紀錄寫入次數
+#         runNumber+=1
+
+#         return coordinate, runNumber
+    
+#     def main(self):
+#         # 載入軌跡資訊
+#         headerFile= "Experimental_data/20240306/"
+
+#         # 系統時間與軌跡節點
+#         sysTime, Node = 0, 0
+
+#         sampleTime = 0.04
+#         runNumber = 0
+#         startNode = 0
+
+#         # 系統flag
+#         sysflag = True
+
+#         while True:
+#             singlelooptime1 = self.Time.ReadNowTime()
+#             # 更新每禎時間
+#             nowTime = self.Time.ReadNowTime()
+            
+#             if sysflag is True:
+#                 # 儲存系統開始時間
+#                 startTime = self.Time.ReadNowTime()
+#                 sysflag = False
+
+#             sysTime, Node = self.Time.sysTime(startTime, startNode, nowTime, sampleTime)
+#             sysTime = round(sysTime/1000, 1)
+#             print("系統時間 :", sysTime)
+
+
+#             self.Cmd(sysTime, Node, runNumber, headerFile)
+
+
+#             singlelooptime2 = self.Time.ReadNowTime()
+#             singleloopCosttime = self.Time.TimeError(singlelooptime1, singlelooptime2)
+#             # print("單循環動作花費時間(ms)  :", singleloopCosttime["millisecond"])
+
+#             # 剩餘時間
+#             laveTime = sampleTime*1000 - singleloopCosttime["millisecond"]
+#             # self.Time.time_sleep(laveTime/1000)
+
+#             if laveTime>0:
+#                 self.Time.time_sleep(laveTime/1000)
+#             # final =  self.Time.ReadNowTime()
+#             # test = self.Time.TimeError(singlelooptime1, final)
+#             # print("單個迴圈花費時間(ms)  :", test["millisecond"])
+
+        
+# if __name__ == "__main__":
+#     MotomanControlUdp().main()
+
+
+"""
+2024/03/12
+* 軌跡實驗
+    * 演算法: 矩陣軌跡法(線性插值)
+    * 架構: 主體為INFORM，UDP配合寫入變數。
+"""
 
 import sys
 import cv2
+import numpy as np
 from MotomanUdpPacket import MotomanUDP
 from dataBase import dataBase
 from Toolbox import TimeTool
@@ -664,24 +751,136 @@ class MotomanControlUdp():
         self.Udp = MotomanUDP()
 
 
-    def Cmd(self, sysTime, Node, runNumber, headerFile):
-        
-        # Read coordinate
+    def NormalCmd(self, sysTime, headerFile):
+        """常態命令
+        """
+        # Read I000 variable
+        I0 = self.Udp.ReadVar("Integer", 0)
+
+        # Read coordinate and save Pose data to dataBase.
         pos_result, coordinate = self.Udp.getcoordinateMH(101)
-        
-        # 儲存現在位置至資料庫
         header = ["X", "Y", "Z", "Rx", "Ry", "Rz", "time"]
-        filePath = headerFile + "Velocity_test.csv"
+        filePath = headerFile + "MatrixPlan_liner.csv"
         self.dB.Save_singleData_experiment(coordinate, sysTime, filePath, header)
 
-        # 紀錄寫入次數
-        runNumber+=1
+        return coordinate, I0
+    
+    def ConditionCmd(self, firstAddress, pathBuffer, VelBuffer):
+        """條件命令
+        """
+        # 單次命令寫入的資料筆數
+        number = 9
 
-        return coordinate, runNumber
+        # Data Buffer
+        RPdata = {'0':[17, 4, 5, 0, pathBuffer[0], pathBuffer[1], pathBuffer[2], pathBuffer[3], pathBuffer[4], pathBuffer[5]],
+                  '1':[17, 4, 5, 0, pathBuffer[0], pathBuffer[1], pathBuffer[2], pathBuffer[3], pathBuffer[4], pathBuffer[5]],
+                  '2':[17, 4, 5, 0, pathBuffer[0], pathBuffer[1], pathBuffer[2], pathBuffer[3], pathBuffer[4], pathBuffer[5]],
+                  '3':[17, 4, 5, 0, pathBuffer[0], pathBuffer[1], pathBuffer[2], pathBuffer[3], pathBuffer[4], pathBuffer[5]],
+                  '4':[17, 4, 5, 0, pathBuffer[0], pathBuffer[1], pathBuffer[2], pathBuffer[3], pathBuffer[4], pathBuffer[5]],
+                  '5':[17, 4, 5, 0, pathBuffer[0], pathBuffer[1], pathBuffer[2], pathBuffer[3], pathBuffer[4], pathBuffer[5]],
+                  '6':[17, 4, 5, 0, pathBuffer[0], pathBuffer[1], pathBuffer[2], pathBuffer[3], pathBuffer[4], pathBuffer[5]],
+                  '7':[17, 4, 5, 0, pathBuffer[0], pathBuffer[1], pathBuffer[2], pathBuffer[3], pathBuffer[4], pathBuffer[5]],
+                  '8':[17, 4, 5, 0, pathBuffer[0], pathBuffer[1], pathBuffer[2], pathBuffer[3], pathBuffer[4], pathBuffer[5]]}
+        
+        IData =[VelBuffer[0], VelBuffer[1], VelBuffer[2], 
+                VelBuffer[3], VelBuffer[4], VelBuffer[5], 
+                VelBuffer[6], VelBuffer[7], VelBuffer[8]]
+        
+        # Write #RP002 - #RP20
+        RPstatus = self.Udp.multipleWriteRPVar(firstAddress, number, RPdata)
+        
+        # Write #I002 - #I020
+        Istatus = self.Udp.multipleWriteVar(firstAddress, number, IData)
+
+
     
     def main(self):
-        # 載入軌跡資訊
-        headerFile= "Experimental_data/20240311/"
+        
+        headerFile= "Experimental_data/20240312/"
+        # 載入軌跡資料
+        PathData = self.dB.Load(headerFile + "MatrixPlan_liner_PoseMatrix.csv")
+        VelocityData = self.dB.Load(headerFile + "MatrixPlan_liner_velocity.csv")
+
+        # 資料分批
+        
+        # 紀錄資料筆數
+        dataCount = 2
+
+        # I1為INFORM FOR外迴圈次數(要自行更改INFORM程式)
+        I1 = len(PathData)//9 + 1
+        print("INFORM程式 I001 改0 to ", I1)
+        finalData = len(PathData)%9
+        
+
+        # 分割軌跡資料
+        RPdata = np.zeros((I1, 9, 6))
+        RPdata_count = 0
+        for layer in range(I1-1):
+            for row in range(9):
+                RPdata[layer, row, 0] = PathData["X"][RPdata_count]
+                RPdata[layer, row, 1] = PathData["Y"][RPdata_count]
+                RPdata[layer, row, 2] = PathData["Z"][RPdata_count]
+                RPdata[layer, row, 3] = PathData["Rx"][RPdata_count]
+                RPdata[layer, row, 4] = PathData["Ry"][RPdata_count]
+                RPdata[layer, row, 5] = PathData["Rz"][RPdata_count]
+                RPdata_count += 1
+        # 最後一筆資料因軌跡點數除不進，故需額外處理 
+        for row in range(9):
+            RPdata[-1, row, 0] = PathData["X"][RPdata_count]
+            RPdata[-1, row, 1] = PathData["Y"][RPdata_count]
+            RPdata[-1, row, 2] = PathData["Z"][RPdata_count]
+            RPdata[-1, row, 3] = PathData["Rx"][RPdata_count]
+            RPdata[-1, row, 4] = PathData["Ry"][RPdata_count]
+            RPdata[-1, row, 5] = PathData["Rz"][RPdata_count]
+            if RPdata_count == len(PathData)-1:
+                 RPdata_count = len(PathData)-1
+            else:
+                RPdata_count += 1
+
+        # 分割速度資料
+        Veldata  = np.zeros((I1, 9))
+        VelData_count = 0
+        for row in range(I1-1):
+            for col in range(9):
+                Veldata[row, col] = int(VelocityData["Velocity"][VelData_count]*10)
+                VelData_count +=1
+        # 最後一筆資料因軌跡點數除不進，故需額外處理 
+        for col in range(9):
+            Veldata[-1, col] = int(VelocityData["Velocity"][VelData_count]*10)
+            if VelData_count == len(VelocityData)-1:
+                VelData_count = len(VelocityData)-1
+            else:
+                VelData_count += 1
+        # 對整個array做型別轉換，轉為int
+        Veldata = Veldata.astype(int)
+
+        # 預寫入首18筆資料   
+        for layer in range(2):
+            RPdataBuffer = {'0':[17, 4, 5, 0, RPdata[layer][0][0], RPdata[layer][0][1], RPdata[layer][0][2], RPdata[layer][0][3], RPdata[layer][0][4], RPdata[layer][0][5]],
+                      '1':[17, 4, 5, 0, RPdata[layer][1][0], RPdata[layer][1][1], RPdata[layer][1][2], RPdata[layer][1][3], RPdata[layer][1][4], RPdata[layer][1][5]],
+                      '2':[17, 4, 5, 0, RPdata[layer][2][0], RPdata[layer][2][1], RPdata[layer][2][2], RPdata[layer][2][3], RPdata[layer][2][4], RPdata[layer][2][5]],
+                      '3':[17, 4, 5, 0, RPdata[layer][3][0], RPdata[layer][3][1], RPdata[layer][3][2], RPdata[layer][3][3], RPdata[layer][3][4], RPdata[layer][3][5]],
+                      '4':[17, 4, 5, 0, RPdata[layer][4][0], RPdata[layer][4][1], RPdata[layer][4][2], RPdata[layer][4][3], RPdata[layer][4][4], RPdata[layer][4][5]],
+                      '5':[17, 4, 5, 0, RPdata[layer][5][0], RPdata[layer][5][1], RPdata[layer][5][2], RPdata[layer][5][3], RPdata[layer][5][4], RPdata[layer][5][5]],
+                      '6':[17, 4, 5, 0, RPdata[layer][6][0], RPdata[layer][6][1], RPdata[layer][6][2], RPdata[layer][6][3], RPdata[layer][6][4], RPdata[layer][6][5]],
+                      '7':[17, 4, 5, 0, RPdata[layer][7][0], RPdata[layer][7][1], RPdata[layer][7][2], RPdata[layer][7][3], RPdata[layer][7][4], RPdata[layer][7][5]],
+                      '8':[17, 4, 5, 0, RPdata[layer][8][0], RPdata[layer][8][1], RPdata[layer][8][2], RPdata[layer][8][3], RPdata[layer][8][4], RPdata[layer][8][5]]}
+            # Write #RP002 - #RP20
+            RPstatus = self.Udp.multipleWriteRPVar(dataCount, 9, RPdataBuffer)
+        
+            # Write #I002 - #I020
+            VelDataBuffer =[Veldata[layer, 0], 
+                            Veldata[layer, 1], 
+                            Veldata[layer, 2], 
+                            Veldata[layer, 3], 
+                            Veldata[layer, 4], 
+                            Veldata[layer, 5], 
+                            Veldata[layer, 6], 
+                            Veldata[layer, 7], 
+                            Veldata[layer, 8]]
+            Istatus = self.Udp.multipleWriteVar(dataCount, 9, VelDataBuffer)
+            dataCount +=9
+
 
         # 系統時間與軌跡節點
         sysTime, Node = 0, 0
@@ -690,44 +889,51 @@ class MotomanControlUdp():
         runNumber = 0
         startNode = 0
 
-        # 儲存系統開始時間
-        startTime = self.Time.ReadNowTime()
+        # 系統flag
+        sysflag = True
 
         while True:
             singlelooptime1 = self.Time.ReadNowTime()
             # 更新每禎時間
             nowTime = self.Time.ReadNowTime()
+            
+            if sysflag is True:
+                # 儲存系統開始時間
+                startTime = self.Time.ReadNowTime()
+                sysflag = False
 
             sysTime, Node = self.Time.sysTime(startTime, startNode, nowTime, sampleTime)
             sysTime = round(sysTime/1000, 1)
             print("系統時間 :", sysTime)
 
+            # 命令執行區
+            
+            coordinate, I0 = self.NormalCmd(sysTime, headerFile)
 
-            self.Cmd(sysTime, Node, runNumber, headerFile)
+            """
+            * 變數區間:
+            2~10
+            11~19
+            """
+            if I0 <= 10:
+                firstAddress = 11
+            else:
+                firstAddress = 2
+            #　更新DX200 RP、Int變數
+            self.ConditionCmd(firstAddress, )
 
 
             singlelooptime2 = self.Time.ReadNowTime()
             singleloopCosttime = self.Time.TimeError(singlelooptime1, singlelooptime2)
-            print("單循環動作花費時間(ms)  :", singleloopCosttime["millisecond"])
-
+            
             # 剩餘時間
             laveTime = sampleTime*1000 - singleloopCosttime["millisecond"]
-
-            if laveTime>0:
-                self.Time.time_sleep(laveTime/1000)
-            # final =  self.Time.ReadNowTime()
-            # test = self.Time.TimeError(singlelooptime1, final)
-            # print("單個迴圈花費時間(ms)  :", test["millisecond"])
+            self.Time.time_sleep(laveTime*0.001)
+            
 
         
 if __name__ == "__main__":
     MotomanControlUdp().main()
-
-
-
-
-
-
 
 
     

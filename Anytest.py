@@ -1649,10 +1649,17 @@ class繼承實作
 """
 字串格式語法
 """
-dict={}
+# dict={}
 
-dict = {'0':[2,3,4,5],
-        '1':[3,4,5,6]}
-for i in range(2):
-    print(dict[str(i)][0])
-    print(dict[f'{i}'][0])
+# dict = {'0':[2,3,4,5],
+#         '1':[3,4,5,6]}
+# for i in range(2):
+#     print(dict[str(i)][0])
+#     print(dict[f'{i}'][0])
+
+a = np.ones((5))
+for i in range(len(a)):
+        a[i] = i
+print(a)
+a = a.astype(int)  # 將 a 陣列中的元素型別轉換為整數
+print(a)

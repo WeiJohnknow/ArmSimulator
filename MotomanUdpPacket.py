@@ -346,8 +346,13 @@ class MotomanUDP:
 
         
         if Type == 101:
+            data = {"dataType": result[0],
+                    "Form": result[1],
+                    "Toolnumber": result[3],
+                    "UserCoordinate": result[4]}
             coordinate = [result[5], result[6], result[7], result[8], result[9], result[10]]
-            return result, coordinate
+
+            return data, coordinate
         elif Type == 1:
             Pulse = [result[5], 
                           result[6], 
@@ -583,7 +588,7 @@ class MotomanUDP:
                 - Integer
                 - double
                 - Real
-            - address: Pim number.
+            - address: Pin number.
 
         - Return:
             Variable data
@@ -1334,7 +1339,7 @@ class MotomanUDP:
         - User_coordinate:
             - 0: default
         """
-        # TODO: 未測試
+        
 
         # 參數
         # 填寫參數，並轉字典形式
@@ -1407,7 +1412,12 @@ if __name__ == "__main__":
     # print(data)
 
     # 位置讀取(Cartesian)
+    # 命令時間(ms) :
+    # 最大值: 24.0
+    # 最小值: 11.0
+    # 平均值: 15.61
     # result, coordinate = udp.getcoordinateMH(101)
+    # print(result)
     # print(coordinate)
 
     # 位置讀取(Joint)
@@ -1416,6 +1426,10 @@ if __name__ == "__main__":
     # print(pulse)
 
     # 單筆變數讀取(Robot Position)
+    # 命令時間(ms) :
+    # 最大值: 12.0
+    # 最小值: 3.0
+    # 平均值: 6.37
     # status = udp.ReadRPVar(6)
     # print(status)
 
@@ -1456,11 +1470,15 @@ if __name__ == "__main__":
     # print(status)
 
     # 多筆變數寫入(Integer)
-    firstAddress  = 0
-    Number = 9
-    data = [0, 1, 2, 3, 4, 5, 6, 7, 8]
-    status = udp.multipleWriteVar(firstAddress, Number, data)
-    print(status)
+    # 命令時間(ms) :
+    # 最大值: 149.0
+    # 最小值: 126.0
+    # 平均值: 134.39
+    # firstAddress  = 0
+    # Number = 9
+    # data = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+    # status = udp.multipleWriteVar(firstAddress, Number, data)
+    # print(status)
 
     # 多筆位置變數讀取(Robot Position)
     # 命令時間(ms) :
@@ -1538,11 +1556,12 @@ if __name__ == "__main__":
     # weldstart = [955.41, -102.226, -166.726, -165.2919, -7.1991, 17.5642]
     # weldend = [955.404, 14.865, -166.749, -165.2902, -7.1958, 17.5569]
     # GoalEnd = [955.386, -19.8, -75.117, -165.2853, -7.1884, 17.5443]
+    # test = [958.52, -35.709, -164.944, -165.287, -7.172, 17.5178]
 
     # Cariten space
     # Real speed = speed * 0.1 mm/s
     # status = udp.ServoMH(1)
-    # status = udp.moveCoordinateMH(2,1, 200, 17, GoalEnd)
+    # status = udp.moveCoordinateMH(2,1, 200, 17, test)
     # print(status)
 
     # Point to Point
@@ -1562,38 +1581,55 @@ if __name__ == "__main__":
     # # status = udp.ServoMH(1)
     # udp.moveJointSapceMH(1, 1, 100, ORG)
 
-"""
-cmdTime test
-"""
-cmdtimeData = np.zeros((100))
-for i in range(100):
-    b = Time.ReadNowTime()
-    
-    
-    firstAddress  = 0
-    Number = 9
-    data = [0, 1, 2, 3, 4, 5, 6, 7, 8]
-    status = udp.multipleWriteVar(firstAddress, Number, data)
+    """
+    cmdTime test
+    """
+    # cmdtimeData = np.zeros((100))
+    # for i in range(100):
+    #     b = Time.ReadNowTime()
+        
+        
+    #     # result, coordinate = udp.getcoordinateMH(101)
+    #     # # print(coordinate)
 
-    a = Time.ReadNowTime()
-    cmdTime = Time.TimeError(b,a)
-    print(cmdTime["millisecond"], "毫秒")
-    dB.Save_time(cmdTime["millisecond"], "Experimental_data/cmdTime/multipleWriteVar/multipleWriteVar_cmdTime_n9.csv")
-    cmdtimeData[i] = cmdTime["millisecond"]
+    #     # status = udp.ReadVar("Integer", 0)
+    #     # # print(status)
 
-# 计算最大值
-max_val = np.max(cmdtimeData)
+    #     firstAddress  = 0
+    #     Number = 9
+    #     data = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+    #     status = udp.multipleWriteVar(firstAddress, Number, data)
 
-# 计算最小值
-min_val = np.min(cmdtimeData)
+    #     data = {'0':[17, 4, 5, 0, 958.535, -37.777, -104.713, -165.2944, -7.1707, 17.5149],
+    #             '1':[17, 4, 5, 0, 959.535, -37.777, -104.713, -165.2944, -7.1707, 17.5149],
+    #             '2':[17, 4, 5, 0, 960.535, -37.777, -104.713, -165.2944, -7.1707, 17.5149],
+    #             '3':[17, 4, 5, 0, 961.535, -37.777, -104.713, -165.2944, -7.1707, 17.5149],
+    #             '4':[17, 4, 5, 0, 962.535, -37.777, -104.713, -165.2944, -7.1707, 17.5149],
+    #             '5':[17, 4, 5, 0, 963.535, -37.777, -104.713, -165.2944, -7.1707, 17.5149],
+    #             '6':[17, 4, 5, 0, 964.535, -37.777, -104.713, -165.2944, -7.1707, 17.5149],
+    #             '7':[17, 4, 5, 0, 965.535, -37.777, -104.713, -165.2944, -7.1707, 17.5149],
+    #             '8':[17, 4, 5, 0, 966.535, -37.777, -104.713, -165.2944, -7.1707, 17.5149]}
+    #     status = udp.multipleWriteRPVar(36, 9, data)
 
-# 计算平均值
-mean_val = np.mean(cmdtimeData)
+    #     a = Time.ReadNowTime()
+    #     cmdTime = Time.TimeError(b,a)
+    #     print(cmdTime["millisecond"], "毫秒")
+    #     dB.Save_time(cmdTime["millisecond"], "Experimental_data/cmdTime/multipleWriteVar/multipleWriteVar_cmdTime_n9.csv")
+    #     cmdtimeData[i] = cmdTime["millisecond"]
 
-print("最大值:", max_val)
-print("最小值:", min_val)
-print("平均值:", mean_val)
-print("End")
+    # # 计算最大值
+    # max_val = np.max(cmdtimeData)
+
+    # # 计算最小值
+    # min_val = np.min(cmdtimeData)
+
+    # # 计算平均值
+    # mean_val = np.mean(cmdtimeData)
+
+    # print("最大值:", max_val)
+    # print("最小值:", min_val)
+    # print("平均值:", mean_val)
+    # print("End")
 
 
 # test

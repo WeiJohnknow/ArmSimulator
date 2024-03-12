@@ -683,7 +683,13 @@ class MotomanUDP:
         return data
         
     def multipleReadVar(self, firstAddress, Number):
-        """
+        """Multiple Read Variable
+        - Arg:
+            - firstAddress: 多筆資料的起始變數編號.
+            - Number: Number of data written (Maximum 9)
+            
+        - Return:
+            - Variable data.
         """
         Address_hex = hex(firstAddress)
 
@@ -717,7 +723,7 @@ class MotomanUDP:
         - Arg:
             - firstAddress: 多筆資料的起始變數編號.
             - Number: Number of data written (Maximum 9)
-            - data:
+            - data: [0, 1, 2, .....]
                 
             
         - Return:

@@ -607,6 +607,7 @@ class PathPlanning:
         # velData = np.diff(Euclidean_distance)
         velData = np.diff(Euclidean_distance)/sampleTime
         velData = np.insert(velData, 0, 0)
+        
             
         return TBuffer, velData, timeData
     

@@ -254,8 +254,8 @@ MatrixPlan+434 軌跡實驗(上機)
 #         filepath = "dataBase/MatrixPlan434_test/MatritPlan434_velocity.csv"
 #         velocityData = self.dB.Load(filepath)
 
-#         # 創建一個控制視窗
-#         # cv2.namedWindow('Control Motoman Window')
+        # 創建一個控制視窗
+        # cv2.namedWindow('Control Motoman Window')
 
 
 #         # 系統時間與軌跡節點
@@ -758,11 +758,13 @@ class MotomanControlUdp():
         """
         # Read I000 variable
         I0 = self.Udp.ReadVar("Integer", 0)
+        filePath = headerFile + "MatrixPlan_linear_result_I0.csv"
+        self.dB.Save_time(I0, filePath)
 
         # Read coordinate and save Pose data to dataBase.
         pos_result, coordinate = self.Udp.getcoordinateMH(101)
         header = ["X", "Y", "Z", "Rx", "Ry", "Rz", "time"]
-        filePath = headerFile + "MatrixPlan_liner.csv"
+        filePath = headerFile + "MatrixPlan_linear_result.csv"
         self.dB.Save_singleData_experiment(coordinate, sysTime, filePath, header)
 
         return coordinate, I0
@@ -802,16 +804,50 @@ class MotomanControlUdp():
         # 資料路徑標頭檔
         headerFile= "Experimental_data/20240312/"
         # 載入軌跡資料
-        PathData = self.dB.Load(headerFile + "MatrixPlan_liner_PoseMatrix.csv")
-        VelocityData = self.dB.Load(headerFile + "MatrixPlan_liner_velocity.csv")
+        PathData = self.dB.Load(headerFile + "MatrixPlan_linear_PoseMatrix.csv")
+        VelocityData = self.dB.Load(headerFile + "MatrixPlan_linear_velocity.csv")
+         
+
+        # Inital
+
+        # # 創建一個控制視窗
+        # cv2.namedWindow('Control Motoman Window')
+
+        # 刪除軌跡原始資料的第一筆
+        PathData = PathData.drop(PathData.index[0]).reset_index(drop=True)
+        VelocityData = VelocityData.drop(VelocityData.index[0]).reset_index(drop=True)
+        
+        # For loop parameter inital
+        firstAddress = 0
+        number = 2
+        I0, I1 = 0, 0
+        IData =[I0, I1]
+        Istatus = self.Udp.multipleWriteVar(firstAddress, number, IData)
+
+        # 焊接參數動態變更指令(初始值請填與ARCON指令一樣的參數)
+        """
+        AC:   I21
+        AVP : I22
+        """
+        firstAddress = 21
+        number = 2
+        I21, I22 = 40, 50
+        IData =[I21, I22]
+        Istatus = self.Udp.multipleWriteVar(firstAddress, number, IData)
 
         # 資料分批
         # 紀錄目前已送出的資料筆數
         dataCount = 0
 
         # I1為INFORM FOR外迴圈次數(要自行更改INFORM程式)
+        if len(PathData)/18 == 0.0:
+            I1 = len(PathData)//18
+            print("INFORM程式 I001 改0 to ", I1)
+        elif len(PathData)/18 > 0.0:
+            I1 = len(PathData)//18 + 1
+            print("INFORM程式 I001 改0 to ", I1)
+        
         I1 = len(PathData)//9 + 1
-        print("INFORM程式 I001 改0 to ", I1)
         
         # 分割軌跡資料(9筆歸為1批)
         RPdata = np.zeros((I1, 9, 6))
@@ -821,18 +857,18 @@ class MotomanControlUdp():
                 RPdata[layer, row, 0] = PathData["X"][RPdata_count]
                 RPdata[layer, row, 1] = PathData["Y"][RPdata_count]
                 RPdata[layer, row, 2] = PathData["Z"][RPdata_count]
-                RPdata[layer, row, 3] = PathData["Rx"][RPdata_count]
-                RPdata[layer, row, 4] = PathData["Ry"][RPdata_count]
-                RPdata[layer, row, 5] = PathData["Rz"][RPdata_count]
+                RPdata[layer, row, 3] = PathData["Rx"][RPdata_count]*10
+                RPdata[layer, row, 4] = PathData["Ry"][RPdata_count]*10
+                RPdata[layer, row, 5] = PathData["Rz"][RPdata_count]*10
                 RPdata_count += 1
         # 最後一筆資料因軌跡點數除不進，故需額外處理 
         for row in range(9):
             RPdata[-1, row, 0] = PathData["X"][RPdata_count]
             RPdata[-1, row, 1] = PathData["Y"][RPdata_count]
             RPdata[-1, row, 2] = PathData["Z"][RPdata_count]
-            RPdata[-1, row, 3] = PathData["Rx"][RPdata_count]
-            RPdata[-1, row, 4] = PathData["Ry"][RPdata_count]
-            RPdata[-1, row, 5] = PathData["Rz"][RPdata_count]
+            RPdata[-1, row, 3] = PathData["Rx"][RPdata_count]*10
+            RPdata[-1, row, 4] = PathData["Ry"][RPdata_count]*10
+            RPdata[-1, row, 5] = PathData["Rz"][RPdata_count]*10
             if RPdata_count == len(PathData)-1:
                  RPdata_count = len(PathData)-1
             else:
@@ -856,7 +892,9 @@ class MotomanControlUdp():
         Veldata = Veldata.astype(int)
 
         # # 預寫入首18筆資料   
+        # firstAddress_ = 2
         # for layer in range(2):
+            
         #     RPdataBuffer = {'0':[17, 4, 5, 0, RPdata[layer][0][0], RPdata[layer][0][1], RPdata[layer][0][2], RPdata[layer][0][3], RPdata[layer][0][4], RPdata[layer][0][5]],
         #                     '1':[17, 4, 5, 0, RPdata[layer][1][0], RPdata[layer][1][1], RPdata[layer][1][2], RPdata[layer][1][3], RPdata[layer][1][4], RPdata[layer][1][5]],
         #                     '2':[17, 4, 5, 0, RPdata[layer][2][0], RPdata[layer][2][1], RPdata[layer][2][2], RPdata[layer][2][3], RPdata[layer][2][4], RPdata[layer][2][5]],
@@ -867,7 +905,7 @@ class MotomanControlUdp():
         #                     '7':[17, 4, 5, 0, RPdata[layer][7][0], RPdata[layer][7][1], RPdata[layer][7][2], RPdata[layer][7][3], RPdata[layer][7][4], RPdata[layer][7][5]],
         #                     '8':[17, 4, 5, 0, RPdata[layer][8][0], RPdata[layer][8][1], RPdata[layer][8][2], RPdata[layer][8][3], RPdata[layer][8][4], RPdata[layer][8][5]]}
         #     # Write #RP002 - #RP20
-        #     RPstatus = self.Udp.multipleWriteRPVar(dataCount, 9, RPdataBuffer)
+        #     RPstatus = self.Udp.multipleWriteRPVar(firstAddress_, 9, RPdataBuffer)
         
         #     # Write #I002 - #I020
         #     VelDataBuffer =[Veldata[layer, 0], 
@@ -879,10 +917,11 @@ class MotomanControlUdp():
         #                     Veldata[layer, 6], 
         #                     Veldata[layer, 7], 
         #                     Veldata[layer, 8]]
-        #     Istatus = self.Udp.multipleWriteVar(dataCount, 9, VelDataBuffer)
-        #     dataCount +=9
+        #     Istatus = self.Udp.multipleWriteVar(firstAddress_, 9, VelDataBuffer)
+        #     firstAddress_+=9
+        #     dataCount +=1
 
-        # 預寫入首9筆資料   
+        #預寫入首9筆資料   
         RPdataBuffer = {'0':[17, 4, 5, 0, RPdata[0][0][0], RPdata[0][0][1], RPdata[0][0][2], RPdata[0][0][3], RPdata[0][0][4], RPdata[0][0][5]],
                         '1':[17, 4, 5, 0, RPdata[0][1][0], RPdata[0][1][1], RPdata[0][1][2], RPdata[0][1][3], RPdata[0][1][4], RPdata[0][1][5]],
                         '2':[17, 4, 5, 0, RPdata[0][2][0], RPdata[0][2][1], RPdata[0][2][2], RPdata[0][2][3], RPdata[0][2][4], RPdata[0][2][5]],
@@ -893,7 +932,7 @@ class MotomanControlUdp():
                         '7':[17, 4, 5, 0, RPdata[0][7][0], RPdata[0][7][1], RPdata[0][7][2], RPdata[0][7][3], RPdata[0][7][4], RPdata[0][7][5]],
                         '8':[17, 4, 5, 0, RPdata[0][8][0], RPdata[0][8][1], RPdata[0][8][2], RPdata[0][8][3], RPdata[0][8][4], RPdata[0][8][5]]}
         # Write #RP002 - #RP20
-        RPstatus = self.Udp.multipleWriteRPVar(dataCount, 9, RPdataBuffer)
+        RPstatus = self.Udp.multipleWriteRPVar(2, 9, RPdataBuffer)
     
         # Write #I002 - #I020
         VelDataBuffer =[Veldata[0, 0], 
@@ -905,7 +944,7 @@ class MotomanControlUdp():
                         Veldata[0, 6], 
                         Veldata[0, 7], 
                         Veldata[0, 8]]
-        Istatus = self.Udp.multipleWriteVar(dataCount, 9, VelDataBuffer)
+        Istatus = self.Udp.multipleWriteVar(2, 9, VelDataBuffer)
         dataCount +=1
 
         # 系統時間與軌跡節點
@@ -917,6 +956,10 @@ class MotomanControlUdp():
     
         # 系統時間初始化flag
         sysflag = True
+        # 最後一筆資料複寫
+        finalDataFlag = True
+        # 變更焊接參數旗標
+        ChangWPFlag = True
 
         while True:
             singlelooptime1 = self.Time.ReadNowTime()
@@ -936,26 +979,60 @@ class MotomanControlUdp():
 
             # 命令執行區
             coordinate, I0 = self.NormalCmd(sysTime, headerFile)
+            
+
+            # # test
+            # # cv鍵盤事件
+            # key = cv2.waitKey(1) & 0xFF
+            # if key == ord('w'):  # 27是'ESC'鍵的ASCII碼
+            #     I0 = 2
+            # elif key == ord('s'):
+            #     I0 = 11
+
 
             """
             * 變數區間:
             1. I02 - I10
             2. I11 - I19
             """
-            if I0 == 2:
+            
+
+            if I0 == [3] and finalDataFlag is True:
                 firstAddress = 11
                 # 更新DX200 RP、Int變數
                 self.ConditionCmd(firstAddress, RPdata[dataCount], Veldata[dataCount])
                 dataCount += 1
-            elif I0 == 11:
+                
+            elif I0 == [11] and finalDataFlag is True:
                 firstAddress = 2
                 # 更新DX200 RP、Int變數
                 self.ConditionCmd(firstAddress, RPdata[dataCount], Veldata[dataCount])
                 dataCount += 1
+
             
-            if dataCount == I1:
-                print("實驗結束")
-                break
+            if dataCount == int(I1/2) and ChangWPFlag is True:
+                """
+                AC:   I21
+                AVP : I22
+                """
+                firstAddress = 21
+                number = 2
+                I21, I22 = 50, 50
+                IData =[I21, I22]
+                Istatus = self.Udp.multipleWriteVar(firstAddress, number, IData)
+                print("變更焊接參數AC: ", I21, "AVP: ", I22)
+                ChangWPFlag = False
+            
+            if dataCount == I1 and finalDataFlag is True:
+                print("軌跡實驗結束")
+                # 將剩下的資料都填完同一點
+                if firstAddress == 2:
+                    firstAddress = 11
+                else:
+                    firstAddress = 2
+                self.ConditionCmd(firstAddress, RPdata[-1], Veldata[-1])
+                finalDataFlag = False
+                
             #####################################################################################################################################
             singlelooptime2 = self.Time.ReadNowTime()
             singleloopCosttime = self.Time.TimeError(singlelooptime1, singlelooptime2)
@@ -965,7 +1042,9 @@ class MotomanControlUdp():
              
 if __name__ == "__main__":
     MotomanControlUdp().main()
-
+    # # 釋放資源
+    # cv2.destroyAllWindows()
+    
 
     
     

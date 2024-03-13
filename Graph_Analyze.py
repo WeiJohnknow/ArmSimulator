@@ -1088,8 +1088,8 @@ if __name__ == "__main__" :
     # Time_file =    "Experimental_data/20240129/13_3mms/timeEL.csv"
     # calculate_distance_speed(PoseMat_file, Time_file, 0.04)
 
-    PoseMat_file = "Experimental_data/20240311/Teach_mode_Multi_Trajectory_No_welding.csv"
-    Time_file =    "Experimental_data/20240311/No_welding_time.csv"
+    PoseMat_file = "Experimental_data/20240312/result/ReviseData/MatrixPlan_linear_result_Welding_changAC_40to50.csv"
+    Time_file =    "Experimental_data/20240312/result/ReviseData/MatrixPlan_linear_result_Welding_changAC_40to50_time.csv"
 
     calculate_distance_speed(PoseMat_file, Time_file, 0.04)
 

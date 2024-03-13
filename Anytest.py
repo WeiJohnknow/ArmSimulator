@@ -1657,9 +1657,18 @@ class繼承實作
 #     print(dict[str(i)][0])
 #     print(dict[f'{i}'][0])
 
-a = np.ones((5))
-for i in range(len(a)):
-        a[i] = i
-print(a)
-a = a.astype(int)  # 將 a 陣列中的元素型別轉換為整數
+# a = np.ones((5))
+# for i in range(len(a)):
+#         a[i] = i
+# print(a)
+# a = a.astype(int)  # 將 a 陣列中的元素型別轉換為整數
+# print(a)
+
+import numpy as np
+
+a = np.array([1, 2, 3, 4, 5])  # 假設這是你的陣列
+
+# 刪除第一個元素
+a = a[1:]
+
 print(a)

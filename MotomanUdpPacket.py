@@ -719,7 +719,7 @@ class MotomanUDP:
         return var
     
     def multipleWriteVar(self, firstAddress:int, Number:int, data:list):
-        """Multiple Write Variable
+        """Multiple Write Variable(Integer)
         - Arg:
             - firstAddress: 多筆資料的起始變數編號.
             - Number: Number of data written (Maximum 9)
@@ -1436,7 +1436,7 @@ if __name__ == "__main__":
     # 最大值: 12.0
     # 最小值: 3.0
     # 平均值: 6.37
-    # status = udp.ReadRPVar(6)
+    # status = udp.ReadRPVar(21)
     # print(status)
 
     # 單筆變數寫入(Robot Position)
@@ -1454,7 +1454,7 @@ if __name__ == "__main__":
     # 最小值: 5.0
     # 平均值: 7.31
     # varType = "Integer"
-    # address = 1
+    # address = 0
     # status = udp.ReadVar(varType, address)
     # print(status)
 

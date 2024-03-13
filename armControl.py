@@ -53,7 +53,7 @@ class armControl(Simulator):
         Goal = [958.525, -18.527, -164.933, -165.2873, -7.1725, 17.5181]
 
         # Trajectory total time(second)
-        alltime = 80
+        alltime = 8
 
         # Sample time(second)
         sampleTime = 0.04
@@ -66,21 +66,22 @@ class armControl(Simulator):
 
         # 軌跡規劃演算法
         pathData, velData, timeData = self.Plan.MatrixPathPlanning(GoalEnd, NowEnd, alltime, sampleTime)
+        print("最大速度: ", np.max(velData))
         # pathData, velData, timeData = self.Plan.MatrixPath434(GoalEnd, NowEnd, alltime, sampleTime)
         # pathData, timeData = self.Plan.MatrixPath_Scurve(GoalEnd, NowEnd, sampleTime)
 
         # 存入軌跡資料
         # filePath = "dataBase/MartixPlan434_Exp_weld_seam_10cm/sampleTime_40ms/MatritPlan434.csv"
-        filePath = header_filePath + "MatrixPlan_liner.csv"
+        filePath = header_filePath + "MatrixPlan_linear.csv"
         self.dB.saveMatrix4x4(pathData, timeData, "w", filePath)
 
         # 存入速度資料
         # filePath = "dataBase/MartixPlan434_Exp_weld_seam_10cm/sampleTime_40ms/MatritPlan434_velocity.csv"
-        filePath = header_filePath + "MatrixPlan_liner_velocity.csv"
+        filePath = header_filePath + "MatrixPlan_linear_velocity.csv"
         self.dB.saveVelocity(velData, "w", filePath)
 
         # 載入軌跡資料
-        filePath = header_filePath + "MatrixPlan_liner.csv"
+        filePath = header_filePath + "MatrixPlan_linear.csv"
         _, pathData_df, pathData_np4x4, pathData_np6x1 = self.dB.LoadMatrix4x4(filePath)
 
         # 計算逆向運動學
@@ -90,12 +91,12 @@ class armControl(Simulator):
             
 
         # 儲存關節角度
-        filePath = header_filePath + "MatrixPlan_liner_JointAngle.csv"
+        filePath = header_filePath + "MatrixPlan_linear_JointAngle.csv"
         # filePath = "dataBase/MartixPlan434_Exp_weld_seam_10cm/sampleTime_40ms/MatritPlan434_JointAngle.csv"
         self.dB.saveJointAngle(path_JointAngle, "w", filePath)
 
         # 儲存姿態矩陣
-        filePath = header_filePath + "MatrixPlan_liner_PoseMatrix.csv"
+        filePath = header_filePath + "MatrixPlan_linear_PoseMatrix.csv"
         # filePath = "dataBase/MartixPlan434_Exp_weld_seam_10cm/sampleTime_40ms/MatritPlan434_PoseMatrix.csv"
         self.dB.savePoseMatrix(pathData_np6x1, "w", filePath)
 

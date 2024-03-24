@@ -528,7 +528,7 @@ class Simulator:
         startTime = 0
 
         # 線性插值版本
-        pathData, timeData = self.Plan.MatrixPathPlanning( GoalEnd, NowEnd, alltime, sampleTime)
+        pathData, velData, timeData = self.Plan.MatrixPathPlanning( GoalEnd, NowEnd, alltime, sampleTime)
         self.dB.saveMatrix4x4(pathData, timeData, "w", "dataBase\MatrixPathPlanning.csv")
         # self.dB.Save(pathData, timeData,"dataBase\MatrixPathPlanning.csv")
         # self.Plan.QuaternionsInterpolation(GoalEnd, NowEnd, 5)

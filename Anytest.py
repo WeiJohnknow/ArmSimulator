@@ -1664,11 +1664,223 @@ class繼承實作
 # a = a.astype(int)  # 將 a 陣列中的元素型別轉換為整數
 # print(a)
 
-import numpy as np
+# import numpy as np
 
-a = np.array([1, 2, 3, 4, 5])  # 假設這是你的陣列
+# a = np.array([1, 2, 3, 4, 5])  # 假設這是你的陣列
 
-# 刪除第一個元素
-a = a[1:]
+# # 刪除第一個元素
+# a = a[1:]
 
-print(a)
+# print(a)
+
+"""
+CSV同時讀/寫實驗
+結果: 可以
+讀與寫要有一個微小時間差 先寫後讀
+"""
+# import threading
+# import time
+# from dataBase import dataBase
+
+
+# def write(counter):
+#     dB.Save_time(counter, "test.csv")
+#     print("寫: ", counter)
+    
+# def read(counter):
+#     result = dB.Load("test.csv")
+#     print(f"讀{counter}: ", result["Time"][counter])
+    
+
+# if __name__ == "__main__":
+#     dB = dataBase()
+#     controlSignal = False
+#     counter = 0
+#     # dB.Save_time(counter, "test.csv")
+#     while True:
+#         counter+=1
+#         # 創建線程
+#         thread1 = threading.Thread(target=write, args=(counter,))
+#         thread2 = threading.Thread(target=read, args=(counter,))
+#         # 啟動線程
+#         thread1.start()
+#         thread2.start()
+#         # 等待線程結束
+#         thread1.join()
+#         thread2.join()
+#         print("test")
+
+#         if counter == 10:
+#             break
+
+"""
+雙執行緒應變處理架構實驗
+"""
+import threading
+import time
+import pygame
+from Toolbox import TimeTool
+from dataBase import dataBase
+
+
+def Trajectoryplan():
+    global data, threadClose
+    
+    threadRunning = True
+    count = 1
+    while threadRunning:
+        data += count
+        time.sleep(0.02)
+        if threadClose is False or data >= 100:
+            threadRunning = False
+    print("--------------------------------------------------------------計算完成----------------------------------------------------------")
+
+def main():
+    # 初始化Pygame
+    pygame.init()
+    # 设置屏幕大小，但不需要显示窗口
+    screen = pygame.display.set_mode((400, 300))
+
+    # data = dB.Load("test.csv")
+    global data, threadClose
+    data = 0
+    threadClose = True
+    
+    mainRunning = True
+    while mainRunning:
+        b = Time.ReadNowTime()
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_p:
+                    print("--------------------------------------------------------------重新規劃軌跡----------------------------------------------------------")
+                    # 創建線程
+                    threadClose = True
+                    planThread = threading.Thread(target=Trajectoryplan)
+                    planThread.start()
+                    # planThread.join()
+                elif event.key == pygame.K_e:
+                    threadClose = False
+                    data = 0
+                    
+                elif event.key == pygame.K_q:
+                    # Main loop end
+                    # threadClose = False
+                    time.sleep(0.01)
+                    mainRunning = False
+
+            elif event.type == pygame.QUIT:
+                mainRunning = False
+        #----------------------------------Main-------------------------------------------
+        print(data)
+        
+        pygame.time.wait(1)
+        a = Time.ReadNowTime()
+        err = Time.TimeError(b, a)
+        print(err["millisecond"])
+        
+
+if __name__ == "__main__":
+    dB = dataBase()
+    Time = TimeTool()
+    main()
+    controlSignal = False
+    counter = 0
+    
+"""
+pygame 鍵盤事件(可比cv2快速處理)
+"""
+# import pygame
+# from Toolbox import TimeTool
+
+# Time = TimeTool()
+# # 初始化Pygame
+# pygame.init()
+
+# # 设置屏幕大小，但不需要显示窗口
+# screen = pygame.display.set_mode((400, 300))
+# # pygame.display.iconify()
+
+# # 允许 Pygame 捕获键盘事件
+# # pygame.event.set_grab(True)
+
+# # 循环检测键盘事件
+# running = True
+# while running:
+#     # 解除鼠标锁定
+#     # pygame.event.set_grab(False)
+#     b = Time.ReadNowTime()
+
+#     """
+#     pygame.event.get(): 用於單次觸發
+#     pygame.key.get_pressed(): 用於連續觸發
+#     """
+#     for event in pygame.event.get():
+#         if event.type == pygame.KEYDOWN:
+#             if event.key == pygame.K_y:
+#                 print("按下 'y' 键")
+#             elif event.key == pygame.K_u:
+#                 print("按下 'u' 键")
+#             elif event.key == pygame.K_q:
+#                 running = False
+#         elif event.type == pygame.QUIT:
+#             running = False
+
+    
+#     keys = pygame.key.get_pressed()
+    
+#     # 觀察者視角移動
+#     if keys[pygame.K_a]:
+#         print("按下 'a' 键")
+#     elif keys[pygame.K_d]:
+#         print("按下 'd' 键")
+#     elif keys[pygame.K_w]:
+#         print("按下 'w' 键")
+#     elif keys[pygame.K_s]:
+#         print("按下 's' 键")
+    
+
+#     # 处理窗口事件以确保事件被正确处理
+#     # pygame.event.pump()
+    
+#     pygame.display.flip()
+#     pygame.time.wait(1)
+#     a = Time.ReadNowTime()
+#     err = Time.TimeError(b, a)
+#     print(err["millisecond"])
+
+"""
+cv2鍵盤事件
+"""
+# import cv2
+# from Toolbox import TimeTool
+
+# Time = TimeTool()
+# # 建立一個空視窗
+# cv2.namedWindow('Empty Window')
+
+
+    
+
+# while True:
+#     b = Time.ReadNowTime()
+
+#     key = cv2.waitKey(1) & 0xFF
+#     if key != 255:  # 检查是否有按键按下
+#         if key == ord('q'):
+#             print("按下q鍵")
+#         elif key == ord('r'):
+#             print("按下r鍵")
+#         elif key == ord('t'):
+#             print("按下t鍵")
+#         elif key == ord('y'):
+#             print("按下y鍵")
+
+#     a = Time.ReadNowTime()
+#     err = Time.TimeError(b, a)
+#     print(err["millisecond"])
+
+
+# 關閉視窗
+# cv2.destroyAllWindows()
+
+

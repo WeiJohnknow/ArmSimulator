@@ -1,11 +1,14 @@
 import numpy as np
 from Matrix import *
 import sys
+from Toolbox import TimeTool
+from dataBase import dataBase
 
 
 class Kinematics:
     def __init__(self):
-        pass
+        self.Time = TimeTool() 
+        self.dB = dataBase()
 
     def Normdeg(self,Mat):
         for i in range(6):
@@ -454,6 +457,7 @@ class Kinematics:
             - Goal_4x4: 目標點之齊次變換矩陣
             - θ_Buffer: 此時此刻之關節角度
         """
+        # b = self.Time.ReadNowTime()
         World_Point = np.eye(4)
         
         Jbuffer = 0
@@ -512,27 +516,28 @@ class Kinematics:
             print("SVD =  0, 是奇異點")
 
 
-        print("iter :", 10-iter)
+        # print("iter :", 10-iter)
         normθ = self.Normdeg(θ_Buffer)
-        print(normθ)
-        print("error " , error)
+        # print(normθ)
+        # print("error " , error)
 
         if error  > 0.001:
             sys.exit("IK迭代誤差過大")
         if normθ[0,0] > d2r(170) or normθ[0,0] < d2r(-170):
             sys.exit("S軸超過角度限制")
-        if normθ[1,0] >= d2r(155) or normθ[1,0] < d2r(-90):
+        elif normθ[1,0] >= d2r(155) or normθ[1,0] < d2r(-90):
             sys.exit("L軸超過角度限制")
-        if normθ[2,0] > d2r(240) or normθ[2,0] < d2r(-84.995):
+        elif normθ[2,0] > d2r(240) or normθ[2,0] < d2r(-84.995):
             sys.exit("U軸超過角度限制")
-        if normθ[3,0] > d2r(150) or normθ[3,0] < d2r(-150):
+        elif normθ[3,0] > d2r(150) or normθ[3,0] < d2r(-150):
             sys.exit("R軸超過角度限制")
-        if normθ[4,0] > d2r(90) or normθ[4,0] < d2r(-135):
+        elif normθ[4,0] > d2r(90) or normθ[4,0] < d2r(-135):
             sys.exit("B軸超過角度限制")
-        if normθ[5,0] > d2r(210) or normθ[5,0] < d2r(-210):
+        elif normθ[5,0] > d2r(210) or normθ[5,0] < d2r(-210):
             sys.exit("T軸超過角度限制")
 
-            
+        # a = self.Time.ReadNowTime()
+        # err = self.Time.TimeError(b, a)
 
         return normθ
 

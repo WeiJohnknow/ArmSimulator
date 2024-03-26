@@ -303,6 +303,14 @@ class dataBase:
             return path_dict, path_df, path_np_4X4, path_np_6X1
         else:
             print("None")
+    
+    def Mat4x4ToPoseMat(self, trajectoryData):
+        """Conversion between homogeneous matrix and pose matrix
+        - 
+        """
+        dataShape = trajectoryData.shape
+        for layer in range(dataShape[0]):
+            poseMat = self.Mat.MatToAngle(trajectoryData[layer])
 
     def LoadJointAngle(self, filePath):
         """Load JointAngle.csv file and it dtype transform
@@ -326,7 +334,6 @@ class dataBase:
         
 
 
-    
 
 # if __name__ == '__main__':
 #     db = database()

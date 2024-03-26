@@ -1,14 +1,23 @@
 from SimulatorV2 import Simulator
-from dataBase import dataBase
+from dataBase_v0 import dataBase
 from Matrix import Matrix4x4
 from PathPlanning import PathPlanning
 import numpy as np
+
+from dataBase_v1 import *
 
 
 class armControl(Simulator):
     def __init__(self):
         super().__init__()
+        
         pass
+
+    def trajectoryGen():
+        """輸入參數並產生軌跡
+        - Args: NowEnd、GoalEnd
+        - Retuen: JointAngle
+        """
     
     def generateTrajectory(self):
         d2r = np.deg2rad
@@ -43,7 +52,8 @@ class armControl(Simulator):
         """
 
         # File Path parameter
-        header_filePath = "Experimental_data/20240312/"
+        # header_filePath = "Experimental_data/20240312/"
+        header_filePath = "dataBase/"
         
         # Set Now and Goal Point
         # NowData: {'dataType': 16, 'Form': 4, 'Toolnumber': 0, 'UserCoordinate': 0}
@@ -72,36 +82,47 @@ class armControl(Simulator):
 
         # 存入軌跡資料
         # filePath = "dataBase/MartixPlan434_Exp_weld_seam_10cm/sampleTime_40ms/MatritPlan434.csv"
-        filePath = header_filePath + "MatrixPlan_linear.csv"
-        self.dB.saveMatrix4x4(pathData, timeData, "w", filePath)
+        # filePath = header_filePath + "MatrixPlan_linear.csv"
+        filePath = header_filePath + "test0326_mat4x4.csv"
+        # self.dB.saveMatrix4x4(pathData, timeData, "w", filePath)
+        database_HomogeneousMat.Save(pathData, timeData, filePath, "w")
+        HomogeneousMat = database_HomogeneousMat.Load(filePath)
+        PoseMat = database_PoseMat.HomogeneousMatToPoseMat(HomogeneousMat)
+        database_PoseMat.Save(PoseMat, header_filePath + "test0326_Posemat.csv", "w")
+        PoseMatData = database_PoseMat.Load(header_filePath + "test0326_Posemat.csv")
 
         # 存入速度資料
         # filePath = "dataBase/MartixPlan434_Exp_weld_seam_10cm/sampleTime_40ms/MatritPlan434_velocity.csv"
-        filePath = header_filePath + "MatrixPlan_linear_velocity.csv"
-        self.dB.saveVelocity(velData, "w", filePath)
+        # filePath = header_filePath + "MatrixPlan_linear_velocity.csv"
+        # self.dB.saveVelocity(velData, "w", filePath)
+        database_Velocity.Save(velData, header_filePath + "test0.26_velocity.csv", "w")
+        VelocityData = database_Velocity.Load(header_filePath + "test0.26_velocity.csv")
 
         # 載入軌跡資料
-        filePath = header_filePath + "MatrixPlan_linear.csv"
-        _, pathData_df, pathData_np4x4, pathData_np6x1 = self.dB.LoadMatrix4x4(filePath)
+        # filePath = header_filePath + "MatrixPlan_linear.csv"
+        # _, pathData_df, pathData_np4x4, pathData_np6x1 = self.dB.LoadMatrix4x4(filePath)
+        HomogeneousMatData = database_HomogeneousMat.Load(header_filePath + "test0326_mat4x4.csv")
 
         # 計算逆向運動學
-        path_JointAngle = np.zeros((len(pathData_np4x4), 6, 1))
+        path_JointAngle = np.zeros((len(HomogeneousMatData), 6, 1))
         for i in range(len(path_JointAngle)):
-            path_JointAngle[i] = self.Kin.IK_4x4(pathData_np4x4[i], θ_Buffer)
+            path_JointAngle[i] = self.Kin.IK_4x4(HomogeneousMatData[i], θ_Buffer)
             
 
         # 儲存關節角度
-        filePath = header_filePath + "MatrixPlan_linear_JointAngle.csv"
+        # filePath = header_filePath + "MatrixPlan_linear_JointAngle.csv"
         # filePath = "dataBase/MartixPlan434_Exp_weld_seam_10cm/sampleTime_40ms/MatritPlan434_JointAngle.csv"
-        self.dB.saveJointAngle(path_JointAngle, "w", filePath)
+        # self.dB.saveJointAngle(path_JointAngle, "w", filePath)
+        database_JointAngle.Save(path_JointAngle, header_filePath + "test0326_JointAngle.csv", "w")
+        JointAngle = database_JointAngle.Load(header_filePath + "test0326_JointAngle.csv")
 
         # 儲存姿態矩陣
-        filePath = header_filePath + "MatrixPlan_linear_PoseMatrix.csv"
-        # filePath = "dataBase/MartixPlan434_Exp_weld_seam_10cm/sampleTime_40ms/MatritPlan434_PoseMatrix.csv"
-        self.dB.savePoseMatrix(pathData_np6x1, "w", filePath)
+        # filePath = header_filePath + "MatrixPlan_linear_PoseMatrix.csv"
+        # # filePath = "dataBase/MartixPlan434_Exp_weld_seam_10cm/sampleTime_40ms/MatritPlan434_PoseMatrix.csv"
+        # self.dB.savePoseMatrix(pathData_np6x1, "w", filePath)
 
-        return path_JointAngle, pathData_np4x4
-        
+        # return path_JointAngle, pathData_np4x4
+        return path_JointAngle, HomogeneousMat
         """
         現有路徑檔案模擬
         """

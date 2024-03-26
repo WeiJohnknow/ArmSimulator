@@ -110,10 +110,13 @@ class KeyBoard:
 
 import sys
 import cv2
+import pygame
+import threading
 import numpy as np
 # from MotomanUdpPacket import MotomanUDP
 from dataBase import dataBase
 from Toolbox import TimeTool
+
 
 class MotomanControlUdp():
     def __init__(self):
@@ -201,9 +204,12 @@ class MotomanControlUdp():
 
         firstAddress = 21
         number = 2
-        I21, I22 = 40, 50
-        IData =[I21, I22]
+        IData =[AC, AVP]
         # Istatus = self.Udp.multipleWriteVar(firstAddress, number, IData)
+        # if Istatus == []:
+        #     # return Is_success
+        # else:
+        #     # return Istatus
         
         # return Istatus
         
@@ -302,6 +308,11 @@ class MotomanControlUdp():
             Is_success = False
         
         return Is_success
+    
+    def dynamicTrjPlan():
+        """使用執行緒計算新軌跡資料，並實時傳輸給DX200
+        """
+        global newPathdata, newVeldata, threadClose
         
 
     def main(self):
@@ -359,8 +370,7 @@ class MotomanControlUdp():
         sysflag = True
         # 最後一筆資料複寫
         finalDataFlag = True
-        # 變更焊接參數旗標
-        ChangWPFlag = True
+
         #-------------------------------------------------------------------------------------------------
         while True:
             singlelooptime1 = self.Time.ReadNowTime()
@@ -382,11 +392,11 @@ class MotomanControlUdp():
             # coordinate, I0 = self.NormalCmd(sysTime, headerFile)
             
             """
+            通訊決策
             * 變數區間:
             1. I02 - I10
             2. I11 - I19
             """
-            
             if I0 == [3] and finalDataFlag is True:
                 # 起始變數位置
                 firstAddress = 11
@@ -403,18 +413,6 @@ class MotomanControlUdp():
                 # 將打包完的資料寫入DX200
                 Is_success = self.writeRPvarINTvar(firstAddress, RPpacket, Velpacket)
 
-            if dataCount == int(I1/2) and ChangWPFlag is True:
-                """
-                AC:   I21
-                AVP : I22
-                """
-                firstAddress = 21
-                number = 2
-                I21, I22 = 50, 50
-                IData =[I21, I22]
-                # Istatus = self.Udp.multipleWriteVar(firstAddress, number, IData)
-                print("變更焊接參數AC: ", I21, "AVP: ", I22)
-                ChangWPFlag = False
             
             if dataCount == I1 and finalDataFlag is True:
                 print("軌跡實驗結束")
@@ -427,7 +425,23 @@ class MotomanControlUdp():
                 Is_success = self.writeRPvarINTvar(firstAddress, RPpacket, Velpacket)
                 
                 finalDataFlag = False
-                
+            
+            for event in pygame.event.get():
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_u:
+                        """改銲接參數
+                        AC:   I21
+                        AVP : I22
+                        """
+                        AC = 50
+                        AVP = 50
+                        status = self.changeWeldingPartmeter(AC, AVP)
+
+                    elif event.key == pygame.K_p:
+                        # 創建線程
+                        threadClose = True
+                        planThread = threading.Thread(target=Trajectoryplan)
+                        planThread.start()
             #####################################################################################################################################
             singlelooptime2 = self.Time.ReadNowTime()
             singleloopCosttime = self.Time.TimeError(singlelooptime1, singlelooptime2)

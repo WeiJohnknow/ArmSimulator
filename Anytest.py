@@ -3,7 +3,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from dataBase import dataBase
+from dataBase_v0 import dataBase
 import os
 from Toolbox import TimeTool
 import time
@@ -1716,75 +1716,75 @@ CSV同時讀/寫實驗
 """
 雙執行緒應變處理架構實驗
 """
-import threading
-import time
-import pygame
-from Toolbox import TimeTool
-from dataBase import dataBase
+# import threading
+# import time
+# import pygame
+# from Toolbox import TimeTool
+# from dataBase import dataBase
 
 
-def Trajectoryplan():
-    global data, threadClose
+# def Trajectoryplan():
+#     global data, threadClose
     
-    threadRunning = True
-    count = 1
-    while threadRunning:
-        data += count
-        time.sleep(0.02)
-        if threadClose is False or data >= 100:
-            threadRunning = False
-    print("--------------------------------------------------------------計算完成----------------------------------------------------------")
+#     threadRunning = True
+#     count = 1
+#     while threadRunning:
+#         data += count
+#         time.sleep(0.02)
+#         if threadClose is False or data >= 100:
+#             threadRunning = False
+#     print("--------------------------------------------------------------計算完成----------------------------------------------------------")
 
-def main():
-    # 初始化Pygame
-    pygame.init()
-    # 设置屏幕大小，但不需要显示窗口
-    screen = pygame.display.set_mode((400, 300))
+# def main():
+#     # 初始化Pygame
+#     pygame.init()
+#     # 设置屏幕大小，但不需要显示窗口
+#     screen = pygame.display.set_mode((400, 300))
 
-    # data = dB.Load("test.csv")
-    global data, threadClose
-    data = 0
-    threadClose = True
+#     # data = dB.Load("test.csv")
+#     global data, threadClose
+#     data = 0
+#     threadClose = True
     
-    mainRunning = True
-    while mainRunning:
-        b = Time.ReadNowTime()
-        for event in pygame.event.get():
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_p:
-                    print("--------------------------------------------------------------重新規劃軌跡----------------------------------------------------------")
-                    # 創建線程
-                    threadClose = True
-                    planThread = threading.Thread(target=Trajectoryplan)
-                    planThread.start()
-                    # planThread.join()
-                elif event.key == pygame.K_e:
-                    threadClose = False
-                    data = 0
+#     mainRunning = True
+#     while mainRunning:
+#         b = Time.ReadNowTime()
+#         for event in pygame.event.get():
+#             if event.type == pygame.KEYDOWN:
+#                 if event.key == pygame.K_p:
+#                     print("--------------------------------------------------------------重新規劃軌跡----------------------------------------------------------")
+#                     # 創建線程
+#                     threadClose = True
+#                     planThread = threading.Thread(target=Trajectoryplan)
+#                     planThread.start()
+#                     # planThread.join()
+#                 elif event.key == pygame.K_e:
+#                     threadClose = False
+#                     data = 0
                     
-                elif event.key == pygame.K_q:
-                    # Main loop end
-                    # threadClose = False
-                    time.sleep(0.01)
-                    mainRunning = False
+#                 elif event.key == pygame.K_q:
+#                     # Main loop end
+#                     # threadClose = False
+#                     time.sleep(0.01)
+#                     mainRunning = False
 
-            elif event.type == pygame.QUIT:
-                mainRunning = False
-        #----------------------------------Main-------------------------------------------
-        print(data)
+#             elif event.type == pygame.QUIT:
+#                 mainRunning = False
+#         #----------------------------------Main-------------------------------------------
+#         print(data)
         
-        pygame.time.wait(1)
-        a = Time.ReadNowTime()
-        err = Time.TimeError(b, a)
-        print(err["millisecond"])
+#         pygame.time.wait(1)
+#         a = Time.ReadNowTime()
+#         err = Time.TimeError(b, a)
+#         print(err["millisecond"])
         
 
-if __name__ == "__main__":
-    dB = dataBase()
-    Time = TimeTool()
-    main()
-    controlSignal = False
-    counter = 0
+# if __name__ == "__main__":
+#     dB = dataBase()
+#     Time = TimeTool()
+#     main()
+#     controlSignal = False
+#     counter = 0
     
 """
 pygame 鍵盤事件(可比cv2快速處理)
@@ -1884,3 +1884,219 @@ cv2鍵盤事件
 # cv2.destroyAllWindows()
 
 
+"""
+staticmethod 靜態方法
+- 特點: 可以不實例化該類別，直接使用調用靜態方法。
+>> 不可變更類別的屬性與狀態，但可進行計算或資料傳輸。
+"""
+# class Person:
+
+#     @ staticmethod
+#     def run():
+#         print("跑步")
+#         return 10
+
+# # 實例化調用靜態方法
+# P = Person()
+# status = P.run()
+# print(status, "圈")
+
+# # 不實例化類別，直接調用方法
+# Person.run()
+
+"""
+classmethod 類別方法
+>> 1.存取類別方法，實例
+   2.類別方法，存取並改變類別變數，實例
+"""
+
+# # 類別方法，存取並改變類別變數，實例
+# class Math:
+#     pi = 3.14  # 圓周率(類別變數)
+
+#     @classmethod
+#     def calculate_circle_area(cls, radius):
+#         cls.pi = 4
+#         return cls.pi * (radius ** 2)
+    
+# # 原本的
+# print("原本的圓周率", Math.pi)
+# # 使用類別方法計算圓的面積
+# radius = 5
+# area = Math.calculate_circle_area(radius)
+# print("圓的面積:", area)  # 輸出: 圓的面積: 78.5
+
+# print("經過類別方法的圓周率", Math.pi)
+
+# 類別方法，存取類別方法，實例
+# class Calculator:
+#     @classmethod
+#     def add(cls, x, y):
+#         return x + y
+
+#     @classmethod
+#     def multiply(cls, x, y):
+#         # 在 multiply 方法中調用 add 方法
+#         product = 0
+#         for _ in range(y):
+#             product = cls.add(product, x)
+#         return product
+
+# # 使用類別方法進行計算
+# result = Calculator.multiply(3, 4)
+# print("3 * 4 =", result)  # 輸出: 3 * 4 = 12
+
+"""
+Abstract Method
+>> 
+1.需要由另一個類別繼承抽象類別才可進行實例化，抽象類別不能實例化。
+2.繼承抽象類別的其他類別，必須要實作抽象類別的抽象方法，否則一樣視為抽象方法。
+3.抽象類別可以當作介面來使用
+4.可用於實現物件導向中多形概念
+5.每次其他類繼承抽象類別，並使用抽象類別的方法時，都會覆寫(Method Overriding)父類的公同方法
+
+"""
+# from abc import ABC, abstractmethod
+# # 登入類別
+# class Login(ABC):
+#     @abstractmethod
+#     def login(self):
+#         pass
+
+# # Facebook登入機制
+# class FacebookLogin(Login):
+#     def login(self):
+#         print("Facebook login implementation.")
+
+# #Google登入機制
+# class GoogleLogin(Login):
+#     def login(self):
+#         print("Google login implementation.")
+
+# #Twitter登入機制
+# class TwitterLogin(Login):
+#     def login(self):
+#         print("Twitter login implementation.")
+
+# fb = FacebookLogin()
+# fb.login()
+# google = GoogleLogin()
+# google.login()
+# twitter = TwitterLogin()
+# twitter.login()
+
+# from abc import ABC, abstractmethod
+# import pandas as pd
+# import numpy as np
+# import os
+# import sys
+# from Toolbox import TimeTool
+# from Matrix import Matrix4x4
+# r2d = np.rad2deg
+
+# class Database_interface(ABC):
+#     @abstractmethod
+#     def Save(self, data):
+#         pass
+
+#     def Load(self, filePath):
+#         pass
+
+#     def dataframeToNdarray():
+#         pass
+
+# class database_HomogeneousMat(Database_interface):
+
+#     @ staticmethod
+#     def Save(data, filePath):
+#         print("將軌跡點以齊次矩陣形式儲存", data)
+
+#     @ staticmethod
+#     def dataframeToNdarray(dataFrame):
+#         """data type: dataframe conversion ndarray
+#         """
+#         dataShape = dataFrame.shape
+#         dataNdarray = np.zeros((dataShape[0], 4, 4))
+#         for layer in range(dataShape[0]):
+#                 dataNdarray[layer,0,0] = dataFrame['Xx'][layer]
+#                 dataNdarray[layer,1,0] = dataFrame['Xy'][layer]
+#                 dataNdarray[layer,2,0] = dataFrame['Xz'][layer]
+#                 dataNdarray[layer,3,0] = dataFrame
+#                 dataNdarray[layer,0,1] = dataFrame['Yx'][layer]
+#                 dataNdarray[layer,1,1] = dataFrame['Yy'][layer]
+#                 dataNdarray[layer,2,1] = dataFrame['Yz'][layer]
+#                 dataNdarray[layer,3,1] = dataFrame
+#                 dataNdarray[layer,0,2] = dataFrame['Zx'][layer]
+#                 dataNdarray[layer,1,2] = dataFrame['Zy'][layer]
+#                 dataNdarray[layer,2,2] = dataFrame['Zz'][layer]
+#                 dataNdarray[layer,3,2] = 0
+#                 dataNdarray[layer,0,3] = dataFrame['Px'][layer]
+#                 dataNdarray[layer,1,3] = dataFrame['Py'][layer]
+#                 dataNdarray[layer,2,3] = dataFrame['Pz'][layer]
+#                 dataNdarray[layer,3,3] = 1
+#         return dataNdarray
+#     @ staticmethod
+#     def Load(filePath):
+#         try:
+#             df = pd.read_csv(filePath)
+#             # TrajectoryData is ndarray
+#             TrajectoryData = database_HomogeneousMat.dataframeToNdarray(df)
+            
+#             return TrajectoryData
+
+#         except FileNotFoundError:
+#             print(f"找不到文件：{filePath}")
+#             return None
+
+    
+
+# class database_PoseMat(Database_interface):
+#     @ staticmethod
+#     def Save(data, filePath):
+#         print("將軌跡點以位姿矩陣形式儲存", data)
+    
+#     @ staticmethod
+#     def Load(self, filePath):
+#         print("將軌跡點以位姿矩陣形式載入", filePath)
+
+# class database_JointAngle(Database_interface):
+#     @ staticmethod
+#     def Save(self, data, filePath):
+#         print("將軌跡點以關節角度形式儲存", data)
+    
+#     @ staticmethod
+#     def Load(self, filePath):
+#         print("將軌跡點以關節角度形式載入", filePath)
+
+# class database_time(Database_interface):
+#     @ staticmethod
+#     def Save(self, data, filePath):
+#         print("將軌跡點以關節角度形式儲存", data)
+    
+#     @ staticmethod
+#     def Load(self, filePath):
+#         print("將軌跡點以關節角度形式載入", filePath)
+
+# class convertData():
+#     Mat = Matrix4x4()
+#     @staticmethod
+#     def HomogeneousMatToPoseMat(filePath):
+#         """
+#         - Args: trajectoryData(type: DataFrame)
+#         - Return: trajectoryData(type: ndarray)
+#         """
+#         pass
+
+
+# database_HomogeneousMat.Save(121514, "dataBase/test.csv")
+# database_HomogeneousMat.Load("dataBase/test.csv")
+
+from dataBase_v0 import *
+import matplotlib.pyplot as plt
+filePath = "dataBase/IK_itrationTime.csv"
+dB = dataBase()
+data = dB.Load(filePath)
+plt.plot(data)
+plt.title("Jacobian matrix iteration time")
+plt.ylabel('Cost time(ms)')
+plt.show()

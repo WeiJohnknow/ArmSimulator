@@ -18,69 +18,37 @@ df mode:
 
 class Database_interface(ABC):
     @abstractmethod
-    def Save(self, data):
+    def Save(data):
         pass
-
-    def Load(self, filePath):
+    
+    @abstractmethod
+    def Load(filePath):
         pass
 
 
 class database_HomogeneousMat(Database_interface):
-
     @ staticmethod
-    def Save(HomogeneousMatData, timeData, filePath, mode:str):
-        columns = ['Xx', 'Xy', 'Xz', '0', 'Yx', 'Yy', 'Yz', '0', 'Zx', 'Zy', 'Zz', '0', 'Px', 'Py', 'Pz', '1', 'time']
-        num_rows = HomogeneousMatData.shape[0]
-
-        # 預先指定DataFrame大小
-        df = pd.DataFrame(index=range(num_rows), columns=columns)
-
-        # 使用列表推倒式建構data list，不包括timeData
-        data_list = [np.concatenate([datum.T.ravel(), [0]]) for datum in HomogeneousMatData]
-
-        # 寫入csv
-        with open(filePath, mode) as f:
-            f.write(','.join(columns[:-1]) + '\n')  # 不包括time
-            for row in data_list:
-                f.write(','.join(map(str, row[:-1])) + '\n')  # 不包括time
-
+    def Save(HomogeneousMatData, filePath:str, mode:str):
+        """
+        - Args: PoseMatData(type: ndarray)(shape: 3D)
+        """
+        dataTypeConverter.ndarrayTOdataframe(HomogeneousMatData, ['Xx', 'Xy', 'Xz', '0', 'Yx', 'Yy', 'Yz', '0', 'Zx', 'Zy', 'Zz', '0', 'Px', 'Py', 'Pz', '1'], filePath, mode)
  
     @ staticmethod
-    def Load(filePath):
-        try:
-            df = pd.read_csv(filePath)
-            # TrajectoryData is ndarray
-            HomogeneousMat = typeConversion.HomogeneousMat_dataframeToNdarray(df)
-            return HomogeneousMat
+    def Load(filePath:str):
+        df = validator.Is_existence(filePath)
+        HomogeneousMat = dataTypeConverter.HomogeneousMat_dataframeToNdarray(df)
 
-        except FileNotFoundError:
-            print(f"找不到文件：{filePath}")
-            return None
+        return HomogeneousMat
 
 class database_PoseMat(Database_interface):
-    
     @ staticmethod
-    def Save(PoseMatData, filePath, mode:str):
+    def Save(PoseMatData, filePath:str, mode:str):
         """
-        PoseMatData(n*1*6)
+        - Args: PoseMatData(type: ndarray)(shape: 3D)
         """
-        columns = ['X', 'Y', 'Z', 'Rx', 'Ry', 'Rz']
-        
-        num_rows = PoseMatData.shape[0]
+        dataTypeConverter.ndarrayTOdataframe(PoseMatData, ['X', 'Y', 'Z', 'Rx', 'Ry', 'Rz'], filePath, mode)
 
-        # 預先指定DataFrame大小
-        df = pd.DataFrame(index=range(num_rows), columns=columns)
-
-        # 使用列表推倒式建構data list，不包括timeData
-        data_list = [datum.T.ravel() for datum in PoseMatData]
-
-        # 寫入csv
-        with open(filePath, mode) as f:
-            f.write(','.join(columns) + '\n')  
-            for row in data_list:
-                f.write(','.join(map(str, row)) + '\n')  
-    
-        
     @ staticmethod
     def HomogeneousMatToPoseMat(HomogeneousMat_ndarray):
         """
@@ -97,119 +65,92 @@ class database_PoseMat(Database_interface):
                         round(r2d(poseMat_[3]), 4), 
                         round(r2d(poseMat_[4]), 4), 
                         round(r2d(poseMat_[5]), 4)]
-            
         return poseMat
     
     @ staticmethod
-    def Load(filePath):
-        try:
-            df = pd.read_csv(filePath)
-            # TrajectoryData is ndarray
-            PoseMat_ndarry = typeConversion.PoseMatdataframeToNdarray(df)
-            
-            return PoseMat_ndarry
-
-        except FileNotFoundError:
-            print(f"找不到文件：{filePath}")
-            return None
+    def Load(filePath:str):
+        df = validator.Is_existence(filePath)
+        PoseMat_ndarry = dataTypeConverter.PoseMatdataframeToNdarray(df)
+        
+        return PoseMat_ndarry
 
 class database_Velocity():
     @ staticmethod
     def Save(VelocityData, filePath, mode: str):
-        columns = ["Velocity"]
-        num_rows = VelocityData.shape[0]
-
-        # 預先指定DataFrame大小
-        df = pd.DataFrame(index=range(num_rows), columns=columns)
-
-        # 使用列表推倒式建構data list，將速度數據填入
-        data_list = [datum.T.ravel() for datum in VelocityData]
-
-        # 寫入csv
-        with open(filePath, mode) as f:
-            f.write(','.join(columns) + '\n')  # 更新columns
-            for row in data_list:
-                f.write(','.join(map(str, row)) + '\n')
-
+        """
+        - Args: Velocity(type: ndarray)(shape: 2D) 
+        """
+        dataTypeConverter.ndarrayTOdataframe(VelocityData, ["Velocity"], filePath, mode)
+        
         
     def Load(filePath):
-        try:
-            df = pd.read_csv(filePath)
-            # TrajectoryData is ndarray
-            Velocity_ndarry = typeConversion.VelocitydataframeToNdarray(df)
-            
-            return Velocity_ndarry
-
-        except FileNotFoundError:
-            print(f"找不到文件：{filePath}")
-            return None
+        df = validator.Is_existence(filePath)
+        Velocity_ndarry = dataTypeConverter.VelocitydataframeToNdarray(df)
+        
+        return Velocity_ndarry
 
 class database_JointAngle(Database_interface):
     @ staticmethod
     def Save(JointAngleData, filePath, mode:str):
-        columns = ["S", "L", "U", "R", "B", "T"]
-        num_rows = JointAngleData.shape[0]
+        """
+        - Args: JointAngleData(type: ndarray)(shape: 2D) 
+        """
+        dataTypeConverter.ndarrayTOdataframe(JointAngleData, ["S", "L", "U", "R", "B", "T"], filePath, mode)
 
-        # 預先指定DataFrame大小
-        df = pd.DataFrame(index=range(num_rows), columns=columns)
-
-        # 使用列表推倒式建構data list，將速度數據填入
-        data_list = [datum.T.ravel() for datum in JointAngleData]
-
-        # 寫入csv
-        with open(filePath, mode) as f:
-            f.write(','.join(columns) + '\n')  # 更新columns
-            for row in data_list:
-                f.write(','.join(map(str, row)) + '\n')
-
-    
     @ staticmethod
     def Load(filePath):
-        try:
-            df = pd.read_csv(filePath)
-            # TrajectoryData is ndarray
-            JointAngle_ndarry = typeConversion.JointAngleDataframeToNdarray(df)
-            
-            return JointAngle_ndarry
+        df = validator.Is_existence(filePath)
+        JointAngle_ndarry = dataTypeConverter.JointAngleDataframeToNdarray(df)
 
-        except FileNotFoundError:
-            print(f"找不到文件：{filePath}")
-            return None
+        return JointAngle_ndarry
 
 class database_time(Database_interface):
     @ staticmethod
     def Save(Time, filePath, mode:str):
-        columns = ["Time"]
-        num_rows = Time.shape[0]
+        """
+        - Args: Time(type: ndarray)(shape: 2D) 
+        """
+        dataTypeConverter.ndarrayTOdataframe(Time, ["Time"], filePath, mode)
+
+    @ staticmethod
+    def Load(filePath):
+        df = validator.Is_existence(filePath)
+        Time_ndarry = dataTypeConverter.TimedataframeToNdarray(df)
+
+        return Time_ndarry
+
+class validator:
+    @staticmethod
+    def Is_existence(filePath):
+        """Verify file exists
+        """
+        if os.path.exists(filePath):
+            return pd.read_csv(filePath)
+        else:
+            sys.exit(f"找不到文件：{filePath}")
+
+class dataTypeConverter:
+    @ staticmethod
+    def ndarrayTOdataframe(data, columns:list, filePath:str, mode:str):
+        """Write ndarray into the database as dataframe type.
+        - Arg: ndarray
+        - Return: dataframe
+        """
+        columns = columns
+        num_rows = data.shape[0]
 
         # 預先指定DataFrame大小
         df = pd.DataFrame(index=range(num_rows), columns=columns)
 
         # 使用列表推倒式建構data list，將速度數據填入
-        data_list = [datum.T.ravel() for datum in Time]
+        data_list = [datum.T.ravel() for datum in data]
 
         # 寫入csv
         with open(filePath, mode) as f:
             f.write(','.join(columns) + '\n')  # 更新columns
             for row in data_list:
                 f.write(','.join(map(str, row)) + '\n')
-    
-    @ staticmethod
-    def Load(filePath):
-        try:
-            df = pd.read_csv(filePath)
-            # TrajectoryData is ndarray
-            Time_ndarry = typeConversion.TimedataframeToNdarray(df)
-            
-            return Time_ndarry
 
-        except FileNotFoundError:
-            print(f"找不到文件：{filePath}")
-            return None
-        TimedataframeToNdarray(dataframe)
-
-
-class typeConversion():
     @ staticmethod
     def HomogeneousMat_dataframeToNdarray(dataframe):
         """dataframe To Ndarray
@@ -237,6 +178,7 @@ class typeConversion():
             ndarray[layer,3,3] = 1
         return ndarray
     
+    
     @ staticmethod
     def PoseMatdataframeToNdarray(dataframe):
         """dataframe To Ndarray
@@ -252,6 +194,7 @@ class typeConversion():
             ndarray[layer,0,3] = dataframe['Rx'][layer]
             ndarray[layer,0,4] = dataframe['Ry'][layer]
             ndarray[layer,0,5] = dataframe['Rz'][layer]
+
         return ndarray
     
     @ staticmethod

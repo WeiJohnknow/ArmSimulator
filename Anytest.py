@@ -2091,12 +2091,49 @@ Abstract Method
 # database_HomogeneousMat.Save(121514, "dataBase/test.csv")
 # database_HomogeneousMat.Load("dataBase/test.csv")
 
-from dataBase_v0 import *
-import matplotlib.pyplot as plt
-filePath = "dataBase/IK_itrationTime.csv"
-dB = dataBase()
-data = dB.Load(filePath)
-plt.plot(data)
-plt.title("Jacobian matrix iteration time")
-plt.ylabel('Cost time(ms)')
-plt.show()
+# from dataBase_v0 import *
+# import matplotlib.pyplot as plt
+# filePath = "dataBase/IK_itrationTime.csv"
+# dB = dataBase()
+# data = dB.Load(filePath)
+# plt.plot(data)
+# plt.title("Jacobian matrix iteration time")
+# plt.ylabel('Cost time(ms)')
+# plt.show()
+
+"""
+重構資料庫測試
+"""
+
+from dataBase_v1 import *
+
+data1 = np.array([[999]])
+data6 = np.array([[10,56,33,78,106,99], [10,56,33,78,106,99]])
+data16 = np.array([[0.9461547750003523,0.298668255044473,0.12485357492968502,0.0,0.3213919563739074,-0.912805168919898,-0.2519800269292565,0.0,0.03870855360492394,0.2785390403907611,-0.9596445440140889,0.0,958.521,-37.126,-164.943,1.0], 
+                           [0.9461547750003523,0.298668255044473,0.12485357492968502,0.0,0.3213919563739074,-0.912805168919898,-0.2519800269292565,0.0,0.03870855360492394,0.2785390403907611,-0.9596445440140889,0.0,958.52296,-28.012489999999996,-164.9381,1.0]])
+
+filePath = "dataBase/test0329HomogeneousMat.csv"
+database_HomogeneousMat.Save(data16, filePath, "w")
+HomogeneousMat = database_HomogeneousMat.Load(filePath)
+
+PoseMat = database_PoseMat.HomogeneousMatToPoseMat(HomogeneousMat)
+
+filePath = "dataBase/test0329PoseMat.csv"
+database_PoseMat.Save(data6, filePath, "w")
+PoseMat = database_PoseMat.Load(filePath)
+
+filePath = "dataBase/test0329JointAngle.csv"
+database_JointAngle.Save(data6, filePath, "w")
+JointAngle = database_JointAngle.Load(filePath)
+
+filePath = "dataBase/test0329Time.csv"
+database_time.Save(data1, filePath, "w")
+Time = database_time.Load(filePath)
+
+filePath = "dataBase/test0329Velocity.csv"
+database_Velocity.Save(data1, filePath, "w")
+Velocity = database_Velocity.Load(filePath)
+
+print()
+
+

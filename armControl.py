@@ -9,16 +9,9 @@ from dataBase_v1 import *
 
 class armControl(Simulator):
     def __init__(self):
-        super().__init__()
-        
+        super().__init__()        
         pass
 
-    def trajectoryGen():
-        """輸入參數並產生軌跡
-        - Args: NowEnd、GoalEnd
-        - Retuen: JointAngle
-        """
-    
     def generateTrajectory(self):
         d2r = np.deg2rad
 

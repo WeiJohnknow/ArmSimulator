@@ -17,7 +17,6 @@ class Simulator:
         # 視窗大小
         self.display = (1000, 800)
 
-
         # 現實長度與OpenGL長度為1:0.01
         self.Unit = 1
 

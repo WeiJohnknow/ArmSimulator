@@ -1906,29 +1906,44 @@ staticmethod 靜態方法
 
 """
 classmethod 類別方法
->> 1.存取類別方法，實例
-   2.類別方法，存取並改變類別變數，實例
+>> 1.存取類別方法、類別變數(無法存取實例變數)
+   2.類別方法，存取並改變類別變數
 """
 
-# # 類別方法，存取並改變類別變數，實例
+# 類別方法，存取並改變類別變數，實例
 # class Math:
-#     pi = 3.14  # 圓周率(類別變數)
+#    # 圓周率(類別變數)
+#    pi = 3.14  
+#    def __init__(self):
+#       # 實例變數
+#       self.pi = 3.15
 
-#     @classmethod
-#     def calculate_circle_area(cls, radius):
-#         cls.pi = 4
-#         return cls.pi * (radius ** 2)
-    
+#    @classmethod
+#    def calculate_circle_area(cls, radius):
+#       # cls.pi = 4
+#       return cls.pi * (radius ** 2)
+   
+#    def variable_type(self, var_name, obj):
+#         if hasattr(obj, var_name):
+#             return "Instance variable" if var_name in obj.__dict__ else "Class variable"
+#         else:
+#             return "Local variable"
+   
+
+
 # # 原本的
-# print("原本的圓周率", Math.pi)
+# m = Math()
+
+
 # # 使用類別方法計算圓的面積
 # radius = 5
 # area = Math.calculate_circle_area(radius)
 # print("圓的面積:", area)  # 輸出: 圓的面積: 78.5
 
 # print("經過類別方法的圓周率", Math.pi)
+# print("經過類別方法後的實例類別屬性", m.pi)
 
-# 類別方法，存取類別方法，實例
+# # 類別方法，存取類別方法，實例
 # class Calculator:
 #     @classmethod
 #     def add(cls, x, y):
@@ -2105,35 +2120,78 @@ Abstract Method
 重構資料庫測試
 """
 
-from dataBase_v1 import *
+# from dataBase_v1 import *
 
-data1 = np.array([[999]])
-data6 = np.array([[10,56,33,78,106,99], [10,56,33,78,106,99]])
-data16 = np.array([[0.9461547750003523,0.298668255044473,0.12485357492968502,0.0,0.3213919563739074,-0.912805168919898,-0.2519800269292565,0.0,0.03870855360492394,0.2785390403907611,-0.9596445440140889,0.0,958.521,-37.126,-164.943,1.0], 
-                           [0.9461547750003523,0.298668255044473,0.12485357492968502,0.0,0.3213919563739074,-0.912805168919898,-0.2519800269292565,0.0,0.03870855360492394,0.2785390403907611,-0.9596445440140889,0.0,958.52296,-28.012489999999996,-164.9381,1.0]])
+# data1 = np.array([[999]])
+# data6 = np.array([[10,56,33,78,106,99], [10,56,33,78,106,99]])
+# data16 = np.array([[0.9461547750003523,0.298668255044473,0.12485357492968502,0.0,0.3213919563739074,-0.912805168919898,-0.2519800269292565,0.0,0.03870855360492394,0.2785390403907611,-0.9596445440140889,0.0,958.521,-37.126,-164.943,1.0], 
+#                            [0.9461547750003523,0.298668255044473,0.12485357492968502,0.0,0.3213919563739074,-0.912805168919898,-0.2519800269292565,0.0,0.03870855360492394,0.2785390403907611,-0.9596445440140889,0.0,958.52296,-28.012489999999996,-164.9381,1.0]])
 
-filePath = "dataBase/test0329HomogeneousMat.csv"
-database_HomogeneousMat.Save(data16, filePath, "w")
-HomogeneousMat = database_HomogeneousMat.Load(filePath)
+# filePath = "dataBase/test0329HomogeneousMat.csv"
+# database_HomogeneousMat.Save(data16, filePath, "w")
+# HomogeneousMat = database_HomogeneousMat.Load(filePath)
 
-PoseMat = database_PoseMat.HomogeneousMatToPoseMat(HomogeneousMat)
+# PoseMat = database_PoseMat.HomogeneousMatToPoseMat(HomogeneousMat)
 
-filePath = "dataBase/test0329PoseMat.csv"
-database_PoseMat.Save(data6, filePath, "w")
-PoseMat = database_PoseMat.Load(filePath)
+# filePath = "dataBase/test0329PoseMat.csv"
+# database_PoseMat.Save(data6, filePath, "w")
+# PoseMat = database_PoseMat.Load(filePath)
 
-filePath = "dataBase/test0329JointAngle.csv"
-database_JointAngle.Save(data6, filePath, "w")
-JointAngle = database_JointAngle.Load(filePath)
+# filePath = "dataBase/test0329JointAngle.csv"
+# database_JointAngle.Save(data6, filePath, "w")
+# JointAngle = database_JointAngle.Load(filePath)
 
-filePath = "dataBase/test0329Time.csv"
-database_time.Save(data1, filePath, "w")
-Time = database_time.Load(filePath)
+# filePath = "dataBase/test0329Time.csv"
+# database_time.Save(data1, filePath, "w")
+# Time = database_time.Load(filePath)
 
-filePath = "dataBase/test0329Velocity.csv"
-database_Velocity.Save(data1, filePath, "w")
-Velocity = database_Velocity.Load(filePath)
+# filePath = "dataBase/test0329Velocity.csv"
+# database_Velocity.Save(data1, filePath, "w")
+# Velocity = database_Velocity.Load(filePath)
 
-print()
+# print()
 
+import pygame
+import sys
 
+# 初始化Pygame
+pygame.init()
+
+# 設置畫面寬高
+screen_width = 800
+screen_height = 600
+screen = pygame.display.set_mode((screen_width, screen_height))
+pygame.display.set_caption("輸入數值")
+
+# 設置字體
+font = pygame.font.SysFont(None, 40)
+
+def input_number():
+    number = ''
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+               pygame.quit()
+               sys.exit()
+               
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:  # 當按下Enter鍵時，返回輸入的數值
+                    return int(number)
+                elif event.key == pygame.K_BACKSPACE:  # 當按下Backspace鍵時，刪除最後一個字符
+                    number = number[:-1]
+                else:
+                    number += event.unicode  # 將按鍵對應的字符添加到數值字符串中
+        
+        screen.fill((255, 255, 255))
+        text_surface = font.render("Enter a number: " + number, True, (0, 0, 0))
+        screen.blit(text_surface, (50, 50))
+        pygame.display.update()
+
+# 主程式
+def main():
+   while True:
+      number = input_number()
+      print("You entered:", number)
+
+if __name__ == "__main__":
+    main()

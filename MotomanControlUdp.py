@@ -737,231 +737,533 @@ MatrixPlan+434 軌跡實驗(上機)
     * 架構: 主體為INFORM，UDP配合寫入變數。
 """
 
-import sys
-import cv2
-import numpy as np
-import threading
-from MotomanUdpPacket import MotomanUDP
-from dataBase_v0 import dataBase
-from Toolbox import TimeTool
+# import sys
+# import cv2
+# import numpy as np
+# import threading
+# from MotomanUdpPacket import MotomanUDP
+# from dataBase_v0 import dataBase
+# from Toolbox import TimeTool
 
-class MotomanControlUdp():
-    def __init__(self):
-        self.dB = dataBase()
-        self.Time = TimeTool()
-        self.Udp = MotomanUDP()
+# class MotomanControlUdp():
+#     def __init__(self):
+#         self.dB = dataBase()
+#         self.Time = TimeTool()
+#         self.Udp = MotomanUDP()
 
 
-    def NormalCmd(self, sysTime, headerFile):
-        """常態命令
-        1. Read I0 
-        2. Read coordinate
-        """
-        # Read I000 variable
-        I0 = self.Udp.ReadVar("Integer", 0)
-        filePath = headerFile + "MatrixPlan_linear_result_I0.csv"
-        self.dB.Save_time(I0, filePath)
+#     def NormalCmd(self, sysTime, headerFile):
+#         """常態命令
+#         1. Read I0 
+#         2. Read coordinate
+#         """
+#         # Read I000 variable
+#         I0 = self.Udp.ReadVar("Integer", 0)
+#         filePath = headerFile + "MatrixPlan_linear_result_I0.csv"
+#         self.dB.Save_time(I0, filePath)
 
-        # Read coordinate and save Pose data to dataBase.
-        pos_result, coordinate = self.Udp.getcoordinateMH(101)
-        header = ["X", "Y", "Z", "Rx", "Ry", "Rz", "time"]
-        filePath = headerFile + "MatrixPlan_linear_result.csv"
-        self.dB.Save_singleData_experiment(coordinate, sysTime, filePath, header)
+#         # Read coordinate and save Pose data to dataBase.
+#         pos_result, coordinate = self.Udp.getcoordinateMH(101)
+#         header = ["X", "Y", "Z", "Rx", "Ry", "Rz", "time"]
+#         filePath = headerFile + "MatrixPlan_linear_result.csv"
+#         self.dB.Save_singleData_experiment(coordinate, sysTime, filePath, header)
 
-        return coordinate, I0
+#         return coordinate, I0
     
-    def ConditionCmd(self, firstAddress, pathBuffer, VelBuffer):
-        """條件命令
-        1. 批量寫入RP(coordinate)
-        2. 批量寫入Int(velocity)
-        """
-        # 單次命令寫入的資料筆數
-        number = 9
+#     def ConditionCmd(self, firstAddress, pathBuffer, VelBuffer):
+#         """條件命令
+#         1. 批量寫入RP(coordinate)
+#         2. 批量寫入Int(velocity)
+#         """
+#         # 單次命令寫入的資料筆數
+#         number = 9
 
-        # Data Buffer
-        RPdata = {'0':[17, 4, 5, 0, pathBuffer[0, 0], pathBuffer[0, 1], pathBuffer[0, 2], pathBuffer[0, 3], pathBuffer[0, 4], pathBuffer[0, 5]],
-                  '1':[17, 4, 5, 0, pathBuffer[1, 0], pathBuffer[1, 1], pathBuffer[1, 2], pathBuffer[1, 3], pathBuffer[1, 4], pathBuffer[1, 5]],
-                  '2':[17, 4, 5, 0, pathBuffer[2, 0], pathBuffer[2, 1], pathBuffer[2, 2], pathBuffer[2, 3], pathBuffer[2, 4], pathBuffer[2, 5]],
-                  '3':[17, 4, 5, 0, pathBuffer[3, 0], pathBuffer[3, 1], pathBuffer[3, 2], pathBuffer[3, 3], pathBuffer[3, 4], pathBuffer[3, 5]],
-                  '4':[17, 4, 5, 0, pathBuffer[4, 0], pathBuffer[4, 1], pathBuffer[4, 2], pathBuffer[4, 3], pathBuffer[4, 4], pathBuffer[4, 5]],
-                  '5':[17, 4, 5, 0, pathBuffer[5, 0], pathBuffer[5, 1], pathBuffer[5, 2], pathBuffer[5, 3], pathBuffer[5, 4], pathBuffer[5, 5]],
-                  '6':[17, 4, 5, 0, pathBuffer[6, 0], pathBuffer[6, 1], pathBuffer[6, 2], pathBuffer[6, 3], pathBuffer[6, 4], pathBuffer[6, 5]],
-                  '7':[17, 4, 5, 0, pathBuffer[7, 0], pathBuffer[7, 1], pathBuffer[7, 2], pathBuffer[7, 3], pathBuffer[7, 4], pathBuffer[7, 5]],
-                  '8':[17, 4, 5, 0, pathBuffer[8, 0], pathBuffer[8, 1], pathBuffer[8, 2], pathBuffer[8, 3], pathBuffer[8, 4], pathBuffer[8, 5]]}
+#         # Data Buffer
+#         RPdata = {'0':[17, 4, 5, 0, pathBuffer[0, 0], pathBuffer[0, 1], pathBuffer[0, 2], pathBuffer[0, 3], pathBuffer[0, 4], pathBuffer[0, 5]],
+#                   '1':[17, 4, 5, 0, pathBuffer[1, 0], pathBuffer[1, 1], pathBuffer[1, 2], pathBuffer[1, 3], pathBuffer[1, 4], pathBuffer[1, 5]],
+#                   '2':[17, 4, 5, 0, pathBuffer[2, 0], pathBuffer[2, 1], pathBuffer[2, 2], pathBuffer[2, 3], pathBuffer[2, 4], pathBuffer[2, 5]],
+#                   '3':[17, 4, 5, 0, pathBuffer[3, 0], pathBuffer[3, 1], pathBuffer[3, 2], pathBuffer[3, 3], pathBuffer[3, 4], pathBuffer[3, 5]],
+#                   '4':[17, 4, 5, 0, pathBuffer[4, 0], pathBuffer[4, 1], pathBuffer[4, 2], pathBuffer[4, 3], pathBuffer[4, 4], pathBuffer[4, 5]],
+#                   '5':[17, 4, 5, 0, pathBuffer[5, 0], pathBuffer[5, 1], pathBuffer[5, 2], pathBuffer[5, 3], pathBuffer[5, 4], pathBuffer[5, 5]],
+#                   '6':[17, 4, 5, 0, pathBuffer[6, 0], pathBuffer[6, 1], pathBuffer[6, 2], pathBuffer[6, 3], pathBuffer[6, 4], pathBuffer[6, 5]],
+#                   '7':[17, 4, 5, 0, pathBuffer[7, 0], pathBuffer[7, 1], pathBuffer[7, 2], pathBuffer[7, 3], pathBuffer[7, 4], pathBuffer[7, 5]],
+#                   '8':[17, 4, 5, 0, pathBuffer[8, 0], pathBuffer[8, 1], pathBuffer[8, 2], pathBuffer[8, 3], pathBuffer[8, 4], pathBuffer[8, 5]]}
         
-        IData =[VelBuffer[0], VelBuffer[1], VelBuffer[2], 
-                VelBuffer[3], VelBuffer[4], VelBuffer[5], 
-                VelBuffer[6], VelBuffer[7], VelBuffer[8]]
+#         IData =[VelBuffer[0], VelBuffer[1], VelBuffer[2], 
+#                 VelBuffer[3], VelBuffer[4], VelBuffer[5], 
+#                 VelBuffer[6], VelBuffer[7], VelBuffer[8]]
         
-        # Write #RP002 - #RP20
-        RPstatus = self.Udp.multipleWriteRPVar(firstAddress, number, RPdata)
+#         # Write #RP002 - #RP20
+#         RPstatus = self.Udp.multipleWriteRPVar(firstAddress, number, RPdata)
         
-        # Write #I002 - #I020
-        Istatus = self.Udp.multipleWriteVar(firstAddress, number, IData)
+#         # Write #I002 - #I020
+#         Istatus = self.Udp.multipleWriteVar(firstAddress, number, IData)
 
 
     
-    def main(self):
-        # 資料路徑標頭檔
-        headerFile= "Experimental_data/20240312/"
-        # 載入軌跡資料
-        PathData = self.dB.Load(headerFile + "MatrixPlan_linear_PoseMatrix.csv")
-        VelocityData = self.dB.Load(headerFile + "MatrixPlan_linear_velocity.csv")
+#     def main(self):
+#         # 資料路徑標頭檔
+#         headerFile= "Experimental_data/20240312/"
+#         # 載入軌跡資料
+#         PathData = self.dB.Load(headerFile + "MatrixPlan_linear_PoseMatrix.csv")
+#         VelocityData = self.dB.Load(headerFile + "MatrixPlan_linear_velocity.csv")
          
 
-        # Inital
+#         # Inital
 
-        # # 創建一個控制視窗
-        # cv2.namedWindow('Control Motoman Window')
+#         # # 創建一個控制視窗
+#         # cv2.namedWindow('Control Motoman Window')
 
-        # 刪除軌跡原始資料的第一筆
-        PathData = PathData.drop(PathData.index[0]).reset_index(drop=True)
-        VelocityData = VelocityData.drop(VelocityData.index[0]).reset_index(drop=True)
+#         # 刪除軌跡原始資料的第一筆
+#         PathData = PathData.drop(PathData.index[0]).reset_index(drop=True)
+#         VelocityData = VelocityData.drop(VelocityData.index[0]).reset_index(drop=True)
         
-        # For loop parameter inital
-        firstAddress = 0
-        number = 2
-        I0, I1 = 0, 0
-        IData =[I0, I1]
-        Istatus = self.Udp.multipleWriteVar(firstAddress, number, IData)
+#         # For loop parameter inital
+#         firstAddress = 0
+#         number = 2
+#         I0, I1 = 0, 0
+#         IData =[I0, I1]
+#         Istatus = self.Udp.multipleWriteVar(firstAddress, number, IData)
 
-        # 焊接參數動態變更指令(初始值請填與ARCON指令一樣的參數)
+#         # 焊接參數動態變更指令(初始值請填與ARCON指令一樣的參數)
+#         """
+#         AC:   I21
+#         AVP : I22
+#         """
+#         firstAddress = 21
+#         number = 2
+#         I21, I22 = 40, 50
+#         IData =[I21, I22]
+#         Istatus = self.Udp.multipleWriteVar(firstAddress, number, IData)
+
+#         # 資料分批
+#         # 紀錄目前已送出的資料筆數
+#         dataCount = 0
+
+#         # I1為INFORM FOR外迴圈次數(要自行更改INFORM程式)
+#         if len(PathData)/18 == 0.0:
+#             I1 = len(PathData)//18
+#             print("INFORM程式 I001 改0 to ", I1)
+#         elif len(PathData)/18 > 0.0:
+#             I1 = len(PathData)//18 + 1
+#             print("INFORM程式 I001 改0 to ", I1)
+        
+#         I1 = len(PathData)//9 + 1
+        
+#         # 分割軌跡資料(9筆歸為1批)
+#         RPdata = np.zeros((I1, 9, 6))
+#         RPdata_count = 0
+#         for layer in range(I1-1):
+#             for row in range(9):
+#                 RPdata[layer, row, 0] = PathData["X"][RPdata_count]
+#                 RPdata[layer, row, 1] = PathData["Y"][RPdata_count]
+#                 RPdata[layer, row, 2] = PathData["Z"][RPdata_count]
+#                 RPdata[layer, row, 3] = PathData["Rx"][RPdata_count]*10
+#                 RPdata[layer, row, 4] = PathData["Ry"][RPdata_count]*10
+#                 RPdata[layer, row, 5] = PathData["Rz"][RPdata_count]*10
+#                 RPdata_count += 1
+#         # 最後一筆資料因軌跡點數除不進，故需額外處理 
+#         for row in range(9):
+#             RPdata[-1, row, 0] = PathData["X"][RPdata_count]
+#             RPdata[-1, row, 1] = PathData["Y"][RPdata_count]
+#             RPdata[-1, row, 2] = PathData["Z"][RPdata_count]
+#             RPdata[-1, row, 3] = PathData["Rx"][RPdata_count]*10
+#             RPdata[-1, row, 4] = PathData["Ry"][RPdata_count]*10
+#             RPdata[-1, row, 5] = PathData["Rz"][RPdata_count]*10
+#             if RPdata_count == len(PathData)-1:
+#                  RPdata_count = len(PathData)-1
+#             else:
+#                 RPdata_count += 1
+
+#         # 分割速度資料(9筆歸為1批)
+#         Veldata  = np.zeros((I1, 9))
+#         VelData_count = 0
+#         for row in range(I1-1):
+#             for col in range(9):
+#                 Veldata[row, col] = int(VelocityData["Velocity"][VelData_count]*10)
+#                 VelData_count +=1
+#         # 最後一筆資料因軌跡點數除不進，故需額外處理 
+#         for col in range(9):
+#             Veldata[-1, col] = int(VelocityData["Velocity"][VelData_count]*10)
+#             if VelData_count == len(VelocityData)-1:
+#                 VelData_count = len(VelocityData)-1
+#             else:
+#                 VelData_count += 1
+#         # 對整個array做型別轉換，轉為int
+#         Veldata = Veldata.astype(int)
+
+#         # # 預寫入首18筆資料   
+#         # firstAddress_ = 2
+#         # for layer in range(2):
+            
+#         #     RPdataBuffer = {'0':[17, 4, 5, 0, RPdata[layer][0][0], RPdata[layer][0][1], RPdata[layer][0][2], RPdata[layer][0][3], RPdata[layer][0][4], RPdata[layer][0][5]],
+#         #                     '1':[17, 4, 5, 0, RPdata[layer][1][0], RPdata[layer][1][1], RPdata[layer][1][2], RPdata[layer][1][3], RPdata[layer][1][4], RPdata[layer][1][5]],
+#         #                     '2':[17, 4, 5, 0, RPdata[layer][2][0], RPdata[layer][2][1], RPdata[layer][2][2], RPdata[layer][2][3], RPdata[layer][2][4], RPdata[layer][2][5]],
+#         #                     '3':[17, 4, 5, 0, RPdata[layer][3][0], RPdata[layer][3][1], RPdata[layer][3][2], RPdata[layer][3][3], RPdata[layer][3][4], RPdata[layer][3][5]],
+#         #                     '4':[17, 4, 5, 0, RPdata[layer][4][0], RPdata[layer][4][1], RPdata[layer][4][2], RPdata[layer][4][3], RPdata[layer][4][4], RPdata[layer][4][5]],
+#         #                     '5':[17, 4, 5, 0, RPdata[layer][5][0], RPdata[layer][5][1], RPdata[layer][5][2], RPdata[layer][5][3], RPdata[layer][5][4], RPdata[layer][5][5]],
+#         #                     '6':[17, 4, 5, 0, RPdata[layer][6][0], RPdata[layer][6][1], RPdata[layer][6][2], RPdata[layer][6][3], RPdata[layer][6][4], RPdata[layer][6][5]],
+#         #                     '7':[17, 4, 5, 0, RPdata[layer][7][0], RPdata[layer][7][1], RPdata[layer][7][2], RPdata[layer][7][3], RPdata[layer][7][4], RPdata[layer][7][5]],
+#         #                     '8':[17, 4, 5, 0, RPdata[layer][8][0], RPdata[layer][8][1], RPdata[layer][8][2], RPdata[layer][8][3], RPdata[layer][8][4], RPdata[layer][8][5]]}
+#         #     # Write #RP002 - #RP20
+#         #     RPstatus = self.Udp.multipleWriteRPVar(firstAddress_, 9, RPdataBuffer)
+        
+#         #     # Write #I002 - #I020
+#         #     VelDataBuffer =[Veldata[layer, 0], 
+#         #                     Veldata[layer, 1], 
+#         #                     Veldata[layer, 2], 
+#         #                     Veldata[layer, 3], 
+#         #                     Veldata[layer, 4], 
+#         #                     Veldata[layer, 5], 
+#         #                     Veldata[layer, 6], 
+#         #                     Veldata[layer, 7], 
+#         #                     Veldata[layer, 8]]
+#         #     Istatus = self.Udp.multipleWriteVar(firstAddress_, 9, VelDataBuffer)
+#         #     firstAddress_+=9
+#         #     dataCount +=1
+
+#         #預寫入首9筆資料   
+#         RPdataBuffer = {'0':[17, 4, 5, 0, RPdata[0][0][0], RPdata[0][0][1], RPdata[0][0][2], RPdata[0][0][3], RPdata[0][0][4], RPdata[0][0][5]],
+#                         '1':[17, 4, 5, 0, RPdata[0][1][0], RPdata[0][1][1], RPdata[0][1][2], RPdata[0][1][3], RPdata[0][1][4], RPdata[0][1][5]],
+#                         '2':[17, 4, 5, 0, RPdata[0][2][0], RPdata[0][2][1], RPdata[0][2][2], RPdata[0][2][3], RPdata[0][2][4], RPdata[0][2][5]],
+#                         '3':[17, 4, 5, 0, RPdata[0][3][0], RPdata[0][3][1], RPdata[0][3][2], RPdata[0][3][3], RPdata[0][3][4], RPdata[0][3][5]],
+#                         '4':[17, 4, 5, 0, RPdata[0][4][0], RPdata[0][4][1], RPdata[0][4][2], RPdata[0][4][3], RPdata[0][4][4], RPdata[0][4][5]],
+#                         '5':[17, 4, 5, 0, RPdata[0][5][0], RPdata[0][5][1], RPdata[0][5][2], RPdata[0][5][3], RPdata[0][5][4], RPdata[0][5][5]],
+#                         '6':[17, 4, 5, 0, RPdata[0][6][0], RPdata[0][6][1], RPdata[0][6][2], RPdata[0][6][3], RPdata[0][6][4], RPdata[0][6][5]],
+#                         '7':[17, 4, 5, 0, RPdata[0][7][0], RPdata[0][7][1], RPdata[0][7][2], RPdata[0][7][3], RPdata[0][7][4], RPdata[0][7][5]],
+#                         '8':[17, 4, 5, 0, RPdata[0][8][0], RPdata[0][8][1], RPdata[0][8][2], RPdata[0][8][3], RPdata[0][8][4], RPdata[0][8][5]]}
+#         # Write #RP002 - #RP20
+#         RPstatus = self.Udp.multipleWriteRPVar(2, 9, RPdataBuffer)
+    
+#         # Write #I002 - #I020
+#         VelDataBuffer =[Veldata[0, 0], 
+#                         Veldata[0, 1], 
+#                         Veldata[0, 2], 
+#                         Veldata[0, 3], 
+#                         Veldata[0, 4], 
+#                         Veldata[0, 5], 
+#                         Veldata[0, 6], 
+#                         Veldata[0, 7], 
+#                         Veldata[0, 8]]
+#         Istatus = self.Udp.multipleWriteVar(2, 9, VelDataBuffer)
+#         dataCount +=1
+
+#         # 系統時間與軌跡節點
+#         sysTime, Node = 0, 0
+#         startNode = 0
+
+#         # 取樣時間
+#         sampleTime = 0.04
+    
+#         # 系統時間初始化flag
+#         sysflag = True
+#         # 最後一筆資料複寫
+#         finalDataFlag = True
+#         # 變更焊接參數旗標
+#         ChangWPFlag = True
+
+#         while True:
+#             singlelooptime1 = self.Time.ReadNowTime()
+#             # 更新每禎時間
+#             nowTime = self.Time.ReadNowTime()
+            
+#             if sysflag is True:
+#                 # 儲存系統開始時間
+#                 startTime = self.Time.ReadNowTime()
+#                 sysflag = False
+
+#             sysTime, Node = self.Time.sysTime(startTime, startNode, nowTime, sampleTime)
+#             sysTime = round(sysTime/1000, 1)
+#             # print("系統時間 :", sysTime)
+
+#              #####################################################################################################################################
+
+#             # 命令執行區
+#             coordinate, I0 = self.NormalCmd(sysTime, headerFile)
+            
+
+#             # # test
+#             # # cv鍵盤事件
+#             # key = cv2.waitKey(1) & 0xFF
+#             # if key == ord('w'):  # 27是'ESC'鍵的ASCII碼
+#             #     I0 = 2
+#             # elif key == ord('s'):
+#             #     I0 = 11
+
+
+#             """
+#             * 變數區間:
+#             1. I02 - I10
+#             2. I11 - I19
+#             """
+            
+
+#             if I0 == [3] and finalDataFlag is True:
+#                 firstAddress = 11
+#                 # 更新DX200 RP、Int變數
+#                 self.ConditionCmd(firstAddress, RPdata[dataCount], Veldata[dataCount])
+#                 dataCount += 1
+                
+#             elif I0 == [11] and finalDataFlag is True:
+#                 firstAddress = 2
+#                 # 更新DX200 RP、Int變數
+#                 self.ConditionCmd(firstAddress, RPdata[dataCount], Veldata[dataCount])
+#                 dataCount += 1
+
+            
+#             if dataCount == int(I1/2) and ChangWPFlag is True:
+#                 """
+#                 AC:   I21
+#                 AVP : I22
+#                 """
+#                 firstAddress = 21
+#                 number = 2
+#                 I21, I22 = 50, 50
+#                 IData =[I21, I22]
+#                 Istatus = self.Udp.multipleWriteVar(firstAddress, number, IData)
+#                 print("變更焊接參數AC: ", I21, "AVP: ", I22)
+#                 ChangWPFlag = False
+            
+#             if dataCount == I1 and finalDataFlag is True:
+#                 print("軌跡實驗結束")
+#                 # 將剩下的資料都填完同一點
+#                 if firstAddress == 2:
+#                     firstAddress = 11
+#                 else:
+#                     firstAddress = 2
+#                 self.ConditionCmd(firstAddress, RPdata[-1], Veldata[-1])
+#                 finalDataFlag = False
+                
+#             #####################################################################################################################################
+#             singlelooptime2 = self.Time.ReadNowTime()
+#             singleloopCosttime = self.Time.TimeError(singlelooptime1, singlelooptime2)
+#             # 剩餘時間
+#             laveTime = sampleTime*1000 - singleloopCosttime["millisecond"]
+#             self.Time.time_sleep(laveTime*0.001)
+             
+# if __name__ == "__main__":
+#     MotomanControlUdp().main()
+#     # # 釋放資源
+#     # cv2.destroyAllWindows()
+    
+"""
+動態軌跡規劃與通訊實驗
+20240401
+"""
+import pygame
+import threading
+import numpy as np
+# from MotomanUdpPacket import MotomanUDP
+from Toolbox import TimeTool
+from dataBase_v1 import *
+
+
+class Motomancontrol():
+    Time = TimeTool()
+    def __init__(self, TrjdatafilePath, VeldatafilePath):
+        # INFORM 迴圈變數
+        self.I0 = 0
+        self.I1 = 0
+        # status = self.Udp.multipleWriteVar(0, 2, [self.I0, self.I1])
+        # 動態變更銲接參數預設值
         """
         AC:   I21
         AVP : I22
         """
+        self.AC = 40
+        self.AVP = 50
+        # status = self.Udp.multipleWriteVar(21, 2, [self.AC, self.AVP = 50])
+
+        # 載入軌跡檔案
+        self.trjData = database_PoseMat(TrjdatafilePath)
+        self.velData = database_Velocity(VeldatafilePath)
+        # 刪除軌跡資料第一筆資料
+        self.trjData, self.velData = Motomancontrol.deleteFirstTrajectoryData(self.trjData, self.velData)
+
+
+    @staticmethod
+    def deleteFirstTrajectoryData(TrajectoryData, VelocityData):
+
+        TrajectoryData = TrajectoryData.drop(TrajectoryData.index[0]).reset_index(drop=True)
+        VelocityData = VelocityData.drop(VelocityData.index[0]).reset_index(drop=True)
+        
+        return TrajectoryData, VelocityData
+    
+    
+
+    @staticmethod
+    def calculateDataGroupBatch(TrajectoryData):
+        """Calculate data segmentation groups and batches.
+        Group: 組數
+        Batch: 批次
+        組數: INFORM外層For迴圈的計數值
+        - Args: Trajectory data
+        - Return: Number of data groups , Number of data batches
+        """
+        # I1為INFORM FOR外迴圈次數(要自行更改INFORM程式)
+        if len(TrajectoryData)/18 == 0.0:
+            group = len(TrajectoryData)//18
+            print("INFORM程式 I001 改0 to ", group)
+        elif len(TrajectoryData)/18 > 0.0:
+            group = len(TrajectoryData)//18 + 1
+            print("INFORM程式 I001 改0 to ", group)
+
+        batch = len(TrajectoryData)//9 + 1
+        
+        return group, batch
+
+    @staticmethod
+    def changeWeldingPartmeter(AC, AVP):
+        """Dynamically change welding parameters.
+        - Args: AC、AVP
+        - Return: cmd_Status
+        """
+        
+        # DX200 variable(Integer) settings
+        # AC:   I21
+        # AVP : I22
+
         firstAddress = 21
         number = 2
-        I21, I22 = 40, 50
-        IData =[I21, I22]
-        Istatus = self.Udp.multipleWriteVar(firstAddress, number, IData)
-
-        # 資料分批
-        # 紀錄目前已送出的資料筆數
-        dataCount = 0
-
-        # I1為INFORM FOR外迴圈次數(要自行更改INFORM程式)
-        if len(PathData)/18 == 0.0:
-            I1 = len(PathData)//18
-            print("INFORM程式 I001 改0 to ", I1)
-        elif len(PathData)/18 > 0.0:
-            I1 = len(PathData)//18 + 1
-            print("INFORM程式 I001 改0 to ", I1)
+        IData =[AC, AVP]
+        # Istatus = self.Udp.multipleWriteVar(firstAddress, number, IData)
+        # if Istatus == []:
+        #     # return Is_success
+        # else:
+        #     # return Istatus
         
-        I1 = len(PathData)//9 + 1
-        
-        # 分割軌跡資料(9筆歸為1批)
-        RPdata = np.zeros((I1, 9, 6))
+        # return Istatus
+    
+    @staticmethod
+    def dataSegmentation(trajectoryData, velocityData, batch):
+        """
+        資料分批處理
+        單位: 9筆/批
+        """
+
+        RPdata = np.zeros((batch, 9, 6))
         RPdata_count = 0
-        for layer in range(I1-1):
+        # 將資料分割成以批次(一批次有9筆資料)為單位
+        for layer in range(batch-1):
             for row in range(9):
-                RPdata[layer, row, 0] = PathData["X"][RPdata_count]
-                RPdata[layer, row, 1] = PathData["Y"][RPdata_count]
-                RPdata[layer, row, 2] = PathData["Z"][RPdata_count]
-                RPdata[layer, row, 3] = PathData["Rx"][RPdata_count]*10
-                RPdata[layer, row, 4] = PathData["Ry"][RPdata_count]*10
-                RPdata[layer, row, 5] = PathData["Rz"][RPdata_count]*10
+                RPdata[layer, row, 0] = trajectoryData["X"][RPdata_count]
+                RPdata[layer, row, 1] = trajectoryData["Y"][RPdata_count]
+                RPdata[layer, row, 2] = trajectoryData["Z"][RPdata_count]
+                RPdata[layer, row, 3] = trajectoryData["Rx"][RPdata_count]*10
+                RPdata[layer, row, 4] = trajectoryData["Ry"][RPdata_count]*10
+                RPdata[layer, row, 5] = trajectoryData["Rz"][RPdata_count]*10
                 RPdata_count += 1
         # 最後一筆資料因軌跡點數除不進，故需額外處理 
         for row in range(9):
-            RPdata[-1, row, 0] = PathData["X"][RPdata_count]
-            RPdata[-1, row, 1] = PathData["Y"][RPdata_count]
-            RPdata[-1, row, 2] = PathData["Z"][RPdata_count]
-            RPdata[-1, row, 3] = PathData["Rx"][RPdata_count]*10
-            RPdata[-1, row, 4] = PathData["Ry"][RPdata_count]*10
-            RPdata[-1, row, 5] = PathData["Rz"][RPdata_count]*10
-            if RPdata_count == len(PathData)-1:
-                 RPdata_count = len(PathData)-1
+            RPdata[-1, row, 0] = trajectoryData["X"][RPdata_count]
+            RPdata[-1, row, 1] = trajectoryData["Y"][RPdata_count]
+            RPdata[-1, row, 2] = trajectoryData["Z"][RPdata_count]
+            RPdata[-1, row, 3] = trajectoryData["Rx"][RPdata_count]*10
+            RPdata[-1, row, 4] = trajectoryData["Ry"][RPdata_count]*10
+            RPdata[-1, row, 5] = trajectoryData["Rz"][RPdata_count]*10
+            if RPdata_count == len(trajectoryData)-1:
+                 RPdata_count = len(trajectoryData)-1
             else:
                 RPdata_count += 1
-
+        
         # 分割速度資料(9筆歸為1批)
-        Veldata  = np.zeros((I1, 9))
+        Veldata  = np.zeros((batch, 9))
         VelData_count = 0
-        for row in range(I1-1):
+        for row in range(batch-1):
             for col in range(9):
-                Veldata[row, col] = int(VelocityData["Velocity"][VelData_count]*10)
+                Veldata[row, col] = int(velocityData["Velocity"][VelData_count]*10)
                 VelData_count +=1
+
         # 最後一筆資料因軌跡點數除不進，故需額外處理 
         for col in range(9):
-            Veldata[-1, col] = int(VelocityData["Velocity"][VelData_count]*10)
-            if VelData_count == len(VelocityData)-1:
-                VelData_count = len(VelocityData)-1
+            Veldata[-1, col] = int(velocityData["Velocity"][VelData_count]*10)
+            if VelData_count == len(velocityData)-1:
+                VelData_count = len(velocityData)-1
             else:
                 VelData_count += 1
+
         # 對整個array做型別轉換，轉為int
         Veldata = Veldata.astype(int)
 
-        # # 預寫入首18筆資料   
-        # firstAddress_ = 2
-        # for layer in range(2):
-            
-        #     RPdataBuffer = {'0':[17, 4, 5, 0, RPdata[layer][0][0], RPdata[layer][0][1], RPdata[layer][0][2], RPdata[layer][0][3], RPdata[layer][0][4], RPdata[layer][0][5]],
-        #                     '1':[17, 4, 5, 0, RPdata[layer][1][0], RPdata[layer][1][1], RPdata[layer][1][2], RPdata[layer][1][3], RPdata[layer][1][4], RPdata[layer][1][5]],
-        #                     '2':[17, 4, 5, 0, RPdata[layer][2][0], RPdata[layer][2][1], RPdata[layer][2][2], RPdata[layer][2][3], RPdata[layer][2][4], RPdata[layer][2][5]],
-        #                     '3':[17, 4, 5, 0, RPdata[layer][3][0], RPdata[layer][3][1], RPdata[layer][3][2], RPdata[layer][3][3], RPdata[layer][3][4], RPdata[layer][3][5]],
-        #                     '4':[17, 4, 5, 0, RPdata[layer][4][0], RPdata[layer][4][1], RPdata[layer][4][2], RPdata[layer][4][3], RPdata[layer][4][4], RPdata[layer][4][5]],
-        #                     '5':[17, 4, 5, 0, RPdata[layer][5][0], RPdata[layer][5][1], RPdata[layer][5][2], RPdata[layer][5][3], RPdata[layer][5][4], RPdata[layer][5][5]],
-        #                     '6':[17, 4, 5, 0, RPdata[layer][6][0], RPdata[layer][6][1], RPdata[layer][6][2], RPdata[layer][6][3], RPdata[layer][6][4], RPdata[layer][6][5]],
-        #                     '7':[17, 4, 5, 0, RPdata[layer][7][0], RPdata[layer][7][1], RPdata[layer][7][2], RPdata[layer][7][3], RPdata[layer][7][4], RPdata[layer][7][5]],
-        #                     '8':[17, 4, 5, 0, RPdata[layer][8][0], RPdata[layer][8][1], RPdata[layer][8][2], RPdata[layer][8][3], RPdata[layer][8][4], RPdata[layer][8][5]]}
-        #     # Write #RP002 - #RP20
-        #     RPstatus = self.Udp.multipleWriteRPVar(firstAddress_, 9, RPdataBuffer)
-        
-        #     # Write #I002 - #I020
-        #     VelDataBuffer =[Veldata[layer, 0], 
-        #                     Veldata[layer, 1], 
-        #                     Veldata[layer, 2], 
-        #                     Veldata[layer, 3], 
-        #                     Veldata[layer, 4], 
-        #                     Veldata[layer, 5], 
-        #                     Veldata[layer, 6], 
-        #                     Veldata[layer, 7], 
-        #                     Veldata[layer, 8]]
-        #     Istatus = self.Udp.multipleWriteVar(firstAddress_, 9, VelDataBuffer)
-        #     firstAddress_+=9
-        #     dataCount +=1
-
-        #預寫入首9筆資料   
-        RPdataBuffer = {'0':[17, 4, 5, 0, RPdata[0][0][0], RPdata[0][0][1], RPdata[0][0][2], RPdata[0][0][3], RPdata[0][0][4], RPdata[0][0][5]],
-                        '1':[17, 4, 5, 0, RPdata[0][1][0], RPdata[0][1][1], RPdata[0][1][2], RPdata[0][1][3], RPdata[0][1][4], RPdata[0][1][5]],
-                        '2':[17, 4, 5, 0, RPdata[0][2][0], RPdata[0][2][1], RPdata[0][2][2], RPdata[0][2][3], RPdata[0][2][4], RPdata[0][2][5]],
-                        '3':[17, 4, 5, 0, RPdata[0][3][0], RPdata[0][3][1], RPdata[0][3][2], RPdata[0][3][3], RPdata[0][3][4], RPdata[0][3][5]],
-                        '4':[17, 4, 5, 0, RPdata[0][4][0], RPdata[0][4][1], RPdata[0][4][2], RPdata[0][4][3], RPdata[0][4][4], RPdata[0][4][5]],
-                        '5':[17, 4, 5, 0, RPdata[0][5][0], RPdata[0][5][1], RPdata[0][5][2], RPdata[0][5][3], RPdata[0][5][4], RPdata[0][5][5]],
-                        '6':[17, 4, 5, 0, RPdata[0][6][0], RPdata[0][6][1], RPdata[0][6][2], RPdata[0][6][3], RPdata[0][6][4], RPdata[0][6][5]],
-                        '7':[17, 4, 5, 0, RPdata[0][7][0], RPdata[0][7][1], RPdata[0][7][2], RPdata[0][7][3], RPdata[0][7][4], RPdata[0][7][5]],
-                        '8':[17, 4, 5, 0, RPdata[0][8][0], RPdata[0][8][1], RPdata[0][8][2], RPdata[0][8][3], RPdata[0][8][4], RPdata[0][8][5]]}
-        # Write #RP002 - #RP20
-        RPstatus = self.Udp.multipleWriteRPVar(2, 9, RPdataBuffer)
+        return RPdata, Veldata
     
-        # Write #I002 - #I020
-        VelDataBuffer =[Veldata[0, 0], 
-                        Veldata[0, 1], 
-                        Veldata[0, 2], 
-                        Veldata[0, 3], 
-                        Veldata[0, 4], 
-                        Veldata[0, 5], 
-                        Veldata[0, 6], 
-                        Veldata[0, 7], 
-                        Veldata[0, 8]]
-        Istatus = self.Udp.multipleWriteVar(2, 9, VelDataBuffer)
-        dataCount +=1
+    @staticmethod
+    def packetRPdataVeldata(RPdata, Veldata, dataCount):
+        """將一批軌跡與速度資料包裝成可發送的形式
+        - Args: RPdata、Veldata、datacount
+        """
+        RPpacket = {'0':[17, 4, 5, 0, RPdata[dataCount][0][0], RPdata[dataCount][0][1], RPdata[dataCount][0][2], RPdata[dataCount][0][3], RPdata[dataCount][0][4], RPdata[dataCount][0][5]],
+                    '1':[17, 4, 5, 0, RPdata[dataCount][1][0], RPdata[dataCount][1][1], RPdata[dataCount][1][2], RPdata[dataCount][1][3], RPdata[dataCount][1][4], RPdata[dataCount][1][5]],
+                    '2':[17, 4, 5, 0, RPdata[dataCount][2][0], RPdata[dataCount][2][1], RPdata[dataCount][2][2], RPdata[dataCount][2][3], RPdata[dataCount][2][4], RPdata[dataCount][2][5]],
+                    '3':[17, 4, 5, 0, RPdata[dataCount][3][0], RPdata[dataCount][3][1], RPdata[dataCount][3][2], RPdata[dataCount][3][3], RPdata[dataCount][3][4], RPdata[dataCount][3][5]],
+                    '4':[17, 4, 5, 0, RPdata[dataCount][4][0], RPdata[dataCount][4][1], RPdata[dataCount][4][2], RPdata[dataCount][4][3], RPdata[dataCount][4][4], RPdata[dataCount][4][5]],
+                    '5':[17, 4, 5, 0, RPdata[dataCount][5][0], RPdata[dataCount][5][1], RPdata[dataCount][5][2], RPdata[dataCount][5][3], RPdata[dataCount][5][4], RPdata[dataCount][5][5]],
+                    '6':[17, 4, 5, 0, RPdata[dataCount][6][0], RPdata[dataCount][6][1], RPdata[dataCount][6][2], RPdata[dataCount][6][3], RPdata[dataCount][6][4], RPdata[dataCount][6][5]],
+                    '7':[17, 4, 5, 0, RPdata[dataCount][7][0], RPdata[dataCount][7][1], RPdata[dataCount][7][2], RPdata[dataCount][7][3], RPdata[dataCount][7][4], RPdata[dataCount][7][5]],
+                    '8':[17, 4, 5, 0, RPdata[dataCount][8][0], RPdata[dataCount][8][1], RPdata[dataCount][8][2], RPdata[dataCount][8][3], RPdata[dataCount][8][4], RPdata[dataCount][8][5]]}
+        
+        Velpacket =[Veldata[dataCount, 0], 
+                    Veldata[dataCount, 1], 
+                    Veldata[dataCount, 2], 
+                    Veldata[dataCount, 3], 
+                    Veldata[dataCount, 4], 
+                    Veldata[dataCount, 5], 
+                    Veldata[dataCount, 6], 
+                    Veldata[dataCount, 7], 
+                    Veldata[dataCount, 8]]
+        dataCount+=1
 
+        return RPpacket, Velpacket, dataCount
+    
+    @staticmethod
+    def writeRPvarINTvar(firstAddress, RPpacket, Velpacket):
+        """Write multiple variable data
+        - Args: RPdata, Veldata
+        """
+        Is_success = False
+        # RPstatus = self.Udp.multipleWriteRPVar(firstAddress, 9, RPdata)
+        # Istatus = self.Udp.multipleWriteVar(firstAddress, 9, Veldata)
+        RPstatus = []
+        Istatus =[]
+
+        if RPstatus == [] and Istatus:
+            Is_success = True
+        else:
+            Is_success = False
+        
+        return Is_success
+    
+    def dynamicTrjPlan(self, errorZ, datacount):
+        """依現有軌跡檔案調變Z軸軌跡
+        """
+        self.trjData[:datacount, 2] += errorZ
+        pass
+        
+
+    def main(self):
+        #---------------------------------------------Inital-----------------------------------------------
+        # 計算資料分割的組數與批數
+        group, batch = self.calculateDataGroupBatch(self.trjData)
+        
+        # 資料分割
+        RPdata, Veldata = self.dataSegmentation(self.trjData, self.velData, batch)
+        
+        # 包裝並寫入首9筆資料   
+        RPpacket, Velpacket, dataCount = self.packetRPdataVeldata(RPdata, Veldata, dataCount)
+        Is_success = self.writeRPvarINTvar(2, RPpacket, Velpacket)
+        
         # 系統時間與軌跡節點
         sysTime, Node = 0, 0
         startNode = 0
-
         # 取樣時間
         sampleTime = 0.04
-    
         # 系統時間初始化flag
         sysflag = True
-        # 最後一筆資料複寫
+        # 最後一筆資料覆寫
         finalDataFlag = True
-        # 變更焊接參數旗標
-        ChangWPFlag = True
-
+        # 紀錄UDP目前已送出的資料筆數
+        dataCount = 0
+        #-------------------------------------------------------------------------------------------------
         while True:
             singlelooptime1 = self.Time.ReadNowTime()
             # 更新每禎時間
@@ -974,80 +1276,72 @@ class MotomanControlUdp():
 
             sysTime, Node = self.Time.sysTime(startTime, startNode, nowTime, sampleTime)
             sysTime = round(sysTime/1000, 1)
-            # print("系統時間 :", sysTime)
-
-             #####################################################################################################################################
-
-            # 命令執行區
-            coordinate, I0 = self.NormalCmd(sysTime, headerFile)
             
 
-            # # test
-            # # cv鍵盤事件
-            # key = cv2.waitKey(1) & 0xFF
-            # if key == ord('w'):  # 27是'ESC'鍵的ASCII碼
-            #     I0 = 2
-            # elif key == ord('s'):
-            #     I0 = 11
+            #----------------------------------------------命令執行區-----------------------------------------
 
-
+            # coordinate, I0 = self.NormalCmd(sysTime, headerFile)
+            I0 = 2
+            
+            #----------------------------------------------資料通訊區-----------------------------------------
             """
+            通訊決策
             * 變數區間:
             1. I02 - I10
             2. I11 - I19
             """
             
-
             if I0 == [3] and finalDataFlag is True:
+                # 起始變數位置
                 firstAddress = 11
-                # 更新DX200 RP、Int變數
-                self.ConditionCmd(firstAddress, RPdata[dataCount], Veldata[dataCount])
-                dataCount += 1
-                
+                # 打包需要傳送的變數資料
+                RPpacket, Velpacket = self.packetRPdataVeldata(RPdata, Veldata, dataCount)
+                # 將打包完的資料寫入DX200
+                Is_success = self.writeRPvarINTvar(firstAddress, RPpacket, Velpacket)
+         
             elif I0 == [11] and finalDataFlag is True:
+                # 起始變數位置
                 firstAddress = 2
-                # 更新DX200 RP、Int變數
-                self.ConditionCmd(firstAddress, RPdata[dataCount], Veldata[dataCount])
-                dataCount += 1
+                # 打包需要傳送的變數資料
+                RPpacket, Velpacket = self.packetRPdataVeldata(RPdata, Veldata, dataCount)
+                # 將打包完的資料寫入DX200
+                Is_success = self.writeRPvarINTvar(firstAddress, RPpacket, Velpacket)
 
             
-            if dataCount == int(I1/2) and ChangWPFlag is True:
-                """
-                AC:   I21
-                AVP : I22
-                """
-                firstAddress = 21
-                number = 2
-                I21, I22 = 50, 50
-                IData =[I21, I22]
-                Istatus = self.Udp.multipleWriteVar(firstAddress, number, IData)
-                print("變更焊接參數AC: ", I21, "AVP: ", I22)
-                ChangWPFlag = False
-            
-            if dataCount == I1 and finalDataFlag is True:
+            if dataCount == self.I1 and finalDataFlag is True:
                 print("軌跡實驗結束")
                 # 將剩下的資料都填完同一點
                 if firstAddress == 2:
                     firstAddress = 11
                 else:
                     firstAddress = 2
-                self.ConditionCmd(firstAddress, RPdata[-1], Veldata[-1])
-                finalDataFlag = False
+                RPpacket, Velpacket = self.packetRPdataVeldata(RPdata, Veldata, -1)
+                Is_success = self.writeRPvarINTvar(firstAddress, RPpacket, Velpacket)
                 
-            #####################################################################################################################################
+                finalDataFlag = False
+            #----------------------------------------------鍵盤事件區-----------------------------------------
+            for event in pygame.event.get():
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_u:
+                        """動態修改銲接參數
+                        AC:   I21
+                        AVP : I22
+                        """
+                        AC = 50
+                        AVP = 50
+                        status = self.changeWeldingPartmeter(AC, AVP)
+
+                    elif event.key == pygame.K_p:
+                        # 創建線程
+                        threadClose = True
+                        planThread = threading.Thread(target=Trajectoryplan)
+                        planThread.start()
+            #-----------------------------------------------------------------------------------------------
             singlelooptime2 = self.Time.ReadNowTime()
             singleloopCosttime = self.Time.TimeError(singlelooptime1, singlelooptime2)
             # 剩餘時間
             laveTime = sampleTime*1000 - singleloopCosttime["millisecond"]
             self.Time.time_sleep(laveTime*0.001)
-             
+            
 if __name__ == "__main__":
-    MotomanControlUdp().main()
-    # # 釋放資源
-    # cv2.destroyAllWindows()
-    
-
-    
-    
-
-
+    Motomancontrol().main()

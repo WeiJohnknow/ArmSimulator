@@ -2151,47 +2151,87 @@ Abstract Method
 
 # print()
 
-import pygame
-import sys
+"""
+利用pygame介面輸入值
+"""
+# import pygame
+# import sys
 
-# 初始化Pygame
-pygame.init()
+# # 初始化Pygame
+# pygame.init()
 
-# 設置畫面寬高
-screen_width = 800
-screen_height = 600
-screen = pygame.display.set_mode((screen_width, screen_height))
-pygame.display.set_caption("輸入數值")
+# # 設置畫面寬高
+# screen_width = 800
+# screen_height = 600
+# screen = pygame.display.set_mode((screen_width, screen_height))
+# pygame.display.set_caption("輸入數值")
 
-# 設置字體
-font = pygame.font.SysFont(None, 40)
+# # 設置字體
+# font = pygame.font.SysFont(None, 40)
 
-def input_number():
-    number = ''
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-               pygame.quit()
-               sys.exit()
+# def input_number():
+#     number = ''
+#     while True:
+#         for event in pygame.event.get():
+#             if event.type == pygame.QUIT:
+#                pygame.quit()
+#                sys.exit()
                
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN:  # 當按下Enter鍵時，返回輸入的數值
-                    return int(number)
-                elif event.key == pygame.K_BACKSPACE:  # 當按下Backspace鍵時，刪除最後一個字符
-                    number = number[:-1]
-                else:
-                    number += event.unicode  # 將按鍵對應的字符添加到數值字符串中
+#             elif event.type == pygame.KEYDOWN:
+#                 if event.key == pygame.K_RETURN:  # 當按下Enter鍵時，返回輸入的數值
+#                     return int(number)
+#                 elif event.key == pygame.K_BACKSPACE:  # 當按下Backspace鍵時，刪除最後一個字符
+#                     number = number[:-1]
+#                 else:
+#                     number += event.unicode  # 將按鍵對應的字符添加到數值字符串中
         
-        screen.fill((255, 255, 255))
-        text_surface = font.render("Enter a number: " + number, True, (0, 0, 0))
-        screen.blit(text_surface, (50, 50))
-        pygame.display.update()
+#         screen.fill((255, 255, 255))
+#         text_surface = font.render("Enter a number: " + number, True, (0, 0, 0))
+#         screen.blit(text_surface, (50, 50))
+#         pygame.display.update()
 
-# 主程式
-def main():
-   while True:
-      number = input_number()
-      print("You entered:", number)
+# # 主程式
+# def main():
+#    while True:
+#       number = input_number()
+#       print("You entered:", number)
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
+
+"""
+速度估算
+"""
+from PathPlanning import PathPlanning
+from Matrix import Matrix4x4
+from Toolbox import TimeTool
+
+Time = TimeTool()
+Mat = Matrix4x4()
+d2r = np.deg2rad
+NowEnd = np.eye(4)
+GoalEnd = np.eye(4)
+
+NowPoseMat = [958.521, -37.126, -164.943, -165.2876, -7.1723, 17.5191]
+GoalPoseMat = [958.525, -18.527, -164.933, -165.2873, -7.1725, 17.5181]
+
+NowEnd = NowEnd @ Mat.TransXYZ(NowPoseMat[0], NowPoseMat[1], NowPoseMat[2]) @ Mat.RotaXYZ(d2r(NowPoseMat[3]), d2r(NowPoseMat[4]), d2r(NowPoseMat[5])) 
+GoalEnd = GoalEnd @ Mat.TransXYZ(GoalPoseMat[0], GoalPoseMat[1], GoalPoseMat[2]) @ Mat.RotaXYZ(d2r(GoalPoseMat[3]), d2r(GoalPoseMat[4]), d2r(GoalPoseMat[5]))
+speed = 0
+sampleTime = 0.04
+# 矩陣軌跡法
+b = Time.ReadNowTime()
+# trjData, velData, timeData = PathPlanning.MatrixPathPlanningSpeedIteration(NowEnd, GoalEnd, speed, sampleTime)
+
+# P = PathPlanning()
+# allTime = 10
+# trjData, velData, timeData = P.MatrixPathPlanning(GoalEnd, NowEnd, allTime, sampleTime)
+# print(velData[2])
+
+GoalSpeed = 1.6
+trjData, velData, timeData = PathPlanning.MatrixPathPlanSpeed(GoalEnd, NowEnd, GoalSpeed, sampleTime)
+
+a = Time.ReadNowTime()
+err = Time.TimeError(b, a)
+print(velData[2])
+print("迭代時間: ", err)

@@ -526,7 +526,9 @@ class PathPlanning:
 
         return AccList, VelList, SList, TimeList
     
-    def MatrixPathPlanning(self, GoalEnd, NowEnd, allTime, sampleTime = 0.04, startTime=0):
+    
+    @staticmethod
+    def MatrixPathPlanning(GoalEnd, NowEnd, allTime, sampleTime = 0.04, startTime=0):
         """Homogeneous matrix interpolation method, it's a Cartesian space trajectory planning method.
         - Args:
             - GoalEnd(Homogeneous matrix), NowEnd(Homogeneous matrix), allTime, filePath
@@ -565,10 +567,9 @@ class PathPlanning:
         sampleInterval = allTime / sampleTime
         # Create Time Point     
         timeData = np.arange(startTime, allTime+sampleTime, sampleTime)
-
         # 儲存軌跡資料(Homogeneous transformation)
         TBuffer = np.zeros(((int(sampleInterval)+1,4,4)))
-        
+
         for λ_ in range(int(sampleInterval)+1):
             λ = λ_ / int(sampleInterval)
             V = (1-cos(θ*λ))
@@ -582,6 +583,7 @@ class PathPlanning:
             # T 是笛卡兒空間中 NowEnd ➜ GoalEnd 過程中每一個軌跡點的齊次變換矩陣(軌跡點)
             T = NowEnd @ D_ 
             TBuffer[λ_] = T
+            
         
         # 計算速度
         pathData = TBuffer
@@ -611,7 +613,145 @@ class PathPlanning:
             
         return TBuffer, velData, timeData
     
-    # def MatrixPath434(self, GoalEnd, NowEnd, allTime, filePath, sampleTime = 0.04, startTime=0):
+    @staticmethod
+    def MatrixPathPlanSpeed(GoalEnd, NowEnd, GoalSpeed, sampleTime = 0.04, startTime=0):
+        """Homogeneous matrix interpolation method, it's a Cartesian space trajectory planning method(速度調變版本).
+        - Args:
+            - GoalEnd(Homogeneous matrix), NowEnd(Homogeneous matrix), allTime, filePath
+            - GoalSpeed: (unit: mm/s)
+            - default : sampleTime = 0.04, startTime=0
+        
+        - Return:
+            - pathData(Homogeneous matrix), timeData
+
+        - Ref. 2023hurocup file robot.py fun.GetDmat
+        """ 
+        sin = np.sin
+        cos = np.cos
+        arccos = np.arccos
+        inv  = np.linalg.inv
+        pi = np.pi
+        
+        D = inv(NowEnd) @ GoalEnd
+        θ = arccos(round((D[0,0] + D[1,1] + D[2,2] - 1.0)/2.0,4))
+        if type(θ) !=type(np.arccos(0.5)):
+            θ = 0
+        if round(θ % pi,4) !=round(0.0,4):
+            u = 2.0*sin(θ)
+            kx = (D[2,1] - D[1,2]) / u
+            ky = (D[0,2] - D[2,0]) / u
+            kz = (D[1,0] - D[0,1]) / u
+        else:
+            u = 0.001
+            kx = (D[2,1] - D[1,2]) / u
+            ky = (D[0,2] - D[2,0]) / u
+            kz = (D[1,0] - D[0,1]) / u
+        
+        Δx = GoalEnd[0,3] - NowEnd[0,3]
+        Δy = GoalEnd[1,3] - NowEnd[1,3]
+        Δz = GoalEnd[2,3] - NowEnd[2,3]   
+        
+        
+        # 利用alltime參數迭代出速度的設定值
+        iterData = np.zeros(((2,4,4)))
+        # allTime = 50
+        allTime = 0.1
+        iter = 0
+        while True:
+            sampleInterval = allTime / sampleTime
+            for λ_ in range(2):
+                λ = λ_ / int(sampleInterval)
+                V = (1-cos(θ*λ))
+                
+                # Transformation matrix
+                D_ = np.array(([ [kx**2*V+cos(θ*λ), kx*ky*V-kz*sin(θ*λ), kx*kz*V+ky*sin(θ*λ), D[0,3]*λ],
+                                        [kx*ky*V+kz*sin(θ*λ), ky**2*V+cos(θ*λ), ky*kz*V-kx*sin(θ*λ), D[1,3]*λ],
+                                        [kx*kz*V-ky*sin(θ*λ), ky*kz*V+kx*sin(θ*λ), kz**2*V+cos(θ*λ), D[2,3]*λ],
+                                        [0, 0, 0, 1]]))
+                
+                # T 是笛卡兒空間中 NowEnd ➜ GoalEnd 過程中每一個軌跡點的齊次變換矩陣(軌跡點)
+                T = NowEnd @ D_ 
+                iterData[λ_] = T
+            NowSpeed = PathPlanning.calculationSpeed(iterData[0], iterData[1], sampleTime)
+            error = NowSpeed - GoalSpeed 
+            # diff = GoalSpeed - NowSpeed
+            # error = np.sqrt(np.sum(diff** 2))
+
+            if error < 0.1 :
+                print("error: ", error)
+                print("迭代次數: ", iter)
+                print("alltime: ", iter)
+                break
+            if error>10:
+                allTime += 0.1
+            else:
+                allTime +=0.01
+            # allTime -=  0.1*error
+            # allTime -= 0.01*error
+            
+            iter += 1
+            print("error: ", error)
+
+        
+
+        #---------------------------------獲得正確alltime參數，並生成軌跡--------------------------------------
+        sampleInterval = allTime / sampleTime
+        # Create Time Point     
+        timeData = np.arange(startTime, allTime+sampleTime, sampleTime)
+        # 儲存軌跡資料(Homogeneous transformation)
+        TBuffer = np.zeros(((int(sampleInterval)+1,4,4)))
+
+        for λ_ in range(int(sampleInterval)+1):
+            λ = λ_ / int(sampleInterval)
+            V = (1-cos(θ*λ))
+            
+            # Transformation matrix
+            D_ = np.array(([ [kx**2*V+cos(θ*λ), kx*ky*V-kz*sin(θ*λ), kx*kz*V+ky*sin(θ*λ), D[0,3]*λ],
+                                    [kx*ky*V+kz*sin(θ*λ), ky**2*V+cos(θ*λ), ky*kz*V-kx*sin(θ*λ), D[1,3]*λ],
+                                    [kx*kz*V-ky*sin(θ*λ), ky*kz*V+kx*sin(θ*λ), kz**2*V+cos(θ*λ), D[2,3]*λ],
+                                    [0, 0, 0, 1]]))
+            
+            # T 是笛卡兒空間中 NowEnd ➜ GoalEnd 過程中每一個軌跡點的齊次變換矩陣(軌跡點)
+            T = NowEnd @ D_ 
+            TBuffer[λ_] = T
+            
+        
+        # 計算速度
+        pathData = TBuffer
+        Euclidean_distance = np.zeros((len(pathData)))
+        velData = np.zeros((len(pathData)))
+
+        for i in range(len(pathData)):
+            if i == 0:
+                prvx = pathData[0, 0, 3]
+                prvy = pathData[0, 1, 3]
+                prvz = pathData[0, 2, 3]
+                Euclidean_distance[i-1] = 0
+            else:
+                prvx = pathData[i-1, 0, 3]
+                prvy = pathData[i-1, 1, 3]
+                prvz = pathData[i-1, 2, 3]
+
+            x = pathData[i, 0, 3]
+            y = pathData[i, 1, 3]
+            z = pathData[i, 2, 3]
+
+            Euclidean_distance[i] = Euclidean_distance[i-1] + np.sqrt((x-prvx)**2 + (y-prvy)**2 + (z-prvz)**2)
+        # velData = np.diff(Euclidean_distance)
+        velData = np.diff(Euclidean_distance)/sampleTime
+        velData = np.insert(velData, 0, 0)
+        
+            
+        return TBuffer, velData, timeData
+    
+    @staticmethod
+    def calculationSpeed(coordinate1, coordinate2, sampleTime):
+        point1 = np.array([coordinate1[0, 3], coordinate1[1, 3], coordinate1[2, 3]])
+        point2 = np.array([coordinate2[0, 3], coordinate2[1, 3], coordinate2[2, 3]])
+        distance = np.linalg.norm(point1 - point2)
+        speed = distance/sampleTime
+        return speed
+          
     def MatrixPath434(self, GoalEnd, NowEnd, allTime, sampleTime = 0.04, startTime=0):
         """Homogeneous matrix interpolation method
         - Ref. 2023hurocup file robot.py fun.GetDmat

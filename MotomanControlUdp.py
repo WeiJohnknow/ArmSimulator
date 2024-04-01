@@ -1056,6 +1056,8 @@ import numpy as np
 # from MotomanUdpPacket import MotomanUDP
 from Toolbox import TimeTool
 from dataBase_v1 import *
+from Kinematics import Kinematics
+from armControl import Generator
 
 
 class Motomancontrol():
@@ -1080,6 +1082,7 @@ class Motomancontrol():
         # 刪除軌跡資料第一筆資料
         self.trjData, self.velData = Motomancontrol.deleteFirstTrajectoryData(self.trjData, self.velData)
 
+        self.Kin = Kinematics()
 
     @staticmethod
     def deleteFirstTrajectoryData(TrajectoryData, VelocityData):
@@ -1233,11 +1236,19 @@ class Motomancontrol():
         
         return Is_success
     
-    def dynamicTrjPlan(self, errorZ, datacount):
-        """依現有軌跡檔案調變Z軸軌跡
+    def dynamicTrjPlan(self, NowEnd, GoalEnd, sampleTime, alltime):
+        """規劃新軌跡，時間線沿用舊軌跡
         """
-        self.trjData[:datacount, 2] += errorZ
-        pass
+        # 創造新軌跡
+        Generator.generateTrajectory(NowEnd, GoalEnd, sampleTime, alltime, "database/new/test0330")
+        PoseMat = database_PoseMat.Load("database/new/test0330/PoseMat.csv")
+        Velocity = database_PoseMat.Load("database/new/test0330/Velocity.csv")
+        # 固定流程
+        TrajectoryData, VelocityData = Motomancontrol.deleteFirstTrajectoryData(PoseMat, Velocity)
+        group, batch= Motomancontrol.calculateDataGroupBatch(TrajectoryData, VelocityData)
+        RPdata, Veldata = Motomancontrol.dataSegmentation(TrajectoryData, VelocityData, batch)
+
+        return TrajectoryData, VelocityData
         
 
     def main(self):
@@ -1333,9 +1344,17 @@ class Motomancontrol():
 
                     elif event.key == pygame.K_p:
                         # 創建線程
-                        threadClose = True
-                        planThread = threading.Thread(target=Trajectoryplan)
-                        planThread.start()
+                        # threadClose = True
+                        # planThread = threading.Thread(target=Trajectoryplan)
+                        # planThread.start()
+                        pass
+                    
+
+
+                    elif event.key == pygame.K_m:
+                        errorZ = 2
+                        self.trjData[:dataCount, 2] += errorZ
+
             #-----------------------------------------------------------------------------------------------
             singlelooptime2 = self.Time.ReadNowTime()
             singleloopCosttime = self.Time.TimeError(singlelooptime1, singlelooptime2)

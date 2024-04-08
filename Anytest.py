@@ -2200,38 +2200,77 @@ Abstract Method
 #     main()
 
 """
-速度估算
+矩陣軌跡法改版測試 | 指定速度版本
 """
-from PathPlanning import PathPlanning
-from Matrix import Matrix4x4
-from Toolbox import TimeTool
+# from PathPlanning import PathPlanning
+# from Matrix import Matrix4x4
+# from Toolbox import TimeTool
 
-Time = TimeTool()
-Mat = Matrix4x4()
-d2r = np.deg2rad
-NowEnd = np.eye(4)
-GoalEnd = np.eye(4)
+# Time = TimeTool()
+# Mat = Matrix4x4()
+# d2r = np.deg2rad
+# NowEnd = np.eye(4)
+# GoalEnd = np.eye(4)
 
-NowPoseMat = [958.521, -37.126, -164.943, -165.2876, -7.1723, 17.5191]
-GoalPoseMat = [958.525, -18.527, -164.933, -165.2873, -7.1725, 17.5181]
+# NowPoseMat = [958.521, -150.126, -164.943, -165.2876, -7.1723, 17.5191]
+# GoalPoseMat = [958.525, -0.527, -164.933, -165.2873, -7.1725, 17.5181]
 
-NowEnd = NowEnd @ Mat.TransXYZ(NowPoseMat[0], NowPoseMat[1], NowPoseMat[2]) @ Mat.RotaXYZ(d2r(NowPoseMat[3]), d2r(NowPoseMat[4]), d2r(NowPoseMat[5])) 
-GoalEnd = GoalEnd @ Mat.TransXYZ(GoalPoseMat[0], GoalPoseMat[1], GoalPoseMat[2]) @ Mat.RotaXYZ(d2r(GoalPoseMat[3]), d2r(GoalPoseMat[4]), d2r(GoalPoseMat[5]))
-speed = 0
-sampleTime = 0.04
-# 矩陣軌跡法
-b = Time.ReadNowTime()
-# trjData, velData, timeData = PathPlanning.MatrixPathPlanningSpeedIteration(NowEnd, GoalEnd, speed, sampleTime)
+# NowEnd = NowEnd @ Mat.TransXYZ(NowPoseMat[0], NowPoseMat[1], NowPoseMat[2]) @ Mat.RotaXYZ(d2r(NowPoseMat[3]), d2r(NowPoseMat[4]), d2r(NowPoseMat[5])) 
+# GoalEnd = GoalEnd @ Mat.TransXYZ(GoalPoseMat[0], GoalPoseMat[1], GoalPoseMat[2]) @ Mat.RotaXYZ(d2r(GoalPoseMat[3]), d2r(GoalPoseMat[4]), d2r(GoalPoseMat[5]))
+# speed = 0
+# sampleTime = 0.04
 
-# P = PathPlanning()
-# allTime = 10
-# trjData, velData, timeData = P.MatrixPathPlanning(GoalEnd, NowEnd, allTime, sampleTime)
+# b = Time.ReadNowTime()
+
+# GoalSpeed = 1.6
+# # 矩陣軌跡法 | 指定速度
+# trjData, velData, timeData = PathPlanning.MatrixPathPlanSpeed(GoalEnd, NowEnd, GoalSpeed, sampleTime)
+
+# a = Time.ReadNowTime()
+# err = Time.TimeError(b, a)
 # print(velData[2])
+# print("迭代時間: ", err)
+"""
+取出執行續運算結果
+"""
+import threading
+import time
 
-GoalSpeed = 1.6
-trjData, velData, timeData = PathPlanning.MatrixPathPlanSpeed(GoalEnd, NowEnd, GoalSpeed, sampleTime)
+class MyThread(threading.Thread):
+    def __init__(self, target, args=()):
+        super().__init__(target=target, args=args)
+        self._result = None
 
-a = Time.ReadNowTime()
-err = Time.TimeError(b, a)
-print(velData[2])
-print("迭代時間: ", err)
+    def run(self):
+        self._result = self._target(*self._args)
+
+    def get_result(self):
+        return self._result
+
+# 使用範例
+def calculate_sum(start, end):
+    time.sleep(1)
+    return sum(range(start, end + 1))
+
+# 建立並執行自定義的執行緒
+thread = MyThread(target=calculate_sum, args=(1, 100))
+thread.start()
+# thread.join()
+
+while True:
+   """
+   is_alive():
+   執行續運轉中 >>> True
+   執行續結束   >>> False
+   """
+
+   if thread.is_alive():
+      print("執行續計算中")
+      
+   else:
+       # 獲取執行緒計算的結果
+      result = thread.get_result()
+      print("計算結果:", result)
+      break
+       
+

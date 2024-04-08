@@ -162,9 +162,18 @@ class Generator:
     TrjPlan = PathPlanning()
 
     @classmethod
-    def generateTrajectory(cls, NowPoseMat, GoalPoseMat, sampleTime, alltime, fileName_header):
+    def generateTrajectory(cls, NowPoseMat, GoalPoseMat, sampleTime, GoalSpeed):
         """
-        fileName_header ,ex: database(資料夾名稱)
+        - Args:
+            1. NowPoseMat
+            2. GoalPoseMat
+            3. sampleTime(s)
+            4. GoalSpeed : (unit: mm/s)
+        - Return:
+            1. HomogeneousMatData(3D array)
+            2. PoseMatData
+            3. VelocityData
+            4. TimeData
         """
         d2r = np.deg2rad
         NowEnd = np.eye(4)
@@ -172,15 +181,16 @@ class Generator:
         
         NowEnd = NowEnd @ cls.Mat.TransXYZ(NowPoseMat[0], NowPoseMat[1], NowPoseMat[2]) @ cls.Mat.RotaXYZ(d2r(NowPoseMat[3]), d2r(NowPoseMat[4]), d2r(NowPoseMat[5])) 
         GoalEnd = GoalEnd @ cls.Mat.TransXYZ(GoalPoseMat[0], GoalPoseMat[1], GoalPoseMat[2]) @ cls.Mat.RotaXYZ(d2r(GoalPoseMat[3]), d2r(GoalPoseMat[4]), d2r(GoalPoseMat[5]))
-        # 矩陣軌跡法
-        HomogeneousMatData, velocityData, timeData = cls.TrjPlan.MatrixPathPlanning(GoalEnd, NowEnd, alltime, sampleTime)
-
-        mode = "w"
-        database_HomogeneousMat.Save(HomogeneousMatData, fileName_header+"/HomogeneousMat.csv", mode)
-        database_Velocity.Save(velocityData, fileName_header+"/Velocity.csv", mode)
-        database_time.Save(timeData, fileName_header+"/time.csv", mode)
-        PoseMat = database_PoseMat.HomogeneousMatToPoseMat(HomogeneousMatData)
-        database_PoseMat.Save(PoseMat, fileName_header+"/PoseMat.csv", mode)
+        # 矩陣軌跡法(原本)
+        # HomogeneousMatData, velocityData, timeData = cls.TrjPlan.MatrixPathPlanning(GoalEnd, NowEnd, alltime, sampleTime)
+        
+        # 矩陣軌跡法(速度版)
+        HomogeneousMatData, VelocityData, TimeData = cls.TrjPlan.MatrixPathPlanSpeed(GoalEnd, NowEnd, GoalSpeed, sampleTime)
+         
+        # HomogeneousMat to PoseMat
+        PoseMatData = database_PoseMat.HomogeneousMatToPoseMat(HomogeneousMatData)
+        
+        return HomogeneousMatData, PoseMatData, VelocityData, TimeData
 
     @classmethod
     def generateTrajectoryJointAngle(cls, nowJointAngle, HomogeneousMatData, fileName_header):
@@ -211,19 +221,23 @@ class Generator:
     
 if __name__ == "__main__":
     d2r = np.deg2rad
-    # NowEnd = [958.521, -37.126, -164.943, -165.2876, -7.1723, 17.5191]
-    # GoalEnd = [958.525, -18.527, -164.933, -165.2873, -7.1725, 17.5181]
-    # alltime = 8
-    # sampleTime = 0.04
+    NowEnd = [958.521, -37.126, -164.943, -165.2876, -7.1723, 17.5191]
+    GoalEnd = [958.525, -18.527, -164.933, -165.2873, -7.1725, 17.5181]
+    Goalspeed = 2.3
+    sampleTime = 0.04
     filename_header = "database/test0330"
-    # Generator.generateTrajectory(NowEnd, GoalEnd, sampleTime, alltime, filename_header)
-
-    nowJointAngle = (np.zeros((6,1)))
-    nowJointAngle[0, 0] =  d2r(-0.006)
-    nowJointAngle[1, 0] =  d2r(-38.8189)
-    nowJointAngle[2, 0] =  d2r(-41.0857)
-    nowJointAngle[3, 0] =  d2r(-0.0030)
-    nowJointAngle[4, 0] =  d2r(-76.4394)
-    nowJointAngle[5, 0] =  d2r(1.0687)
-    HomogeneousMat = database_HomogeneousMat.Load("database/test0330/HomogeneousMat.csv")
-    Generator.generateTrajectoryJointAngle(nowJointAngle, HomogeneousMat, filename_header)
+    HomogeneousMatData, PoseMatData, VelocityData, TimeData = Generator.generateTrajectory(NowEnd, GoalEnd, sampleTime, Goalspeed)
+    mode = "w"
+    database_PoseMat.Save(PoseMatData, "dataBase/test0330/PoseMat.csv", mode)
+    database_Velocity.Save(VelocityData, "dataBase/test0330/Velocity.csv", mode)
+    data = database_Velocity.Load("dataBase/test0330/Velocity.csv")
+    print()
+    # nowJointAngle = (np.zeros((6,1)))
+    # nowJointAngle[0, 0] =  d2r(-0.006)
+    # nowJointAngle[1, 0] =  d2r(-38.8189)
+    # nowJointAngle[2, 0] =  d2r(-41.0857)
+    # nowJointAngle[3, 0] =  d2r(-0.0030)
+    # nowJointAngle[4, 0] =  d2r(-76.4394)
+    # nowJointAngle[5, 0] =  d2r(1.0687)
+    # HomogeneousMat = database_HomogeneousMat.Load("database/test0330/HomogeneousMat.csv")
+    # Generator.generateTrajectoryJointAngle(nowJointAngle, HomogeneousMat, filename_header)

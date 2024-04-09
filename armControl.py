@@ -153,6 +153,7 @@ from Kinematics import Kinematics
 from Matrix import Matrix4x4
 from PathPlanning import PathPlanning
 from dataBase_v1 import *
+from Toolbox import TimeTool
 import numpy as np
 
 class Generator:
@@ -193,7 +194,7 @@ class Generator:
         return HomogeneousMatData, PoseMatData, VelocityData, TimeData
 
     @classmethod
-    def generateTrajectoryJointAngle(cls, nowJointAngle, HomogeneousMatData, fileName_header):
+    def generateTrajectoryJointAngle(cls, nowJointAngle, HomogeneousMatData):
         θ_Buffer = (np.zeros((6,1)))
         d2r = np.deg2rad
         # θ_Buffer[0, 0] =  d2r(-0.006)
@@ -214,24 +215,29 @@ class Generator:
         for i in range(HomogeneousMatData.shape[0]):
             JointAngleData[i] = cls.Kin.IK_4x4(HomogeneousMatData[i], θ_Buffer)
 
-        mode = "w"
-        database_JointAngle.Save(JointAngleData, fileName_header+"/JointAngle_linear.csv", mode)
-
         return JointAngleData
     
 if __name__ == "__main__":
     d2r = np.deg2rad
-    NowEnd = [958.521, -37.126, -164.943, -165.2876, -7.1723, 17.5191]
+    Time = TimeTool()
+    # NowEnd = [958.521, -37.126, -164.943, -165.2876, -7.1723, 17.5191]
+    NowEnd = [958.521, -23.142, -164.943, -165.2876, -7.1723, 17.5191]
     GoalEnd = [958.525, -18.527, -164.933, -165.2873, -7.1725, 17.5181]
-    Goalspeed = 2.3
+    Goalspeed = 1
     sampleTime = 0.04
     filename_header = "database/test0330"
+    b = Time.ReadNowTime()
     HomogeneousMatData, PoseMatData, VelocityData, TimeData = Generator.generateTrajectory(NowEnd, GoalEnd, sampleTime, Goalspeed)
+    a = Time.ReadNowTime()
+    calerr = Time.TimeError(b, a)
+    print("計算新軌跡總共花費: ", calerr["millisecond"], "ms")
+
     mode = "w"
+    database_HomogeneousMat.Save(HomogeneousMatData, "database/test0330/HomogeneousMat.csv", mode)
     database_PoseMat.Save(PoseMatData, "dataBase/test0330/PoseMat.csv", mode)
     database_Velocity.Save(VelocityData, "dataBase/test0330/Velocity.csv", mode)
-    data = database_Velocity.Load("dataBase/test0330/Velocity.csv")
-    print()
+    # data = database_Velocity.Load("dataBase/test0330/Velocity.csv")
+    # print()
     # nowJointAngle = (np.zeros((6,1)))
     # nowJointAngle[0, 0] =  d2r(-0.006)
     # nowJointAngle[1, 0] =  d2r(-38.8189)
@@ -240,4 +246,5 @@ if __name__ == "__main__":
     # nowJointAngle[4, 0] =  d2r(-76.4394)
     # nowJointAngle[5, 0] =  d2r(1.0687)
     # HomogeneousMat = database_HomogeneousMat.Load("database/test0330/HomogeneousMat.csv")
-    # Generator.generateTrajectoryJointAngle(nowJointAngle, HomogeneousMat, filename_header)
+    # JointAngleData = Generator.generateTrajectoryJointAngle(nowJointAngle, HomogeneousMat)
+    # print(JointAngleData)

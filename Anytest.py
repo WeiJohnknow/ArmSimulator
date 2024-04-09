@@ -2233,44 +2233,153 @@ Abstract Method
 """
 取出執行續運算結果
 """
-import threading
-import time
+# import threading
+# import time
 
-class MyThread(threading.Thread):
-    def __init__(self, target, args=()):
-        super().__init__(target=target, args=args)
-        self._result = None
+# class MyThread(threading.Thread):
+#     def __init__(self, target, args=()):
+#         super().__init__(target=target, args=args)
+#         self._result = None
 
-    def run(self):
-        self._result = self._target(*self._args)
+#     def run(self):
+#         self._result = self._target(*self._args)
 
-    def get_result(self):
-        return self._result
+#     def get_result(self):
+#         return self._result
 
-# 使用範例
-def calculate_sum(start, end):
-    time.sleep(1)
-    return sum(range(start, end + 1))
+# # 使用範例
+# def calculate_sum(start, end):
+#     time.sleep(1)
+#     return sum(range(start, end + 1))
 
-# 建立並執行自定義的執行緒
-thread = MyThread(target=calculate_sum, args=(1, 100))
-thread.start()
-# thread.join()
+# # 建立並執行自定義的執行緒
+# thread = MyThread(target=calculate_sum, args=(1, 100))
+# thread.start()
+# # thread.join()
 
-while True:
-   """
-   is_alive():
-   執行續運轉中 >>> True
-   執行續結束   >>> False
-   """
+# while True:
+#    """
+#    is_alive():
+#    執行續運轉中 >>> True
+#    執行續結束   >>> False
+#    """
 
-   if thread.is_alive():
-      print("執行續計算中")
+#    if thread.is_alive():
+#       print("執行續計算中")
       
-   else:
-       # 獲取執行緒計算的結果
-      result = thread.get_result()
-      print("計算結果:", result)
-      break
+#    else:
+#        # 獲取執行緒計算的結果
+#       result = thread.get_result()
+#       print("計算結果:", result)
+#       break
        
+"""
+執行續池與進程池應用範例
+1. 執行續池 >>> 適合I/O密集型任務。
+2. 進程池   >>> 適用CPU並行運算任務。
+"""
+# import concurrent.futures
+# import time
 
+# def task():
+#     print("任務開始執行")
+#     time.sleep(3)  # 模擬任務執行時間
+#     print("任務執行完成")
+#     return "任務結果"
+
+# def main():
+#     # 建立進程池
+#     with concurrent.futures.ProcessPoolExecutor() as executor:
+#         # 提交任務到進程池
+#         future = executor.submit(task)
+
+#         # 檢查任務是否在執行中
+#         while True:
+        
+#             # 檢查任務是否完成
+#             if future.done():
+#                 result = future.result()
+#                 print("任務已完成，結果為:", result)
+#                 break
+#             else:
+#                 print("任務仍在執行...")
+
+# if __name__ == "__main__":
+#     main()
+
+
+"""
+進程池效能測試
+"""
+# import concurrent.futures
+# import time
+# from armControl import Generator
+# import threading
+
+# def task():
+#     print("任務開始執行")
+#     time.sleep(3)  # 模擬任務執行時間
+#     print("任務執行完成")
+#     return "任務結果"
+
+# def main():
+#     d2r = np.deg2rad
+#     Time = TimeTool()
+#     # NowEnd = [958.521, -37.126, -164.943, -165.2876, -7.1723, 17.5191]
+#     NowEnd = [958.521, -25.142, -164.943, -165.2876, -7.1723, 17.5191]
+#     GoalEnd = [958.525, -18.527, -164.933, -165.2873, -7.1725, 17.5181]
+#     Goalspeed = 1
+#     sampleTime = 0.04
+    
+#     # HomogeneousMatData, PoseMatData, VelocityData, TimeData = Generator.generateTrajectory(NowEnd, GoalEnd, sampleTime, Goalspeed)
+    
+#     # 建立進程池
+#     with concurrent.futures.ProcessPoolExecutor() as executor:
+#         b = Time.ReadNowTime()
+#         # 提交任務到進程池
+#         future = executor.submit(Generator.generateTrajectory, NowEnd, GoalEnd, sampleTime, Goalspeed)
+
+#         # 檢查任務是否在執行中
+#         while True:
+        
+#             # 檢查任務是否完成
+#             if future.done():
+#                 a = Time.ReadNowTime()
+#                 calerr = Time.TimeError(b, a)
+#                 print("計算新軌跡總共花費: ", calerr["millisecond"], "ms")
+
+#                 result = future.result()
+#                 print("任務已完成，結果為:", result)
+                
+#                 break
+#             else:
+#                 print("任務仍在執行...")
+
+# if __name__ == "__main__":
+#     main()
+
+
+# def main():
+#     d2r = np.deg2rad
+#     Time = TimeTool()
+#     # NowEnd = [958.521, -37.126, -164.943, -165.2876, -7.1723, 17.5191]
+#     NowEnd = [958.521, -25.142, -164.943, -165.2876, -7.1723, 17.5191]
+#     GoalEnd = [958.525, -18.527, -164.933, -165.2873, -7.1725, 17.5181]
+#     Goalspeed = 1
+#     sampleTime = 0.04
+#     planThread = threading.Thread(target=Generator.generateTrajectory, args=(NowEnd, GoalEnd, sampleTime, Goalspeed))
+#     planThread.start()
+#     b = Time.ReadNowTime()
+
+#     while True:
+#         # time.sleep(2)
+#         if planThread.is_alive() is False:
+#             a = Time.ReadNowTime()
+#             calerr = Time.TimeError(b, a)
+#             print("計算新軌跡總共花費: ", calerr["millisecond"], "ms")
+#             break
+#         else:
+#             print("計算中......")
+
+# if __name__ == "__main__":
+#     main()

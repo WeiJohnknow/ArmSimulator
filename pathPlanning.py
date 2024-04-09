@@ -690,7 +690,7 @@ class PathPlanning:
             # allTime -= 0.01*error
             
             iter += 1
-            print("error: ", error)
+            # print("error: ", error)
 
         
 

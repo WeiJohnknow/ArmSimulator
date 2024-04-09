@@ -462,10 +462,10 @@ class Kinematics:
         
         Jbuffer = 0
 
-        iter = 10
+        iter = 15
         # 學習率
         # test = 0.05
-        test = 1
+        test = 0.85
         while iter > 0:
             iter -= 1
 
@@ -521,7 +521,7 @@ class Kinematics:
         # print(normθ)
         # print("error " , error)
 
-        if error  > 0.001:
+        if error > 0.001:
             sys.exit("IK迭代誤差過大")
         if normθ[0,0] > d2r(170) or normθ[0,0] < d2r(-170):
             sys.exit("S軸超過角度限制")

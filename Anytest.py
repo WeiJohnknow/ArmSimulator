@@ -2311,10 +2311,10 @@ Abstract Method
 """
 進程池效能測試
 """
-# import concurrent.futures
-# import time
-# from armControl import Generator
-# import threading
+import concurrent.futures
+import time
+from armControl import Generator
+import threading
 
 # def task():
 #     print("任務開始執行")
@@ -2359,27 +2359,30 @@ Abstract Method
 #     main()
 
 
-# def main():
-#     d2r = np.deg2rad
-#     Time = TimeTool()
-#     # NowEnd = [958.521, -37.126, -164.943, -165.2876, -7.1723, 17.5191]
-#     NowEnd = [958.521, -25.142, -164.943, -165.2876, -7.1723, 17.5191]
-#     GoalEnd = [958.525, -18.527, -164.933, -165.2873, -7.1725, 17.5181]
-#     Goalspeed = 1
-#     sampleTime = 0.04
-#     planThread = threading.Thread(target=Generator.generateTrajectory, args=(NowEnd, GoalEnd, sampleTime, Goalspeed))
-#     planThread.start()
-#     b = Time.ReadNowTime()
+def main():
+    d2r = np.deg2rad
+    Time = TimeTool()
+    # NowEnd = [958.521, -37.126, -164.943, -165.2876, -7.1723, 17.5191]
+    NowEnd = [958.521, -25.142, -164.943, -165.2876, -7.1723, 17.5191]
+    GoalEnd = [958.525, -18.527, -164.933, -165.2873, -7.1725, 17.5181]
+    Goalspeed = 1
+    sampleTime = 0.04
+    planThread = threading.Thread(target=Generator.generateTrajectory, args=(NowEnd, GoalEnd, sampleTime, Goalspeed))
+    planThread.start()
+    b = Time.ReadNowTime()
 
-#     while True:
-#         # time.sleep(2)
-#         if planThread.is_alive() is False:
-#             a = Time.ReadNowTime()
-#             calerr = Time.TimeError(b, a)
-#             print("計算新軌跡總共花費: ", calerr["millisecond"], "ms")
-#             break
-#         else:
-#             print("計算中......")
+    while True:
+        # time.sleep(2)
+        if planThread.is_alive() is False:
+            a = Time.ReadNowTime()
+            calerr = Time.TimeError(b, a)
+            print("計算新軌跡總共花費: ", calerr["millisecond"], "ms")
+            break
+        else:
+            print("計算中......")
 
-# if __name__ == "__main__":
-#     main()
+if __name__ == "__main__":
+    main()
+
+
+

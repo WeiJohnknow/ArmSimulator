@@ -154,6 +154,7 @@ from Matrix import Matrix4x4
 from PathPlanning import PathPlanning
 from dataBase_v1 import *
 from Toolbox import TimeTool
+from SimulatorV2 import Simulator
 import numpy as np
 
 class Generator:
@@ -161,6 +162,7 @@ class Generator:
     Kin = Kinematics()
     Mat = Matrix4x4()
     TrjPlan = PathPlanning()
+
 
     @classmethod
     def generateTrajectory(cls, NowPoseMat, GoalPoseMat, sampleTime, GoalSpeed):
@@ -220,10 +222,12 @@ class Generator:
 if __name__ == "__main__":
     d2r = np.deg2rad
     Time = TimeTool()
+    Sim = Simulator()
+
     # NowEnd = [958.521, -37.126, -164.943, -165.2876, -7.1723, 17.5191]
     NowEnd = [958.521, -23.142, -164.943, -165.2876, -7.1723, 17.5191]
     GoalEnd = [958.525, -18.527, -164.933, -165.2873, -7.1725, 17.5181]
-    Goalspeed = 1
+    Goalspeed = 1.5
     sampleTime = 0.04
     filename_header = "database/test0330"
     b = Time.ReadNowTime()
@@ -236,15 +240,21 @@ if __name__ == "__main__":
     database_HomogeneousMat.Save(HomogeneousMatData, "database/test0330/HomogeneousMat.csv", mode)
     database_PoseMat.Save(PoseMatData, "dataBase/test0330/PoseMat.csv", mode)
     database_Velocity.Save(VelocityData, "dataBase/test0330/Velocity.csv", mode)
-    # data = database_Velocity.Load("dataBase/test0330/Velocity.csv")
-    # print()
-    # nowJointAngle = (np.zeros((6,1)))
-    # nowJointAngle[0, 0] =  d2r(-0.006)
-    # nowJointAngle[1, 0] =  d2r(-38.8189)
-    # nowJointAngle[2, 0] =  d2r(-41.0857)
-    # nowJointAngle[3, 0] =  d2r(-0.0030)
-    # nowJointAngle[4, 0] =  d2r(-76.4394)
-    # nowJointAngle[5, 0] =  d2r(1.0687)
-    # HomogeneousMat = database_HomogeneousMat.Load("database/test0330/HomogeneousMat.csv")
-    # JointAngleData = Generator.generateTrajectoryJointAngle(nowJointAngle, HomogeneousMat)
-    # print(JointAngleData)
+    database_time.Save(TimeData, "dataBase/test0330/time.csv", mode)
+    
+    
+    
+    nowJointAngle = (np.zeros((6,1)))
+    nowJointAngle[0, 0] =  d2r(-0.006)
+    nowJointAngle[1, 0] =  d2r(-38.8189)
+    nowJointAngle[2, 0] =  d2r(-41.0857)
+    nowJointAngle[3, 0] =  d2r(-0.0030)
+    nowJointAngle[4, 0] =  d2r(-76.4394)
+    nowJointAngle[5, 0] =  d2r(1.0687)
+    # PoseMat >>> HomogeneousMat
+    PoseMat = database_PoseMat.Load("database/test0330/new/Remix_PoseMat.csv")
+    HomogeneousMat = database_HomogeneousMat.Load("database/test0330/new/Remix_HomogeneousMat.csv")
+    JointAngleData = Generator.generateTrajectoryJointAngle(nowJointAngle, HomogeneousMat)
+    database_JointAngle.Save(JointAngleData, "database/test0330/new/Remix_JointAngle.csv", "w")
+    
+    Sim.paitGL(JointAngleData, HomogeneousMat)

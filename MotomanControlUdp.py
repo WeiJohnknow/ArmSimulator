@@ -1315,6 +1315,7 @@ class Motomancontrol():
         database_PoseMat.Save(PoseMatData, "dataBase/test0330/newPoseMat.csv", mode)
         database_Velocity.Save(VelocityData, "dataBase/test0330/newSpeed.csv", mode)
         database_time.Save(TimeData,"dataBase/test0330/newTime.csv", mode)
+        
         # 載檔
         PoseMatData = database_PoseMat.Load("dataBase/test0330/newPoseMat.csv")
         VelocityData = database_Velocity.Load("dataBase/test0330/newSpeed.csv")
@@ -1471,13 +1472,12 @@ class Motomancontrol():
                         獲得新速度軌跡
                         """
                         # 創建線程
-                        
                         # 開始重新規劃新軌跡時，紀錄舊軌跡已經寫入的資料筆數       
                         startPlan_alreadySentNBR = alreadySentNBR
                         # 讀取當下位置
                         # pos_result, coordinate = self.Udp.getcoordinateMH(101)
                         # 模擬
-                        coordinate = [958.521, -23.142, -164.943, -165.2876, -7.1723, 17.5191]
+                        coordinate = [958.521, -23.146, -164.943, -165.2876, -7.1723, 17.5191]
                         NowEnd = [coordinate[0], coordinate[1], coordinate[2], coordinate[3], coordinate[4], coordinate[5]]
                         # 與原軌跡保持一致
                         GoalEnd = [self.trjData[-1, 0, 0], self.trjData[-1, 0, 1], self.trjData[-1, 0, 2], self.trjData[-1, 0, 3], self.trjData[-1, 0, 4], self.trjData[-1, 0, 5]]
@@ -1492,7 +1492,6 @@ class Motomancontrol():
                         # 改變狀態旗標>>> 執行續已被啟動過
                         Thread_started = True
                         
-
                     elif event.key == pygame.K_m:
                         errorZ = 2
                         self.trjData[:alreadySentNBR, 2] += errorZ

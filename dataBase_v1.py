@@ -33,7 +33,20 @@ class database_HomogeneousMat(Database_interface):
         - Args: PoseMatData(type: ndarray)(shape: 3D)
         """
         dataTypeConverter.ndarrayTOdataframe(HomogeneousMatData, ['Xx', 'Xy', 'Xz', '0', 'Yx', 'Yy', 'Yz', '0', 'Zx', 'Zy', 'Zz', '0', 'Px', 'Py', 'Pz', '1'], filePath, mode)
- 
+    
+    @ staticmethod
+    def PoseMatToHomogeneousMat(PoseMat_ndarray):
+        """
+        - Arg: PoseMat(type: ndarray(3D))
+        - Return: HomogeneousMat(type: ndarray(3D))
+        """
+        Mat = Matrix4x4()
+        HomogeneousMat = np.zeros((PoseMat_ndarray.shape[0], 4, 4))
+        for layer in range(PoseMat_ndarray.shape[0]):
+            HomogeneousMat[layer] = Mat.AngletoMat(PoseMat_ndarray[layer].reshape(6, 1))
+        
+        return HomogeneousMat
+
     @ staticmethod
     def Load(filePath:str):
         df = validator.Is_existence(filePath)

@@ -462,7 +462,7 @@ class Kinematics:
         
         Jbuffer = 0
 
-        iter = 15
+        iter = 20
         # 學習率
         # test = 0.05
         test = 0.85

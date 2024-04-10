@@ -3,7 +3,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from dataBase_v0 import dataBase
+# from dataBase_v0 import dataBase
 import os
 from Toolbox import TimeTool
 import time
@@ -11,8 +11,9 @@ from Matrix import Matrix4x4
 from dataBase_v0 import dataBase
 from sklearn.linear_model import LinearRegression
 from scipy.stats import norm
+from dataBase_v1 import *
 
-dB = dataBase()
+
 
 """
 * color:
@@ -277,8 +278,11 @@ def calculate_distance_speed(PoseMat_file, Time_file, sampleTime):
         - Time_file: 依原資料之單位為主
     - 注意計算總位移與平均速度時，時間之單位
     """
-    PoseMat6x1 = pd.read_csv(PoseMat_file)
+    # PoseMat6x1 = pd.read_csv(PoseMat_file)
+    PoseMat6x1 = database_PoseMat.Load(PoseMat_file)
+    time = database_time.Load(Time_file)
     # pathdata_df = pd.read_csv( Time_file)
+
     
     x  = np.zeros(PoseMat6x1.shape[0])
     y  = np.zeros(PoseMat6x1.shape[0])
@@ -289,16 +293,24 @@ def calculate_distance_speed(PoseMat_file, Time_file, sampleTime):
     # time = np.zeros(pathdata_df.shape[0])
     time = np.zeros(PoseMat6x1.shape[0])
 
+    # for i in range(len(PoseMat6x1)):
+    #     x[i] = PoseMat6x1["X"][i]
+    #     y[i] = PoseMat6x1["Y"][i]
+    #     z[i] = PoseMat6x1["Z"][i]
+    #     Rx[i]= PoseMat6x1["Rx"][i]
+    #     Ry[i]= PoseMat6x1["Ry"][i]
+    #     Rz[i]= PoseMat6x1["Rz"][i]
+    #     # time[i] = pathdata_df['time'][i]
+    #     time[i] = PoseMat6x1['time'][i]
+
     for i in range(len(PoseMat6x1)):
-        x[i] = PoseMat6x1["X"][i]
-        y[i] = PoseMat6x1["Y"][i]
-        z[i] = PoseMat6x1["Z"][i]
-        Rx[i]= PoseMat6x1["Rx"][i]
-        Ry[i]= PoseMat6x1["Ry"][i]
-        Rz[i]= PoseMat6x1["Rz"][i]
-        # time[i] = pathdata_df['time'][i]
-        time[i] = PoseMat6x1['time'][i]
-    
+        x[i] = PoseMat6x1[i, 0, 0]
+        y[i] = PoseMat6x1[i, 0, 1]
+        z[i] = PoseMat6x1[i, 0, 2]
+        Rx[i]= PoseMat6x1[i, 0, 3]
+        Ry[i]= PoseMat6x1[i, 0, 4]
+        Rz[i]= PoseMat6x1[i, 0, 5]
+
     Euclidean_distance = np.zeros(PoseMat6x1.shape[0])
     average_speed = np.zeros(PoseMat6x1.shape[0])
 
@@ -1088,8 +1100,8 @@ if __name__ == "__main__" :
     # Time_file =    "Experimental_data/20240129/13_3mms/timeEL.csv"
     # calculate_distance_speed(PoseMat_file, Time_file, 0.04)
 
-    PoseMat_file = "Experimental_data/20240312/result/ReviseData/MatrixPlan_linear_result_Welding_changAC_40to50.csv"
-    Time_file =    "Experimental_data/20240312/result/ReviseData/MatrixPlan_linear_result_Welding_changAC_40to50_time.csv"
+    PoseMat_file = "dataBase/test0330/new/Remix_PoseMat.csv"
+    Time_file =    "dataBase/test0330/time.csv"
 
     calculate_distance_speed(PoseMat_file, Time_file, 0.04)
 

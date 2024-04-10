@@ -680,7 +680,7 @@ class PathPlanning:
             if error < 0.1 :
                 print("error: ", error)
                 print("迭代次數: ", iter)
-                print("alltime: ", iter)
+                print("alltime: ", allTime)
                 break
             if error>10:
                 allTime += 0.1

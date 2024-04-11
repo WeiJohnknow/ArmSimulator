@@ -697,7 +697,7 @@ class PathPlanning:
         #---------------------------------獲得正確alltime參數，並生成軌跡--------------------------------------
         sampleInterval = allTime / sampleTime
         # Create Time Point     
-        timeData = np.arange(startTime, allTime+sampleTime, sampleTime)
+        timeData = np.arange(startTime, allTime, sampleTime)
         # 儲存軌跡資料(Homogeneous transformation)
         TBuffer = np.zeros(((int(sampleInterval)+1,4,4)))
 

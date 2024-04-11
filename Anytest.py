@@ -2311,10 +2311,10 @@ Abstract Method
 """
 進程池效能測試
 """
-import concurrent.futures
-import time
-from armControl import Generator
-import threading
+# import concurrent.futures
+# import time
+# from armControl import Generator
+# import threading
 
 # def task():
 #     print("任務開始執行")
@@ -2359,16 +2359,65 @@ import threading
 #     main()
 
 
+import time
+from armControl import Generator
+from dataBase_v1 import *
+import threading
+
+
+class GetNewTrj(threading.Thread):
+    def __init__(self, target, args=()):
+        super().__init__(target=target, args=args)
+        self._result = None
+
+    def run(self):
+        self._result = self._target(*self._args)
+
+    def get_result(self):
+        return self._result
+    
+def PlanNewTrj(NowEnd, GoalEnd, sampleTime, GoalSpeed):
+        """規劃新軌跡，時間線沿用舊軌跡
+        目的: 產生新軌跡, 並即時傳輸。
+        """
+        b = Time.ReadNowTime()
+        # global NewGroup, NewBatch, NewRobotPositionData, NewSpeedData
+        # 創造新軌跡
+        HomogeneousMatData, PoseMatData, VelocityData, TimeData = Generator.generateTrajectory(NowEnd, GoalEnd, sampleTime, GoalSpeed)
+        a = Time.ReadNowTime()
+        err = Time.TimeError(b, a)
+        print("計算新軌跡所花費的總時間: ", err["millisecond"], "ms")
+
+        # 存檔 
+        mode = "w"
+        database_HomogeneousMat.Save(HomogeneousMatData, "dataBase/dynamicllyPlanTEST/newHomogeneousMat.csv", mode)
+        database_PoseMat.Save(PoseMatData, "dataBase/dynamicllyPlanTEST/newPoseMat.csv", mode)
+        database_Velocity.Save(VelocityData, "dataBase/dynamicllyPlanTEST/newVelocity.csv", mode)
+        database_time.Save(TimeData,"dataBase/dynamicllyPlanTEST/newTime.csv", mode)
+        
+        # 載檔
+        PoseMatData = database_PoseMat.Load("dataBase/dynamicllyPlanTEST/newPoseMat.csv")
+        VelocityData = database_Velocity.Load("dataBase/dynamicllyPlanTEST/newVelocity.csv")
+        
+        # 固定流程
+        # NewTrajectoryData, NewVelocityData = Motomancontrol.deleteFirstTrajectoryData(PoseMatData, VelocityData)
+        # NewGroup, NewBatch = Motomancontrol.calculateDataGroupBatch(NewTrajectoryData)
+        # NewRobotPositionData, NewSpeedData = Motomancontrol.dataSegmentation(NewTrajectoryData, NewVelocityData, NewBatch)
+
+        # return NewGroup, NewBatch, NewRobotPositionData, NewSpeedData, HomogeneousMatData
+        return HomogeneousMatData
+
 def main():
     d2r = np.deg2rad
     Time = TimeTool()
     # NowEnd = [958.521, -37.126, -164.943, -165.2876, -7.1723, 17.5191]
     NowEnd = [958.521, -25.142, -164.943, -165.2876, -7.1723, 17.5191]
     GoalEnd = [958.525, -18.527, -164.933, -165.2873, -7.1725, 17.5181]
-    Goalspeed = 1
+    GoalSpeed = 1
     sampleTime = 0.04
-    planThread = threading.Thread(target=Generator.generateTrajectory, args=(NowEnd, GoalEnd, sampleTime, Goalspeed))
+    planThread = GetNewTrj(target=PlanNewTrj, args=(NowEnd, GoalEnd, sampleTime, GoalSpeed))
     planThread.start()
+
     b = Time.ReadNowTime()
 
     while True:
@@ -2378,11 +2427,49 @@ def main():
             calerr = Time.TimeError(b, a)
             print("計算新軌跡總共花費: ", calerr["millisecond"], "ms")
             break
-        else:
-            print("計算中......")
+       
 
 if __name__ == "__main__":
     main()
 
+"""
+CSV資料合併操作
+"""
+# import pandas as pd
 
+# def mergeTrajectoryData():
+#     Path_name = ["HomogeneousMat", "PoseMat", "Velocity", "Time", "JointAngle"]
+#     for i in range(len(Path_name)):
+#         # 指定兩個 CSV 檔案的路徑
+#         path1 = "database/dynamicllyPlanTEST/" + Path_name[i] + ".csv"
+#         path2 = "database/dynamicllyPlanTEST/" + "new" + Path_name[i] + ".csv"
 
+#         # 讀取第一個 CSV 檔案
+#         data1 = pd.read_csv(path1)
+
+#         # 讀取第二個 CSV 檔案
+#         data2 = pd.read_csv(path2)
+
+#         # 移除第一筆資料，保留從第二筆開始的所有資料
+#         data2 = data2.iloc[1:]  
+
+#         # 找到第一個 CSV 檔案中第 170 列的索引 (注意索引從 0 開始)
+#         index_to_replace = 168  # 如果要覆蓋第 170 列以後的資料，索引就是 169
+
+#         if Path_name[i] == "Time":
+#             data2["Time"] += data1["Time"][index_to_replace-1]
+
+#         # 從第一個 CSV 檔案中取得要保留的資料（覆蓋第 170 列以後的部分）
+#         data1_subset = data1.iloc[:index_to_replace]  # 包括第 170 列在內的所有資料
+
+#         # 從第二個 CSV 檔案中取得要覆蓋到第一個檔案的資料
+#         data2_to_append = data2  
+
+#         # 將第二個 CSV 檔案的資料覆蓋到第一個 CSV 檔案中的特定部分
+#         merged_data = pd.concat([data1_subset, data2_to_append], ignore_index=True)
+
+#         # 儲存合併後的資料到新的 CSV 檔案
+#         output_path = "database/dynamicllyPlanTEST/" + "Remix_" + Path_name[i] + ".csv"
+#         merged_data.to_csv(output_path, index=False)
+
+#         print("----------------軌跡資料合併完畢----------------")

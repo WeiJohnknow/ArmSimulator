@@ -1308,33 +1308,32 @@ class Motomancontrol():
         # global NewGroup, NewBatch, NewRobotPositionData, NewSpeedData
         # 創造新軌跡
         HomogeneousMatData, PoseMatData, VelocityData, TimeData = Generator.generateTrajectory(NowEnd, GoalEnd, sampleTime, GoalSpeed)
-        
+        a = self.Time.ReadNowTime()
+        err = self.Time.TimeError(b, a)
+        print("計算新軌跡所花費的總時間: ", err["millisecond"], "ms")
+
         # 存檔 
         mode = "w"
-        database_HomogeneousMat.Save(HomogeneousMatData, "dataBase/test0330/newHomogeneousMat.csv", mode)
-        database_PoseMat.Save(PoseMatData, "dataBase/test0330/newPoseMat.csv", mode)
-        database_Velocity.Save(VelocityData, "dataBase/test0330/newSpeed.csv", mode)
-        database_time.Save(TimeData,"dataBase/test0330/newTime.csv", mode)
+        database_HomogeneousMat.Save(HomogeneousMatData, "dataBase/dynamicllyPlanTEST/newHomogeneousMat.csv", mode)
+        database_PoseMat.Save(PoseMatData, "dataBase/dynamicllyPlanTEST/newPoseMat.csv", mode)
+        database_Velocity.Save(VelocityData, "dataBase/dynamicllyPlanTEST/newVelocity.csv", mode)
+        database_time.Save(TimeData,"dataBase/dynamicllyPlanTEST/newTime.csv", mode)
         
         # 載檔
-        PoseMatData = database_PoseMat.Load("dataBase/test0330/newPoseMat.csv")
-        VelocityData = database_Velocity.Load("dataBase/test0330/newSpeed.csv")
+        PoseMatData = database_PoseMat.Load("dataBase/dynamicllyPlanTEST/newPoseMat.csv")
+        VelocityData = database_Velocity.Load("dataBase/dynamicllyPlanTEST/newVelocity.csv")
         
         # 固定流程
         NewTrajectoryData, NewVelocityData = Motomancontrol.deleteFirstTrajectoryData(PoseMatData, VelocityData)
         NewGroup, NewBatch = Motomancontrol.calculateDataGroupBatch(NewTrajectoryData)
         NewRobotPositionData, NewSpeedData = Motomancontrol.dataSegmentation(NewTrajectoryData, NewVelocityData, NewBatch)
 
-        a = self.Time.ReadNowTime()
-        err = self.Time.TimeError(b, a)
-        print("計算新軌跡所花費的總時間: ", err["millisecond"], "ms")
-
         return NewGroup, NewBatch, NewRobotPositionData, NewSpeedData, HomogeneousMatData
     
     def simulation(self):
         d2r = np.deg2rad
         b = self.Time.ReadNowTime()
-        newHomogeneousMat = database_HomogeneousMat.Load("dataBase/test0330/newHomogeneousMat.csv")
+        newHomogeneousMat = database_HomogeneousMat.Load("dataBase/dynamicllyPlanTEST/newHomogeneousMat.csv")
         nowJointAngle = (np.zeros((6,1)))
         nowJointAngle[0, 0] =  d2r(-0.006)
         nowJointAngle[1, 0] =  d2r(-38.8189)
@@ -1346,7 +1345,7 @@ class Motomancontrol():
         a = self.Time.ReadNowTime()
         err = self.Time.TimeError(b, a)
         print("關節角度計算所消耗的總時間: ", err["millisecond"], "ms")
-        # database_JointAngle.Save(JointAngleData, "dataBase/test0330/newJointAngle.csv", "w")
+        database_JointAngle.Save(JointAngleData, "dataBase/dynamicllyPlanTEST/newJointAngle.csv", "w")
         # self.Sim.paitGL(JointAngleData, newHomogeneousMat)
 
     def main(self):
@@ -1514,7 +1513,7 @@ class Motomancontrol():
                 Veldata = NewVeldata[dataErr:]
                 batch = NewBatch
                 Thread_started = False
-                print("--------------新軌跡資料以覆寫---------------")
+                print("--------------新軌跡資料已覆寫---------------")
                 # SimThread = GetNewTrj(target=self.simulation, args=NewHomogeneousMat)
                 SimThread = threading.Thread(target=self.simulation)
                 SimThread.start()
@@ -1527,6 +1526,6 @@ class Motomancontrol():
             # print("迴圈剩餘時間: ", laveTime, "ms")
             
 if __name__ == "__main__":
-    trjdataPath = "dataBase/test0330/PoseMat.csv"
-    speeddataPath = "dataBase/test0330/Velocity.csv"
+    trjdataPath = "dataBase/dynamicllyPlanTEST/PoseMat.csv"
+    speeddataPath = "dataBase/dynamicllyPlanTEST/Velocity.csv"
     Motomancontrol(trjdataPath, speeddataPath).main()

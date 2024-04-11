@@ -280,7 +280,7 @@ def calculate_distance_speed(PoseMat_file, Time_file, sampleTime):
     """
     # PoseMat6x1 = pd.read_csv(PoseMat_file)
     PoseMat6x1 = database_PoseMat.Load(PoseMat_file)
-    time = database_time.Load(Time_file)
+    Time = database_time.Load(Time_file)
     # pathdata_df = pd.read_csv( Time_file)
 
     
@@ -310,6 +310,7 @@ def calculate_distance_speed(PoseMat_file, Time_file, sampleTime):
         Rx[i]= PoseMat6x1[i, 0, 3]
         Ry[i]= PoseMat6x1[i, 0, 4]
         Rz[i]= PoseMat6x1[i, 0, 5]
+        time[i] = Time[i]
 
     Euclidean_distance = np.zeros(PoseMat6x1.shape[0])
     average_speed = np.zeros(PoseMat6x1.shape[0])
@@ -1100,8 +1101,8 @@ if __name__ == "__main__" :
     # Time_file =    "Experimental_data/20240129/13_3mms/timeEL.csv"
     # calculate_distance_speed(PoseMat_file, Time_file, 0.04)
 
-    PoseMat_file = "dataBase/test0330/new/Remix_PoseMat.csv"
-    Time_file =    "dataBase/test0330/time.csv"
+    PoseMat_file = "dataBase/dynamicllyPlanTEST/Remix_PoseMat.csv"
+    Time_file =    "dataBase/dynamicllyPlanTEST/Remix_time.csv"
 
     calculate_distance_speed(PoseMat_file, Time_file, 0.04)
 

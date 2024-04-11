@@ -224,12 +224,12 @@ if __name__ == "__main__":
     Time = TimeTool()
     Sim = Simulator()
 
-    # NowEnd = [958.521, -37.126, -164.943, -165.2876, -7.1723, 17.5191]
-    NowEnd = [958.521, -23.142, -164.943, -165.2876, -7.1723, 17.5191]
+    NowEnd = [958.521, -37.126, -164.943, -165.2876, -7.1723, 17.5191]
+    # NowEnd = [958.521, -23.142, -164.943, -165.2876, -7.1723, 17.5191]
     GoalEnd = [958.525, -18.527, -164.933, -165.2873, -7.1725, 17.5181]
-    Goalspeed = 1.5
+    Goalspeed = 2
     sampleTime = 0.04
-    filename_header = "database/test0330"
+    filename_header = "database/dynamicllyPlanTEST/"
     b = Time.ReadNowTime()
     HomogeneousMatData, PoseMatData, VelocityData, TimeData = Generator.generateTrajectory(NowEnd, GoalEnd, sampleTime, Goalspeed)
     a = Time.ReadNowTime()
@@ -237,12 +237,10 @@ if __name__ == "__main__":
     print("計算新軌跡總共花費: ", calerr["millisecond"], "ms")
 
     mode = "w"
-    database_HomogeneousMat.Save(HomogeneousMatData, "database/test0330/HomogeneousMat.csv", mode)
-    database_PoseMat.Save(PoseMatData, "dataBase/test0330/PoseMat.csv", mode)
-    database_Velocity.Save(VelocityData, "dataBase/test0330/Velocity.csv", mode)
-    database_time.Save(TimeData, "dataBase/test0330/time.csv", mode)
-    
-    
+    database_HomogeneousMat.Save(HomogeneousMatData, filename_header+"HomogeneousMat.csv", mode)
+    database_PoseMat.Save(PoseMatData, filename_header+"PoseMat.csv", mode)
+    database_Velocity.Save(VelocityData, filename_header+"Velocity.csv", mode)
+    database_time.Save(TimeData, filename_header+"Time.csv", mode)
     
     nowJointAngle = (np.zeros((6,1)))
     nowJointAngle[0, 0] =  d2r(-0.006)
@@ -251,10 +249,16 @@ if __name__ == "__main__":
     nowJointAngle[3, 0] =  d2r(-0.0030)
     nowJointAngle[4, 0] =  d2r(-76.4394)
     nowJointAngle[5, 0] =  d2r(1.0687)
-    # PoseMat >>> HomogeneousMat
-    PoseMat = database_PoseMat.Load("database/test0330/new/Remix_PoseMat.csv")
-    HomogeneousMat = database_HomogeneousMat.Load("database/test0330/new/Remix_HomogeneousMat.csv")
-    JointAngleData = Generator.generateTrajectoryJointAngle(nowJointAngle, HomogeneousMat)
-    database_JointAngle.Save(JointAngleData, "database/test0330/new/Remix_JointAngle.csv", "w")
+    HomogeneousMat = database_HomogeneousMat.Load(filename_header+"HomogeneousMat.csv")
+    JointAngle = Generator.generateTrajectoryJointAngle(nowJointAngle, HomogeneousMat)
+    database_JointAngle.Save(JointAngle, filename_header+"JointAngle.csv", mode)
+
+    Sim.paitGL(JointAngle, HomogeneousMat)
     
-    Sim.paitGL(JointAngleData, HomogeneousMat)
+    # PoseMat >>> HomogeneousMat
+    # PoseMat = database_PoseMat.Load("database/test0330/new/Remix_PoseMat.csv")
+    # HomogeneousMat = database_HomogeneousMat.Load("database/test0330/new/Remix_HomogeneousMat.csv")
+    # JointAngleData = Generator.generateTrajectoryJointAngle(nowJointAngle, HomogeneousMat)
+    # database_JointAngle.Save(JointAngleData, "database/test0330/new/Remix_JointAngle.csv", "w")
+    
+    # Sim.paitGL(JointAngleData, HomogeneousMat)

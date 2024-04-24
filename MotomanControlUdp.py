@@ -1304,29 +1304,30 @@ class Motomancontrol():
         """規劃新軌跡，時間線沿用舊軌跡
         目的: 產生新軌跡, 並即時傳輸。
         """
-        b = self.Time.ReadNowTime()
+        
         # global NewGroup, NewBatch, NewRobotPositionData, NewSpeedData
         # 創造新軌跡
+        b = self.Time.ReadNowTime()
         HomogeneousMatData, PoseMatData, VelocityData, TimeData = Generator.generateTrajectory(NowEnd, GoalEnd, sampleTime, GoalSpeed)
-        a = self.Time.ReadNowTime()
-        err = self.Time.TimeError(b, a)
-        print("計算新軌跡所花費的總時間: ", err["millisecond"], "ms")
-
+        
         # 存檔 
         mode = "w"
         database_HomogeneousMat.Save(HomogeneousMatData, "dataBase/dynamicllyPlanTEST/newHomogeneousMat.csv", mode)
         database_PoseMat.Save(PoseMatData, "dataBase/dynamicllyPlanTEST/newPoseMat.csv", mode)
-        database_Velocity.Save(VelocityData, "dataBase/dynamicllyPlanTEST/newVelocity.csv", mode)
+        database_Velocity.Save(VelocityData, "dataBase/dynamicllyPlanTEST/newSpeed.csv", mode)
         database_time.Save(TimeData,"dataBase/dynamicllyPlanTEST/newTime.csv", mode)
         
         # 載檔
         PoseMatData = database_PoseMat.Load("dataBase/dynamicllyPlanTEST/newPoseMat.csv")
-        VelocityData = database_Velocity.Load("dataBase/dynamicllyPlanTEST/newVelocity.csv")
+        VelocityData = database_Velocity.Load("dataBase/dynamicllyPlanTEST/newSpeed.csv")
         
         # 固定流程
         NewTrajectoryData, NewVelocityData = Motomancontrol.deleteFirstTrajectoryData(PoseMatData, VelocityData)
         NewGroup, NewBatch = Motomancontrol.calculateDataGroupBatch(NewTrajectoryData)
         NewRobotPositionData, NewSpeedData = Motomancontrol.dataSegmentation(NewTrajectoryData, NewVelocityData, NewBatch)
+        a = self.Time.ReadNowTime()
+        err = self.Time.TimeError(b, a)
+        print("計算新軌跡所花費的總時間: ", err["millisecond"], "ms")
 
         return NewGroup, NewBatch, NewRobotPositionData, NewSpeedData, HomogeneousMatData
     
@@ -1406,10 +1407,10 @@ class Motomancontrol():
             # coordinate, I0 = self.NormalCmd(sysTime, headerFile)
 
             # 模擬I0變換
-            # if I0 == [3]:
-            #     I0 = [11]
-            # else:
-            #     I0 = [3]
+            if I0 == [3]:
+                I0 = [11]
+            else:
+                I0 = [3]
             
             #----------------------------------------------資料通訊區-----------------------------------------
             """
@@ -1426,7 +1427,7 @@ class Motomancontrol():
                 RPpacket, Velpacket, alreadySentNBR = self.packetRPdataVeldata(RPdata, Veldata, alreadySentNBR)
                 # 將打包完的資料寫入DX200
                 Is_success = self.writeRPvarINTvar(firstAddress, RPpacket, Velpacket)
-                print("位址I2-I10，通訊中......")
+                # print("位址I2-I10，通訊中......")
                 self.Time.time_sleep(0.36)
 
             elif I0 == [11] and finalDataFlag is True:
@@ -1436,7 +1437,7 @@ class Motomancontrol():
                 RPpacket, Velpacket, alreadySentNBR = self.packetRPdataVeldata(RPdata, Veldata, alreadySentNBR)
                 # 將打包完的資料寫入DX200
                 Is_success = self.writeRPvarINTvar(firstAddress, RPpacket, Velpacket)
-                print("位址I2-I10，通訊中......")
+                # print("位址I2-I10，通訊中......")
                 self.Time.time_sleep(0.36)
                  
             if alreadySentNBR == batch and finalDataFlag is True:
@@ -1453,6 +1454,7 @@ class Motomancontrol():
                 # Is_success = self.writeRPvarINTvar(firstAddress, RPpacket, Velpacket)
                 
                 finalDataFlag = False
+                print(sysTime)
                 break
             #----------------------------------------------鍵盤事件區-----------------------------------------
             for event in pygame.event.get():
@@ -1476,12 +1478,13 @@ class Motomancontrol():
                         # 讀取當下位置
                         # pos_result, coordinate = self.Udp.getcoordinateMH(101)
                         # 模擬
-                        coordinate = [958.521, -23.146, -164.943, -165.2876, -7.1723, 17.5191]
+                        coordinate = RPdata[startPlan_alreadySentNBR, 0]
                         NowEnd = [coordinate[0], coordinate[1], coordinate[2], coordinate[3], coordinate[4], coordinate[5]]
                         # 與原軌跡保持一致
                         GoalEnd = [self.trjData[-1, 0, 0], self.trjData[-1, 0, 1], self.trjData[-1, 0, 2], self.trjData[-1, 0, 3], self.trjData[-1, 0, 4], self.trjData[-1, 0, 5]]
                         # 由UI寫入
-                        GoalSpeed = 1.5
+                        GoalSpeed = float(input("請輸入走速："))
+                        # GoalSpeed = 1.5
                         
                         planThread = GetNewTrj(target=self.PlanNewTrj, args=(NowEnd, GoalEnd, sampleTime, GoalSpeed))
                         # planThread = threading.Thread(target=Generator.generateTrajectory, args=(NowEnd, GoalEnd, sampleTime, GoalSpeed))
@@ -1497,7 +1500,7 @@ class Motomancontrol():
 
             if planThread.is_alive() is False and Thread_started is True:
                 result = planThread.get_result()
-                # 新軌跡資料
+                # 新軌跡資料處理(更新)
                 NewGroup = result[0]
                 NewBatch = result[1]
                 NewRPdata = result[2]
@@ -1507,16 +1510,25 @@ class Motomancontrol():
                 endPlan_alreadySentNBR = alreadySentNBR
                 # 計算規劃時，時間差所產生的資料落後筆數
                 dataErr = endPlan_alreadySentNBR-startPlan_alreadySentNBR
+                print("系統反應時間所消耗的資料量: ", dataErr)
+                
+                # TODO 自動化紀錄舊資料與新資料合併點
+                # TODO 資料整併
+                
 
                 # 減去時間差的資料後，覆蓋掉舊軌跡資料
                 RPdata = NewRPdata[dataErr:]
                 Veldata = NewVeldata[dataErr:]
-                batch = NewBatch
+                # 更新batch，但必須扣除系統反應時間(計算新軌跡所花費的總時間)
+                batch = NewBatch-dataErr
+                
                 Thread_started = False
                 print("--------------新軌跡資料已覆寫---------------")
                 # SimThread = GetNewTrj(target=self.simulation, args=NewHomogeneousMat)
-                SimThread = threading.Thread(target=self.simulation)
-                SimThread.start()
+
+                # 計算IK
+                # SimThread = threading.Thread(target=self.simulation)
+                # SimThread.start()
             #-----------------------------------------------------------------------------------------------
             singlelooptime2 = self.Time.ReadNowTime()
             singleloopCosttime = self.Time.TimeError(singlelooptime1, singlelooptime2)
@@ -1527,5 +1539,5 @@ class Motomancontrol():
             
 if __name__ == "__main__":
     trjdataPath = "dataBase/dynamicllyPlanTEST/PoseMat.csv"
-    speeddataPath = "dataBase/dynamicllyPlanTEST/Velocity.csv"
+    speeddataPath = "dataBase/dynamicllyPlanTEST/Speed.csv"
     Motomancontrol(trjdataPath, speeddataPath).main()

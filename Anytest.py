@@ -1798,45 +1798,49 @@ pygame 鍵盤事件(可比cv2快速處理)
 
 # # 设置屏幕大小，但不需要显示窗口
 # screen = pygame.display.set_mode((400, 300))
-# # pygame.display.iconify()
+# pygame.display.iconify()
 
-# # 允许 Pygame 捕获键盘事件
-# # pygame.event.set_grab(True)
+# 允许 Pygame 捕获键盘事件
+# pygame.event.set_grab(True)
 
-# # 循环检测键盘事件
+# 循环检测键盘事件
 # running = True
 # while running:
-#     # 解除鼠标锁定
-#     # pygame.event.set_grab(False)
-#     b = Time.ReadNowTime()
+#    # 解除鼠标锁定
+#    # pygame.event.set_grab(False)
+#    b = Time.ReadNowTime()
 
-#     """
-#     pygame.event.get(): 用於單次觸發
-#     pygame.key.get_pressed(): 用於連續觸發
-#     """
-#     for event in pygame.event.get():
-#         if event.type == pygame.KEYDOWN:
-#             if event.key == pygame.K_y:
-#                 print("按下 'y' 键")
-#             elif event.key == pygame.K_u:
-#                 print("按下 'u' 键")
-#             elif event.key == pygame.K_q:
-#                 running = False
-#         elif event.type == pygame.QUIT:
-#             running = False
+#    """
+#    pygame.event.get(): 用於單次觸發
+#    pygame.key.get_pressed(): 用於連續觸發
+#    """
+#    for event in pygame.event.get():
+#       if event.type == pygame.KEYDOWN:
+#          if event.key == pygame.K_y:
+#                print("按下 'y' 键")
+#          elif event.key == pygame.K_u:
+#                print("按下 'u' 键")
+#          elif event.key == pygame.K_q:
+#                running = False
+#       elif event.type == pygame.QUIT:
+#          running = False
 
-    
-#     keys = pygame.key.get_pressed()
-    
-#     # 觀察者視角移動
-#     if keys[pygame.K_a]:
-#         print("按下 'a' 键")
-#     elif keys[pygame.K_d]:
-#         print("按下 'd' 键")
-#     elif keys[pygame.K_w]:
-#         print("按下 'w' 键")
-#     elif keys[pygame.K_s]:
-#         print("按下 's' 键")
+   
+#    keys = pygame.key.get_pressed()
+   
+#    # 觀察者視角移動
+#    if keys[pygame.K_a]:
+#       print("按下 'a' 键")
+#    elif keys[pygame.K_d]:
+#       print("按下 'd' 键")
+#    elif keys[pygame.K_w]:
+#       print("按下 'w' 键")
+#    elif keys[pygame.K_s]:
+#       print("按下 's' 键")
+#    a = Time.ReadNowTime()
+#    err = Time.TimeError(b, a)
+#    print(err["millisecond"])
+
     
 
 #     # 处理窗口事件以确保事件被正确处理
@@ -1880,7 +1884,7 @@ cv2鍵盤事件
 #     print(err["millisecond"])
 
 
-# 關閉視窗
+# # 關閉視窗
 # cv2.destroyAllWindows()
 
 
@@ -2359,78 +2363,30 @@ Abstract Method
 #     main()
 
 
-import time
-from armControl import Generator
-from dataBase_v1 import *
-import threading
+# def main():
+#     d2r = np.deg2rad
+#     Time = TimeTool()
+#     # NowEnd = [958.521, -37.126, -164.943, -165.2876, -7.1723, 17.5191]
+#     NowEnd = [958.521, -25.142, -164.943, -165.2876, -7.1723, 17.5191]
+#     GoalEnd = [958.525, -18.527, -164.933, -165.2873, -7.1725, 17.5181]
+#     Goalspeed = 1
+#     sampleTime = 0.04
+#     planThread = threading.Thread(target=Generator.generateTrajectory, args=(NowEnd, GoalEnd, sampleTime, Goalspeed))
+#     planThread.start()
+#     b = Time.ReadNowTime()
 
+#     while True:
+#         # time.sleep(2)
+#         if planThread.is_alive() is False:
+#             a = Time.ReadNowTime()
+#             calerr = Time.TimeError(b, a)
+#             print("計算新軌跡總共花費: ", calerr["millisecond"], "ms")
+#             break
+#         else:
+#             print("計算中......")
 
-class GetNewTrj(threading.Thread):
-    def __init__(self, target, args=()):
-        super().__init__(target=target, args=args)
-        self._result = None
-
-    def run(self):
-        self._result = self._target(*self._args)
-
-    def get_result(self):
-        return self._result
-    
-def PlanNewTrj(NowEnd, GoalEnd, sampleTime, GoalSpeed):
-        """規劃新軌跡，時間線沿用舊軌跡
-        目的: 產生新軌跡, 並即時傳輸。
-        """
-        b = Time.ReadNowTime()
-        # global NewGroup, NewBatch, NewRobotPositionData, NewSpeedData
-        # 創造新軌跡
-        HomogeneousMatData, PoseMatData, VelocityData, TimeData = Generator.generateTrajectory(NowEnd, GoalEnd, sampleTime, GoalSpeed)
-        a = Time.ReadNowTime()
-        err = Time.TimeError(b, a)
-        print("計算新軌跡所花費的總時間: ", err["millisecond"], "ms")
-
-        # 存檔 
-        mode = "w"
-        database_HomogeneousMat.Save(HomogeneousMatData, "dataBase/dynamicllyPlanTEST/newHomogeneousMat.csv", mode)
-        database_PoseMat.Save(PoseMatData, "dataBase/dynamicllyPlanTEST/newPoseMat.csv", mode)
-        database_Velocity.Save(VelocityData, "dataBase/dynamicllyPlanTEST/newVelocity.csv", mode)
-        database_time.Save(TimeData,"dataBase/dynamicllyPlanTEST/newTime.csv", mode)
-        
-        # 載檔
-        PoseMatData = database_PoseMat.Load("dataBase/dynamicllyPlanTEST/newPoseMat.csv")
-        VelocityData = database_Velocity.Load("dataBase/dynamicllyPlanTEST/newVelocity.csv")
-        
-        # 固定流程
-        # NewTrajectoryData, NewVelocityData = Motomancontrol.deleteFirstTrajectoryData(PoseMatData, VelocityData)
-        # NewGroup, NewBatch = Motomancontrol.calculateDataGroupBatch(NewTrajectoryData)
-        # NewRobotPositionData, NewSpeedData = Motomancontrol.dataSegmentation(NewTrajectoryData, NewVelocityData, NewBatch)
-
-        # return NewGroup, NewBatch, NewRobotPositionData, NewSpeedData, HomogeneousMatData
-        return HomogeneousMatData
-
-def main():
-    d2r = np.deg2rad
-    Time = TimeTool()
-    # NowEnd = [958.521, -37.126, -164.943, -165.2876, -7.1723, 17.5191]
-    NowEnd = [958.521, -25.142, -164.943, -165.2876, -7.1723, 17.5191]
-    GoalEnd = [958.525, -18.527, -164.933, -165.2873, -7.1725, 17.5181]
-    GoalSpeed = 1
-    sampleTime = 0.04
-    planThread = GetNewTrj(target=PlanNewTrj, args=(NowEnd, GoalEnd, sampleTime, GoalSpeed))
-    planThread.start()
-
-    b = Time.ReadNowTime()
-
-    while True:
-        # time.sleep(2)
-        if planThread.is_alive() is False:
-            a = Time.ReadNowTime()
-            calerr = Time.TimeError(b, a)
-            print("計算新軌跡總共花費: ", calerr["millisecond"], "ms")
-            break
-       
-
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
 
 """
 CSV資料合併操作
@@ -2473,3 +2429,94 @@ CSV資料合併操作
 #         merged_data.to_csv(output_path, index=False)
 
 #         print("----------------軌跡資料合併完畢----------------")
+
+"""
+csv 合併檔案
+"""
+# import numpy as np
+
+# # 將原始資料寫入到 CSV 檔案
+# with open('dataBase/mergeData/file1.csv', 'w') as file:
+#     file.write('1.11,1.12,1.13,1.14,1.15,1.16\n')
+#     file.write('1.21,1.22,1.23,1.24,1.25,1.26\n')
+
+# with open('dataBase/mergeData/file2.csv', 'w') as file:
+#     file.write('2.11,2.12,2.13,2.14,2.15,2.16\n')
+#     file.write('2.21,2.22,2.23,2.24,2.25,2.26\n')
+
+# # 讀取第一個 CSV 檔案中的數組
+# file1_data = np.genfromtxt('dataBase/mergeData/file1.csv', delimiter=',', dtype=np.float64, encoding='utf-8')
+# # array1 = file1_data.reshape(2, 1, 6)
+
+# # 讀取第二個 CSV 檔案中的數組
+# file2_data = np.genfromtxt('dataBase/mergeData/file2.csv', delimiter=',', dtype=np.float64, encoding='utf-8')
+# # array2 = file2_data.reshape(2, 1, 6)
+
+# # 合併兩個數組，指定 axis=1
+# merged_array = np.concatenate((file1_data, file2_data), axis=1)
+
+# # 將合併後的數組存儲為新的 CSV 檔案
+# np.savetxt('dataBase/mergeData/Remix_arrays.csv', merged_array.reshape(4, 6), delimiter=',', fmt='%.4f', encoding='utf-8')
+
+import numpy as np
+
+# 定義二維矩陣，每一行是一筆資料
+data_matrix = np.array([
+    [958.522, -30.256, -164.939, 147.124, -71.723, 175.191],
+    [958.522, -30.192, -164.939, 148.4929, -71.8822, 173.3322],
+    [958.522, -30.129, -164.939, 149.8889, -72.0274, 171.4464]])
+
+# 定義目標資料
+target_data = np.array([958.522, -30.172, -164.939, 148.4929, -71.8822, 173.3322])
+
+# 計算每一筆資料與目標資料的歐氏距離
+distances = np.linalg.norm(data_matrix - target_data, axis=1)
+
+# 找出距離最小的資料的索引
+closest_index = np.argmin(distances)
+
+# 找出距離最小的資料
+closest_data = data_matrix[closest_index]
+
+# 打印最相近的資料
+print("距離最近的資料：")
+print(closest_data)
+print("最近的資料索引")
+print(closest_index)
+
+import numpy as np
+
+# 假設 arr 是您的 NumPy 數組
+# 這裡僅為示例，請將 arr 替換為您的實際數組
+
+# 創建一個示例數組（3 行 20 列的二維數組）
+arr = np.zeros(5)
+
+# 使用切片取得第 10 筆到最後一筆資料
+selected_data = arr[4:]
+
+# 打印結果
+print("選取的資料：")
+print(selected_data)
+
+import cv2
+import numpy as np
+
+# 假设有一个旋转向量
+rotation_vector = np.array([0.1, 0.2, 0.3])  # 这里只是一个示例向量
+
+# 将旋转向量转换为旋转矩阵
+rotation_matrix, jacobian = cv2.Rodrigues(rotation_vector)
+
+print("Rotation Matrix:")
+print(rotation_matrix)
+print("Jacobian Matrix from vector to matrix:")
+print(jacobian)
+
+# 现在将旋转矩阵转换回旋转向量
+rotation_vector_back, jacobian_back = cv2.Rodrigues(rotation_matrix)
+
+print("Rotation Vector Back:")
+print(rotation_vector_back)
+print("Jacobian Matrix from matrix to vector:")
+print(jacobian_back)

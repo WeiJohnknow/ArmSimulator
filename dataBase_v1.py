@@ -253,3 +253,48 @@ class dataTypeConverter:
             ndarray[layer,0] = dataframe['Time'][layer]
             
         return ndarray
+
+class dataOperating:
+    @ staticmethod
+    def Merge(oldFilePath:str, newFilePath:str, RemixfilePath:str, oldFileNode:int, newFileNode:int):
+        """整併新與舊的軌跡檔案
+        - Args:
+            - oldFilePath: 舊軌跡檔案路徑
+            - newFilePath: 新軌跡檔案路徑
+            - RemixfilePath: 新、舊軌跡檔案結合後的檔案路徑
+            - oldFileNode: 舊與新軌跡檔案的交接節點
+            - newFileNode: 計算新軌跡時所產生的時間差(單位:批次) 
+        """
+        # 讀取第一個 CSV 檔案中的數組
+        file1_data = np.genfromtxt(oldFilePath, delimiter=',', dtype=np.float64, encoding='utf-8')
+        # 保留第oldFileNode筆前的所有資料
+        oldfile = file1_data[:oldFileNode]
+
+        # 讀取第二個 CSV 檔案中的數組
+        file2_data = np.genfromtxt(newFilePath, delimiter=',', dtype=np.float64, encoding='utf-8')
+        # 保留第newFileNodee筆後的所有資料
+        newfile = file2_data[newFileNode:]
+        
+        # 合併兩個數組，指定 axis=1
+        merged_array = np.concatenate((oldfile, newfile), axis=1)
+
+        # 將合併後的數組存儲為新的 CSV 檔案
+        np.savetxt(RemixfilePath, merged_array.reshape(4, 6), delimiter=',', fmt='%.2f', encoding='utf-8')
+
+    @ staticmethod
+    def searchSimilar(dataSet, targetData):
+        """Search for the closest trajectory data.
+        - dataSet: type is ndarray.
+        - targetData: Sample to search for.
+        """
+        # 計算每一筆資料與目標資料的歐氏距離
+        distances = np.linalg.norm(dataSet - targetData, axis=1)
+
+        # 找出距離最小的資料的索引
+        closestIndex = np.argmin(distances)
+
+        # 找出距離最小的資料
+        closestData = dataSet[closestIndex]
+
+        return closestData, closestIndex
+

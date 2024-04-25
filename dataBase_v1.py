@@ -262,24 +262,52 @@ class dataOperating:
             - oldFilePath: 舊軌跡檔案路徑
             - newFilePath: 新軌跡檔案路徑
             - RemixfilePath: 新、舊軌跡檔案結合後的檔案路徑
-            - oldFileNode: 舊與新軌跡檔案的交接節點
-            - newFileNode: 計算新軌跡時所產生的時間差(單位:批次) 
+            - oldFileNode: 舊與新軌跡檔案的交接節點(計算新軌跡結束時)
+            - newFileNode: 計算新軌跡期間(由按下重新規劃案件到計算完成)時所產生的時間差(單位:批次) 
         """
-        # 讀取第一個 CSV 檔案中的數組
-        file1_data = np.genfromtxt(oldFilePath, delimiter=',', dtype=np.float64, encoding='utf-8')
-        # 保留第oldFileNode筆前的所有資料
-        oldfile = file1_data[:oldFileNode]
+        # 讀取舊與新的軌跡檔案
+        data_frame1 = pd.read_csv(oldFilePath, delimiter=',', dtype=np.float64, encoding='utf-8')
+        data_frame2 = pd.read_csv(newFilePath, delimiter=',', dtype=np.float64, encoding='utf-8')
 
-        # 讀取第二個 CSV 檔案中的數組
-        file2_data = np.genfromtxt(newFilePath, delimiter=',', dtype=np.float64, encoding='utf-8')
-        # 保留第newFileNodee筆後的所有資料
-        newfile = file2_data[newFileNode:]
+        # 提取舊資料
+        oldFileIndex = oldFileNode*9
+        data_frame1 = data_frame1.iloc[:oldFileIndex]
+
+        # 提取新資料(由)
+        data_frame2 = data_frame2.iloc[:newFileNode]
+
+        stacked_df = pd.concat([data_frame1, data_frame2], axis=0)
+        stacked_df.to_csv(RemixfilePath, index=False,  header=True)
+
+
+        # # 讀取第一個 CSV 檔案中的數組
+        # file1_data = np.genfromtxt(oldFilePath, delimiter=',', dtype=np.float64, encoding='utf-8')
+        # # 舊資料切割點索引 = 舊資料與新資料交接節點(批次)*9
+        # oldFileIndex = oldFileNode*9
+        # oldfile = file1_data[:oldFileIndex]
+
+        # # 讀取第二個 CSV 檔案中的數組
+        # file2_data = np.genfromtxt(newFilePath, delimiter=',', dtype=np.float64, encoding='utf-8')
+        # # 檢查每一行是否包含 NaN 值
+        # valid_rows = ~np.isnan(file2_data).any(axis=1)
+
+        # # 篩選出沒有 NaN 的行
+        # file2_data = file2_data[valid_rows]
+
+        # targetData = file1_data[oldFileIndex]
+        # closestData, closestIndex = dataOperating.searchSimilar(file2_data, targetData)
+
+        # # 新資料切割點索引 = 新資料(批次)*9
+        # # newFileIndex = newFileNode*9
+        # newfile = file2_data[closestIndex+1:]
+
+        # stacked_arrays = np.vstack((oldfile, newfile))
         
-        # 合併兩個數組，指定 axis=1
-        merged_array = np.concatenate((oldfile, newfile), axis=1)
+        # # 合併兩個數組，指定 axis=1
+        # # merged_array = np.concatenate((oldfile, newfile), axis=1)
 
-        # 將合併後的數組存儲為新的 CSV 檔案
-        np.savetxt(RemixfilePath, merged_array.reshape(4, 6), delimiter=',', fmt='%.2f', encoding='utf-8')
+        # # 將合併後的數組存儲為新的 CSV 檔案
+        # np.savetxt(RemixfilePath, stacked_arrays, delimiter=',', fmt='%.4f', encoding='utf-8')
 
     @ staticmethod
     def searchSimilar(dataSet, targetData):
@@ -294,7 +322,7 @@ class dataOperating:
         closestIndex = np.argmin(distances)
 
         # 找出距離最小的資料
-        closestData = dataSet[closestIndex]
+        closestData = dataSet.iloc[closestIndex]
 
         return closestData, closestIndex
 

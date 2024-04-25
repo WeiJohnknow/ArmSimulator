@@ -2458,65 +2458,90 @@ csv 合併檔案
 # # 將合併後的數組存儲為新的 CSV 檔案
 # np.savetxt('dataBase/mergeData/Remix_arrays.csv', merged_array.reshape(4, 6), delimiter=',', fmt='%.4f', encoding='utf-8')
 
-import numpy as np
+"""
+搜尋最相似的資料
+"""
+# import numpy as np
 
-# 定義二維矩陣，每一行是一筆資料
-data_matrix = np.array([
-    [958.522, -30.256, -164.939, 147.124, -71.723, 175.191],
-    [958.522, -30.192, -164.939, 148.4929, -71.8822, 173.3322],
-    [958.522, -30.129, -164.939, 149.8889, -72.0274, 171.4464]])
+# # 定義二維矩陣，每一行是一筆資料
+# data_matrix = np.array([
+#     [958.522, -30.256, -164.939, 147.124, -71.723, 175.191],
+#     [958.522, -30.192, -164.939, 148.4929, -71.8822, 173.3322],
+#     [958.522, -30.129, -164.939, 149.8889, -72.0274, 171.4464]])
 
-# 定義目標資料
-target_data = np.array([958.522, -30.172, -164.939, 148.4929, -71.8822, 173.3322])
+# # 定義目標資料
+# target_data = np.array([958.522, -30.172, -164.939, 148.4929, -71.8822, 173.3322])
 
-# 計算每一筆資料與目標資料的歐氏距離
-distances = np.linalg.norm(data_matrix - target_data, axis=1)
+# # 計算每一筆資料與目標資料的歐氏距離
+# distances = np.linalg.norm(data_matrix - target_data, axis=1)
 
-# 找出距離最小的資料的索引
-closest_index = np.argmin(distances)
+# # 找出距離最小的資料的索引
+# closest_index = np.argmin(distances)
 
-# 找出距離最小的資料
-closest_data = data_matrix[closest_index]
+# # 找出距離最小的資料
+# closest_data = data_matrix[closest_index]
 
-# 打印最相近的資料
-print("距離最近的資料：")
-print(closest_data)
-print("最近的資料索引")
-print(closest_index)
+# # 打印最相近的資料
+# print("距離最近的資料：")
+# print(closest_data)
+# print("最近的資料索引")
+# print(closest_index)
 
-import numpy as np
+"""
+pandas資料合併與垂直堆疊
+"""
+# import numpy as np
+# import pandas as pd
 
-# 假設 arr 是您的 NumPy 數組
-# 這裡僅為示例，請將 arr 替換為您的實際數組
+# data_frame1 = pd.read_csv("dataBase/dynamicllyPlanTEST/PoseMat.csv", delimiter=',', dtype=np.float64, encoding='utf-8')
+# data_frame2 = pd.read_csv("dataBase/dynamicllyPlanTEST/newPoseMat.csv", delimiter=',', dtype=np.float64, encoding='utf-8')
 
-# 創建一個示例數組（3 行 20 列的二維數組）
-arr = np.zeros(5)
+# # 提取需要的df資料
+# data_frame1 = data_frame1.iloc[:3]
+# data_frame2 = data_frame2.iloc[:3]
 
-# 使用切片取得第 10 筆到最後一筆資料
-selected_data = arr[4:]
+# stacked_df = pd.concat([data_frame1, data_frame2], axis=0)
+# stacked_df.to_csv("dataBase/dynamicllyPlanTEST/test1Remix_PoseMat.csv", index=False,  header=True)
 
-# 打印結果
-print("選取的資料：")
-print(selected_data)
+"""
+開啟執行緒所花的時間
+"""
+import threading
+from Toolbox import TimeTool
+def test():
+    a = 0
+    while True:
+        a += 1
+        if a == 100:
+            break
 
-import cv2
-import numpy as np
+def test1():
+    a = 0
+    while True:
+        a += 1
+        if a == 100:
+            break
 
-# 假设有一个旋转向量
-rotation_vector = np.array([0.1, 0.2, 0.3])  # 这里只是一个示例向量
+def test2():
+    a = 0
+    while True:
+        a += 1
+        if a == 100:
+            break
 
-# 将旋转向量转换为旋转矩阵
-rotation_matrix, jacobian = cv2.Rodrigues(rotation_vector)
+def main():
+    Time = TimeTool()
+    b = Time.ReadNowTime()
+    t = threading.Thread(target=test)
+    t1 = threading.Thread(target=test1)
+    t2 = threading.Thread(target=test2)
+    t.start()
+    t1.start()
+    t2.start()
+    
+    a = Time.ReadNowTime()
+    err = Time.TimeError(b,a)
+    print(err["millisecond"])
 
-print("Rotation Matrix:")
-print(rotation_matrix)
-print("Jacobian Matrix from vector to matrix:")
-print(jacobian)
-
-# 现在将旋转矩阵转换回旋转向量
-rotation_vector_back, jacobian_back = cv2.Rodrigues(rotation_matrix)
-
-print("Rotation Vector Back:")
-print(rotation_vector_back)
-print("Jacobian Matrix from matrix to vector:")
-print(jacobian_back)
+if __name__ == "__main__":
+    main()

@@ -1479,7 +1479,7 @@ class Motomancontrol():
                         # pos_result, coordinate = self.Udp.getcoordinateMH(101)
                         # 模擬
                         coordinate = RPdata[startPlan_alreadySentNBR, 0]
-                        NowEnd = [coordinate[0], coordinate[1], coordinate[2], coordinate[3], coordinate[4], coordinate[5]]
+                        NowEnd = [coordinate[0], coordinate[1], coordinate[2], coordinate[3]/10, coordinate[4]/10, coordinate[5]/10]
                         # 與原軌跡保持一致
                         GoalEnd = [self.trjData[-1, 0, 0], self.trjData[-1, 0, 1], self.trjData[-1, 0, 2], self.trjData[-1, 0, 3], self.trjData[-1, 0, 4], self.trjData[-1, 0, 5]]
                         # 由UI寫入
@@ -1499,23 +1499,62 @@ class Motomancontrol():
                         self.trjData[:alreadySentNBR, 2] += errorZ
 
             if planThread.is_alive() is False and Thread_started is True:
+                # 取出執行緒計算結果
                 result = planThread.get_result()
-                # 新軌跡資料處理(更新)
+                
                 NewGroup = result[0]
                 NewBatch = result[1]
+                
+                # 新軌跡資料
                 NewRPdata = result[2]
                 NewVeldata = result[3]
                 NewHomogeneousMat = result[4]
-                # 規劃完時，紀錄舊軌跡已經寫入的資料筆數
+
+                # 規劃完時，紀錄舊軌跡已經寫入的資料批數
                 endPlan_alreadySentNBR = alreadySentNBR
-                # 計算規劃時，時間差所產生的資料落後筆數
+                # 計算規劃時，時間差所產生的資料落後批數
                 dataErr = endPlan_alreadySentNBR-startPlan_alreadySentNBR
                 print("系統反應時間所消耗的資料量: ", dataErr)
-                
-                # TODO 自動化紀錄舊資料與新資料合併點
-                # TODO 資料整併
-                
 
+                # -----------------------------------資料整併(軌跡)--------------------------------------------------------------
+                oldFile_PoseMat = "dataBase/dynamicllyPlanTEST/PoseMat.csv"
+                newFile_PoseMat = "dataBase/dynamicllyPlanTEST/newPoseMat.csv"
+                RemixFile_PoseMat = "dataBase/dynamicllyPlanTEST/testRemix_PoseMat.csv"
+                data_frame1 = pd.read_csv(oldFile_PoseMat, delimiter=',', dtype=np.float64, encoding='utf-8')
+                data_frame2 = pd.read_csv(newFile_PoseMat, delimiter=',', dtype=np.float64, encoding='utf-8')
+                # 取得舊資料切換新資料時的最後一筆資料
+                # 提取舊資料
+                oldFileIndex = endPlan_alreadySentNBR*9
+                dfBuffer1 = data_frame1.iloc[:oldFileIndex]
+                # 找相似的資料
+                targetData = data_frame1.iloc[oldFileIndex]
+                closestData, closestIndex = dataOperating.searchSimilar(data_frame2, targetData)
+                # 要合併的新資料
+                dfBuffer2 = data_frame2.iloc[closestIndex+1:]
+                stacked_df = pd.concat([dfBuffer1, dfBuffer2], axis=0)
+                stacked_df.to_csv(RemixFile_PoseMat, index=False,  header=True)
+
+                # --------------------------------------------------------------------------------------------------------------
+
+                # -----------------------------------資料整併(速度)--------------------------------------------------------------
+                oldFile_Speed = "dataBase/dynamicllyPlanTEST/Speed.csv"
+                newFile_Speed = "dataBase/dynamicllyPlanTEST/newSpeed.csv"
+                RemixFile_Speed = "dataBase/dynamicllyPlanTEST/testRemix_Speed.csv"
+                data_frame1 = pd.read_csv(oldFile_Speed, delimiter=',', dtype=np.float64, encoding='utf-8')
+                data_frame2 = pd.read_csv(newFile_Speed, delimiter=',', dtype=np.float64, encoding='utf-8')
+                # 取得舊資料切換新資料時的最後一筆資料
+                # 提取舊資料
+                oldFileIndex = endPlan_alreadySentNBR*9
+                dfBuffer1 = data_frame1.iloc[:oldFileIndex]
+                # 找相似的資料
+                targetData = data_frame1.iloc[oldFileIndex]
+                # 要合併的新資料
+                dfBuffer2 = data_frame2.iloc[closestIndex+1:]
+                stacked_df = pd.concat([dfBuffer1, dfBuffer2], axis=0)
+                stacked_df.to_csv(RemixFile_Speed, index=False,  header=True)
+                # --------------------------------------------------------------------------------------------------------------
+
+                # TODO 減少資料庫的開關
                 # 減去時間差的資料後，覆蓋掉舊軌跡資料
                 RPdata = NewRPdata[dataErr:]
                 Veldata = NewVeldata[dataErr:]
@@ -1527,8 +1566,8 @@ class Motomancontrol():
                 # SimThread = GetNewTrj(target=self.simulation, args=NewHomogeneousMat)
 
                 # 計算IK
-                # SimThread = threading.Thread(target=self.simulation)
-                # SimThread.start()
+                SimThread = threading.Thread(target=self.simulation)
+                SimThread.start()
             #-----------------------------------------------------------------------------------------------
             singlelooptime2 = self.Time.ReadNowTime()
             singleloopCosttime = self.Time.TimeError(singlelooptime1, singlelooptime2)

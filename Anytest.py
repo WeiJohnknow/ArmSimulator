@@ -2506,42 +2506,137 @@ pandas資料合併與垂直堆疊
 """
 開啟執行緒所花的時間
 """
-import threading
-from Toolbox import TimeTool
-def test():
-    a = 0
-    while True:
-        a += 1
-        if a == 100:
-            break
+# import threading
+# from Toolbox import TimeTool
+# def test():
+#     a = 0
+#     while True:
+#         a += 1
+#         if a == 100:
+#             break
 
-def test1():
-    a = 0
-    while True:
-        a += 1
-        if a == 100:
-            break
+# def test1():
+#     a = 0
+#     while True:
+#         a += 1
+#         if a == 100:
+#             break
 
-def test2():
-    a = 0
-    while True:
-        a += 1
-        if a == 100:
-            break
+# def test2():
+#     a = 0
+#     while True:
+#         a += 1
+#         if a == 100:
+#             break
 
-def main():
-    Time = TimeTool()
-    b = Time.ReadNowTime()
-    t = threading.Thread(target=test)
-    t1 = threading.Thread(target=test1)
-    t2 = threading.Thread(target=test2)
-    t.start()
-    t1.start()
-    t2.start()
+# def main():
+#     Time = TimeTool()
+#     b = Time.ReadNowTime()
+#     t = threading.Thread(target=test)
+#     t1 = threading.Thread(target=test1)
+#     t2 = threading.Thread(target=test2)
+#     t.start()
+#     t1.start()
+#     t2.start()
     
-    a = Time.ReadNowTime()
-    err = Time.TimeError(b,a)
-    print(err["millisecond"])
+#     a = Time.ReadNowTime()
+#     err = Time.TimeError(b,a)
+#     print(err["millisecond"])
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
+
+"""
+利用queue傳遞與控管資料
+"""
+# import queue
+# import threading
+# import time
+
+# # 定义生产者函数，向队列中放入数据
+# def producer(q):
+#     for i in range(5):
+#         item = f"Item {i}"
+#         q.put(item)
+#         print(f"生产者放入数据：{item}")
+#         time.sleep(1)  # 模拟生产数据的耗时操作
+
+# # 定义消费者函数，从队列中取出数据
+# def consumer(q):
+#     while True:
+#         item = q.get()
+#         if item is None:
+#             break
+#         print(f"消费者取出数据：{item}")
+#         time.sleep(2)  # 模拟消费数据的耗时操作
+
+# # 创建队列对象
+# q = queue.Queue()
+
+# # 创建生产者线程和消费者线程
+# producer_thread = threading.Thread(target=producer, args=(q,))
+# consumer_thread = threading.Thread(target=consumer, args=(q,))
+
+# # 启动线程
+# producer_thread.start()
+# consumer_thread.start()
+
+# # 等待生产者线程结束
+# producer_thread.join()
+
+# # 队列中放入结束信号（None），通知消费者线程退出
+# q.put(None)
+
+# # 等待消费者线程结束
+# consumer_thread.join()
+
+# print("所有数据处理完毕.")
+
+"""
+軌跡架構
+"""
+# dataLen = 100
+# I1 = 100//18 + 1
+# I0 = 2
+# count = 0
+# while True:
+#     # 確認是否已傳送完n組的數據
+#     if count > I1:
+#         break
+
+#     # 通訊
+#     print(f"送出封包，內容是I0: {I0}")
+
+#     # 下一筆要傳送的資料
+#     I0 += 1
+    
+#     # 如果資料已傳送18筆(2批)，要重製批次號，代表1組資料已傳完畢
+#     if I0 > 19:
+#         count += 1
+#         I0 = 2
+#         print(f"I1: {count}") 
+"""
+"""
+import numpy as np
+from dataBase_v1 import *
+
+# # 创建示例数组
+# array = np.array([[1, 2, 3],
+#                   [0, 0, 0],
+#                   [4, 5, 6],
+#                   [0, 7, 0]])
+
+# # 使用条件判断获取不为 0 的行的布尔索引
+# non_zero_rows = np.any(array != 0, axis=1)
+
+# # 使用布尔索引提取不为 0 的行
+# result = array[non_zero_rows]
+
+# print("原始数组:")
+# print(array)
+# print("\n去除为 0 的行后的数组:")
+# print(result)
+l =[958.521,   -37.042,  -164.943, -1652.876,   -71.723,    175.191]
+a = np.array([l])
+print(a)
+# a = np.array([[958.521,   -37.042,  -164.943, -1652.876,   -71.723,    175.191]])

@@ -1,5 +1,8 @@
 # view.py
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QListWidget, QLineEdit
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QListWidget, QLineEdit, QHBoxLayout
+
+# view.py
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QListWidget, QLineEdit, QHBoxLayout
 
 class MyView(QWidget):
     def __init__(self):
@@ -7,24 +10,55 @@ class MyView(QWidget):
         self.setWindowTitle('MVC 範例')
 
         self.list_widget = QListWidget()
-        self.add_button = QPushButton('寫入')
-        self.input_box = QLineEdit()  # 新增 QLineEdit 作為輸入框
+
+        # 第一組輸入框與按鈕
+        self.input_box1 = QLineEdit()
+        self.add_button1 = QPushButton('寫入走速(m/s)')
+
+        # 第二組輸入框與按鈕
+        self.input_box2_1 = QLineEdit()
+        self.input_box2_2 = QLineEdit()
+        self.add_button2 = QPushButton('寫入AC與AVP')
 
         layout = QVBoxLayout()
         layout.addWidget(self.list_widget)
-        layout.addWidget(self.input_box)  # 將輸入框加入布局
-        layout.addWidget(self.add_button)
+
+        # 第一組輸入框與按鈕的水平佈局
+        hbox1 = QHBoxLayout()
+        hbox1.addWidget(self.input_box1)
+        hbox1.addWidget(self.add_button1)
+
+        # 第二組輸入框與按鈕的水平佈局
+        hbox2 = QHBoxLayout()
+        hbox2.addWidget(self.input_box2_1)
+        hbox2.addWidget(self.input_box2_2)
+        hbox2.addWidget(self.add_button2)
+
+        layout.addLayout(hbox1)
+        layout.addLayout(hbox2)
+
         self.setLayout(layout)
 
     def get_list_widget(self):
         return self.list_widget
 
-    def get_add_button(self):
-        return self.add_button
+    def get_add_button1(self):
+        return self.add_button1
 
-    def get_input_text(self):  # 取得輸入框的文字
-        return self.input_box.text()
+    def get_add_button2(self):
+        return self.add_button2
 
-    def clear_input_text(self):  # 清空輸入框
-        self.input_box.clear()
+    def get_input_text1(self):
+        return self.input_box1.text()
+
+    def get_input_text2_1(self):
+        return self.input_box2_1.text()
+
+    def get_input_text2_2(self):
+        return self.input_box2_2.text()
+
+    def clear_input_text(self):
+        self.input_box1.clear()
+        self.input_box2_1.clear()
+        self.input_box2_2.clear()
     

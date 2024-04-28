@@ -2595,52 +2595,58 @@ pandas資料合併與垂直堆疊
 """
 DX200端 執行軌跡架構 Updata:2024/04/28
 """
-dataLen = 108
-# I001 = 100//18 + 1
+# dataLen = 108
+# # I001 = 100//18 + 1
 
-# I001改用batch為單位
-I001 = dataLen//9 + 1 
-I000 = 2
-I028 = 0
-while I001>=I028:
-    # 確認是否已傳送完n組的數據
-    # if I028 > I001:
-    #     break
+# # I001改用batch為單位
+# I001 = dataLen//9 + 1 
+# I000 = 2
+# I028 = 0
+# while I001>=I028:
+#     # 確認是否已傳送完n組的數據
+#     # if I028 > I001:
+#     #     break
 
-    # 通訊
-    print(f"送出封包，內容是I0: {I000}")
+#     # 通訊
+#     print(f"送出封包，內容是I0: {I000}")
 
-    # 下一筆要傳送的資料
-    I000 += 1
+#     # 下一筆要傳送的資料
+#     I000 += 1
     
-    # 如果資料已傳送18筆(2批)，要重製批次號，代表1組資料已傳完畢
-    if I000 == 11:
-        I028 += 1 
-        print(f"I001: {I028}")
-    elif I000 > 19:
-        I028 += 1
-        I000 = 2
-        print(f"I001: {I028}")
+#     # 如果資料已傳送18筆(2批)，要重製批次號，代表1組資料已傳完畢
+#     if I000 == 11:
+#         I028 += 1 
+#         print(f"I001: {I028}")
+#     elif I000 > 19:
+#         I028 += 1
+#         I000 = 2
+#         print(f"I001: {I028}")
 
 """
 """
-import numpy as np
-from dataBase_v1 import *
+from PyQt5.QtCore import QObject
+from UI_control import DataSignal
 
-# # 创建示例数组
-# array = np.array([[1, 2, 3],
-#                   [0, 0, 0],
-#                   [4, 5, 6],
-#                   [0, 7, 0]])
+class DataReceiver(QObject):
+    def __init__(self):
+        super().__init__()
+        self.signal = DataSignal()
+        self.signal.data_changed.connect(self.handle_data_changed)
 
-# # 使用条件判断获取不为 0 的行的布尔索引
-# non_zero_rows = np.any(array != 0, axis=1)
+    def handle_data_changed(self, data1, data2, data3):
+        if data1:
+            print("銲接走速(m/s)：", data1)
+        if data2:
+            print("銲接電流(AC)：", data2)
+        if data3:
+            print("銲接電流(AVP)：", data3)
 
-# # 使用布尔索引提取不为 0 的行
-# result = array[non_zero_rows]
-
-# print("原始数组:")
-# print(array)
-# print("\n去除为 0 的行后的数组:")
-# print(result)
-
+def main():
+    
+    while True:
+        signal = DataSignal()
+        receiver = DataReceiver()
+        time.sleep(0.05)
+    
+if __name__ == '__main__':
+    main()

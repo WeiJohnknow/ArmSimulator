@@ -1101,8 +1101,8 @@ if __name__ == "__main__" :
     # Time_file =    "Experimental_data/20240129/13_3mms/timeEL.csv"
     # calculate_distance_speed(PoseMat_file, Time_file, 0.04)
 
-    PoseMat_file = "dataBase/dynamicllyPlanTEST/Remix_PoseMat.csv"
-    Time_file =    "dataBase/dynamicllyPlanTEST/Remix_time.csv"
+    PoseMat_file = "dataBase/dynamicllyPlanTEST/verifyTrajectory.csv"
+    Time_file =    "dataBase/dynamicllyPlanTEST/verifySpeed.csv"
 
     calculate_distance_speed(PoseMat_file, Time_file, 0.04)
 

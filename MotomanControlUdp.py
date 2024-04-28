@@ -1395,8 +1395,8 @@ class Motomancontrol():
         # 包裝並寫入首9筆資料   
         RPpacket, Velpacket, alreadySentNBR = self.packetRPdataVeldata(RPdata, Veldata, alreadySentNBR)
         Is_success = self.writeRPvarINTvar(2, RPpacket, Velpacket)
-        self.RealTrajectoryData[self.RealDataCounter] = RPdata[alreadySentNBR-1]
-        self.RealSpeedData[self.RealDataCounter] = Veldata[alreadySentNBR-1]
+        self.RealTrajectoryData[self.RealDataCounter] = RPdata[0]
+        self.RealSpeedData[self.RealDataCounter] = Veldata[0]
         self.RealDataCounter+=1
         
         # 軌跡規劃執行緒
@@ -1602,14 +1602,6 @@ class Motomancontrol():
                 NewRemixRPdata, NewRemixSpeeddata = self.dataSegmentation(Remix_PoseMat, Remix_Speed, NewRemixBatch)
                 # --------------------------------------------------------------------------------------------------------------
                 
-                # # 減去時間差的資料後，覆蓋掉舊軌跡資料
-                # RPdata = NewRPdata[dataErr:]
-                # Veldata = NewVeldata[dataErr:]
-                # # 更新batch，但必須扣除系統反應時間(計算新軌跡所花費的總時間)
-                # batch = NewBatch-dataErr
-                # # 更新資料計數器(已覆蓋成新軌跡資料，所以由計算新軌跡所花費時間差為開始)
-                # alreadySentNBR = dataErr
-
                 # 使用合併後的軌跡檔案(已分割與封裝)，覆蓋原始的軌跡資料
                 RPdata = NewRemixRPdata
                 Veldata = NewRemixSpeeddata

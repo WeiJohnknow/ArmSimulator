@@ -1087,7 +1087,7 @@ class Motomancontrol():
         # INFORM 迴圈變數
         """
         資料單位:
-        9筆=1批, 9批=1組
+        9筆=1批, 2批=1組
 
         I0:  資料筆數index
         I1:  資料組數index
@@ -1125,8 +1125,6 @@ class Motomancontrol():
         self.RealTrajectory = np.zeros((10000, 1, 6))
         self.RealsysTime = np.zeros((10000, 1))
         
-        
-
     @staticmethod
     def deleteFirstTrajectoryData(TrajectoryData, VelocityData):
         """Delete the first data.
@@ -1135,32 +1133,6 @@ class Motomancontrol():
         VelocityData = VelocityData[1:]
         
         return TrajectoryData, VelocityData
-    
-    
-    def calculateDataGroupBatch(self, TrajectoryData):
-        """Calculate data segmentation groups and batches.
-        Group: 組數
-        Batch: 批次
-        組數: INFORM外層For迴圈的計數值
-        - Args: Trajectory data
-        - Return: Number of data groups , Number of data batches
-        """
-        # I1為INFORM FOR外迴圈次數(要自行更改INFORM程式)
-        if len(TrajectoryData)/18 == 0.0:
-            group = len(TrajectoryData)//18
-            print("INFORM程式 I001 改0 to ", group)
-
-        elif len(TrajectoryData)/18 > 0.0:
-            group = len(TrajectoryData)//18 + 1
-            print("INFORM程式 I001 改0 to ", group)
-
-        batch = len(TrajectoryData)//9 + 1
-
-        if self.Line is True:
-            status = self.Udp.WriteVar("Integer", 1, group)
-        
-        return group, batch
-
     
     def changeWeldingPartmeter(self, AC, AVP):
         """Dynamically change welding parameters.
@@ -1179,68 +1151,108 @@ class Motomancontrol():
         if self.Line is True:
             Istatus = self.Udp.multipleWriteVar(firstAddress, number, IData)
         
-    
+    def calculateDataGroupBatch(self, TrajectoryData):
+        """Calculate data segmentation groups and batches.
+        Group: 組數 (About: I001)
+        Batch: 批次 (About: I000)
+        
+        - Args: Trajectory data
+        - Return: Number of data groups , Number of data batches
+        """
+        # # Calculate group(About: I001)
+        # quotient_group, remainder_group = divmod(TrajectoryData.shape[0], 18)
+        # if remainder_group != 0:
+        #     # 餘數不等於0，表示原始資料分組(18筆為1組)時，最後一組不足18筆，故要+1組
+        #     group = quotient_group + 1
+        # else:
+        #     group = quotient_group
+
+        # # 修改DX200變數暫存器值
+        # if self.Line is True:
+        #     print("INFORM程式 I001: ", group)
+        #     status = self.Udp.WriteVar("Integer", 1, group)
+
+        # Calculate batch(About: I000)
+        quotient_batch, remainder_batch = divmod(TrajectoryData.shape[0], 9)
+        if remainder_batch != 0:
+            # 餘數不等於0，表示原始資料分批(9筆為1批)時，最後一批不足9筆，故要+1批並做填充
+            batch = quotient_batch + 1
+        else:
+            batch = quotient_batch
+
+        # 修改DX200變數暫存器值
+        if self.Line is True:
+            print("INFORM程式 I001: ", batch)
+            status = self.Udp.WriteVar("Integer", 1, batch)
+        
+        # return group, batch
+        return batch
     
     def dataSegmentation(self, trajectoryData, velocityData, batch):
         """
         資料分批處理
         單位: 9筆/批
         """
-        b = self.Time.ReadNowTime()
-        RPdata = np.zeros((batch, 9, 6))
-        RPdata_count = 0
+        
+        """資料分割演算法
+        1.判斷原資料(m*1*6)是否可完整切個為shape(n*9*6), m=該資料原本的筆數; n= m/9.
+        2.若第一步中發現有不足9筆需要補齊資料，使用最後一筆資料補齊剩下的缺口.
+        3.補齊後，將資料切割為(n*9*6).
+        """
+
+        # 軌跡資料處理與分割
+        # 計算是否需要補齊資料與資料分割批次數(9筆為1批)
+        quotient_trj, remainder_trj = divmod(trajectoryData.shape[0], 9)
+        if remainder_trj != 0:
+            # 讀取最後一個Row的數據
+            last_row = trajectoryData[-1]
+
+            # 產生用於填滿最後一個Row(筆)的數據(當該layer不滿9個row時)
+            padding = np.tile(last_row, (9 - remainder_trj, 1, 1))
+
+            # 將需要填充的Row與原資料進行(Row堆疊)
+            padded_array = np.vstack((trajectoryData, padding))
+
         # 將資料分割成以批次(一批次有9筆資料)為單位
-        for layer in range(batch-1):
-            for row in range(9):
-                RPdata[layer, row, 0] = trajectoryData[RPdata_count, 0, 0]
-                RPdata[layer, row, 1] = trajectoryData[RPdata_count, 0, 1]
-                RPdata[layer, row, 2] = trajectoryData[RPdata_count, 0, 2]
-                RPdata[layer, row, 3] = trajectoryData[RPdata_count, 0, 3]*10
-                RPdata[layer, row, 4] = trajectoryData[RPdata_count, 0, 4]*10
-                RPdata[layer, row, 5] = trajectoryData[RPdata_count, 0, 5]*10
-                RPdata_count += 1
-        # 如果最後一筆資料因軌跡點數除不進，故需額外處理 
-        if trajectoryData.shape[0]%9 != 0:
-            for row in range(9):
-                RPdata[-1, row, 0] = trajectoryData[RPdata_count, 0, 0]
-                RPdata[-1, row, 1] = trajectoryData[RPdata_count, 0, 1]
-                RPdata[-1, row, 2] = trajectoryData[RPdata_count, 0, 2]
-                RPdata[-1, row, 3] = trajectoryData[RPdata_count, 0, 3]*10
-                RPdata[-1, row, 4] = trajectoryData[RPdata_count, 0, 4]*10
-                RPdata[-1, row, 5] = trajectoryData[RPdata_count, 0, 5]*10
-                if RPdata_count == len(trajectoryData)-1:
-                    RPdata_count = len(trajectoryData)-1
-                else:
-                    RPdata_count += 1
+        reshaped_trajectoryData = padded_array.reshape(batch, 9, 6)
+        
+        # 将第4、5、6列的值都乘以10
+        reshaped_trajectoryData[:, :, 3:6]*= 10
+        # 完成初步分割與封裝後的軌跡資料
+        RPdata = reshaped_trajectoryData
 
-        # 分割速度資料(9筆歸為1批)
-        Veldata  = np.zeros((batch, 9))
-        VelData_count = 0
-        for row in range(batch-1):
-            for col in range(9):
-                Veldata[row, col] = velocityData[VelData_count, 0]*10
-                VelData_count +=1
 
-        # 最後一筆資料因軌跡點數除不進，故需額外處理 
-        if velocityData.shape[0]%9 != 0:
-            for col in range(9):
-                Veldata[-1, col] = velocityData[VelData_count, 0]*10
-                if VelData_count == len(velocityData)-1:
-                    VelData_count = len(velocityData)-1
-                else:
-                    VelData_count += 1
 
-        # 對整個array做型別轉換，轉為int
+        # 軌跡資料處理與分割(速度)
+        # 計算是否需要補齊資料與資料分割批次數(9筆為1批)
+        quotient_vel, remainder_vel = divmod(velocityData.shape[0], 9)
+        if remainder_vel != 0:
+            # 讀取最後一個Row的數據
+            last_row = velocityData[-1]
+
+            # 產生用於填滿最後一個Row(筆)的數據(當該layer不滿9個row時)
+            padding = np.tile(last_row, (9 - remainder_vel, 1))
+
+            # 將需要填充的Row與原資料進行(Row堆疊)
+            padded_array = np.vstack((velocityData, padding))
+
+        # 將資料分割成以批次(一批次有9筆資料)為單位
+        reshaped_velocityData = padded_array.reshape(batch, 9)
+        
+        # 將所有值都乘以10(DX200的速度指令只接受整數，送入後會將數值自動*0.1，故發送前須將數值都乘以10)
+        reshaped_velocityData *= 10
+        Veldata = reshaped_velocityData
+
+        # 完成初步分割與封裝後的軌跡(速度)資料
         Veldata = Veldata.astype(int)
-        a = self.Time.ReadNowTime()
-        err = self.Time.TimeError(b, a)
-
+    
         return RPdata, Veldata
     
     @staticmethod
     def packetRPdataVeldata(RPdata, Veldata, dataCount):
         """將一批軌跡與速度資料包裝成可發送的形式
         - Args: RPdata、Veldata、datacount
+            - datacount: 已送出多少批資料的計數器值
         """
         RPpacket = {'0':[17, 4, 5, 0, RPdata[dataCount][0][0], RPdata[dataCount][0][1], RPdata[dataCount][0][2], RPdata[dataCount][0][3], RPdata[dataCount][0][4], RPdata[dataCount][0][5]],
                     '1':[17, 4, 5, 0, RPdata[dataCount][1][0], RPdata[dataCount][1][1], RPdata[dataCount][1][2], RPdata[dataCount][1][3], RPdata[dataCount][1][4], RPdata[dataCount][1][5]],
@@ -1292,35 +1304,16 @@ class Motomancontrol():
         """規劃新軌跡，時間線沿用舊軌跡
         目的: 產生新軌跡, 並即時傳輸。
         """
-        
-        # 創造新軌跡
         b = self.Time.ReadNowTime()
-        HomogeneousMatData, PoseMatData, VelocityData, TimeData = Generator.generateTrajectory(NowEnd, GoalEnd, sampleTime, GoalSpeed)
+        # 創造新軌跡
+        HomogeneousMatData, PoseMatData, SpeedData, TimeData = Generator.generateTrajectory(NowEnd, GoalEnd, sampleTime, GoalSpeed)
         
-        # 存檔 
-        mode = "w"
-        database_HomogeneousMat.Save(HomogeneousMatData, "dataBase/dynamicllyPlanTEST/newHomogeneousMat.csv", mode)
-        database_PoseMat.Save(PoseMatData, "dataBase/dynamicllyPlanTEST/newPoseMat.csv", mode)
-        database_Velocity.Save(VelocityData, "dataBase/dynamicllyPlanTEST/newSpeed.csv", mode)
-        database_time.Save(TimeData,"dataBase/dynamicllyPlanTEST/newTime.csv", mode)
-        
-        # 載檔
-        PoseMatData = database_PoseMat.Load("dataBase/dynamicllyPlanTEST/newPoseMat.csv")
-        VelocityData = database_Velocity.Load("dataBase/dynamicllyPlanTEST/newSpeed.csv")
-
-        # 如果不過資料庫直接拿資料，速度資料需要改變形狀
-        # VelocityData = VelocityData.reshape(-1, 1)
-        
-        # 固定流程
-        NewTrajectoryData, NewVelocityData = Motomancontrol.deleteFirstTrajectoryData(PoseMatData, VelocityData)
-        NewGroup, NewBatch = self.calculateDataGroupBatch(NewTrajectoryData)
-        NewRobotPositionData, NewSpeedData = self.dataSegmentation(NewTrajectoryData, NewVelocityData, NewBatch)
 
         a = self.Time.ReadNowTime()
         err = self.Time.TimeError(b, a)
         print("計算新軌跡所花費的總時間: ", err["millisecond"], "ms")
 
-        return NewGroup, NewBatch, NewRobotPositionData, NewSpeedData, HomogeneousMatData, PoseMatData, VelocityData, TimeData
+        return HomogeneousMatData, PoseMatData, SpeedData, TimeData
     
     def simulation(self):
         d2r = np.deg2rad
@@ -1356,7 +1349,6 @@ class Motomancontrol():
             self.RealsysTime[self.RealDataCounter] = sysTime
             self.RealDataCounter+=1
 
-            
         else:
             # 模擬讀取實際手臂位置並儲存
             self.RealTrajectoryData[self.RealDataCounter] = RPdata[alreadySentNBR]
@@ -1395,7 +1387,7 @@ class Motomancontrol():
         finalDataFlag = True
 
         # 計算資料分割的組數與批數
-        group, batch = self.calculateDataGroupBatch(self.trjData)
+        batch = self.calculateDataGroupBatch(self.trjData)
         
         # 資料分割
         RPdata, Veldata = self.dataSegmentation(self.trjData, self.velData, batch)
@@ -1403,6 +1395,9 @@ class Motomancontrol():
         # 包裝並寫入首9筆資料   
         RPpacket, Velpacket, alreadySentNBR = self.packetRPdataVeldata(RPdata, Veldata, alreadySentNBR)
         Is_success = self.writeRPvarINTvar(2, RPpacket, Velpacket)
+        self.RealTrajectoryData[self.RealDataCounter] = RPdata[alreadySentNBR-1]
+        self.RealSpeedData[self.RealDataCounter] = Veldata[alreadySentNBR-1]
+        self.RealDataCounter+=1
         
         # 軌跡規劃執行緒
         Thread_started = False
@@ -1431,11 +1426,8 @@ class Motomancontrol():
             
             #----------------------------------------------命令執行區-----------------------------------------
             # 常規命令>>讀取位置與I000
-            # I0 = self.NormalCmd(RPdata, Veldata, alreadySentNBR, sysTime, I0)
-            if I0 == [3]:
-                I0 = [11]
-            else:
-                I0 = [3]
+            I0 = self.NormalCmd(RPdata, Veldata, alreadySentNBR, sysTime, I0)
+            
             #----------------------------------------------資料通訊區-----------------------------------------
             """
             通訊
@@ -1470,20 +1462,10 @@ class Motomancontrol():
 
             if alreadySentNBR == batch and finalDataFlag is True:
                 """結束條件
-                外迴圈數 = 組數
+                外迴圈數 = 批次數
                 """
                 print("軌跡實驗結束")
 
-                # TODO 這裡可能需要修改機制
-                # 將剩下的資料都填完同一點
-                if firstAddress == 2:
-                    firstAddress = 11
-                else:
-                    firstAddress = 2
-                # TODO 這裡可能需要修改機制
-                # RPpacket, Velpacket = self.packetRPdataVeldata(RPdata, Veldata, -1)
-                # Is_success = self.writeRPvarINTvar(firstAddress, RPpacket, Velpacket)
-                
                 finalDataFlag = False
                 print(sysTime)
 
@@ -1552,26 +1534,30 @@ class Motomancontrol():
 
             if planThread.is_alive() is False and Thread_started is True:
                 # 取出執行緒計算結果
+                b = self.Time.ReadNowTime()
                 result = planThread.get_result()
                 
-                NewGroup = result[0]
-                NewBatch = result[1]
-                
-                # 新軌跡資料
-                NewRPdata = result[2]
-                NewVeldata = result[3]
-                NewHomogeneousMat = result[4]
-                NewPoseMatData = result[5]
-                NewSpeedData = result[6]
-                NewTimeData = result[7]
+                NewHomogeneousMat = result[0]
+                NewPoseMatData = result[1]
+                NewSpeedData = result[2]
+                NewTimeData = result[3]
 
+                
+                # 存檔(新軌跡資料) 
+                mode = "w"
+                database_HomogeneousMat.Save(NewHomogeneousMat, "dataBase/dynamicllyPlanTEST/newHomogeneousMat.csv", mode)
+                database_PoseMat.Save(NewPoseMatData, "dataBase/dynamicllyPlanTEST/newPoseMat.csv", mode)
+                database_Velocity.Save(NewSpeedData, "dataBase/dynamicllyPlanTEST/newSpeed.csv", mode)
+                database_time.Save(NewTimeData,"dataBase/dynamicllyPlanTEST/newTime.csv", mode)
+                
                 # 規劃完時，紀錄舊軌跡已經寫入的資料批數
                 endPlan_alreadySentNBR = alreadySentNBR
                 # 計算規劃時，時間差所產生的資料落後批數
                 dataErr = endPlan_alreadySentNBR-startPlan_alreadySentNBR
-                print("系統反應時間所消耗的資料量: ", dataErr)
+                print("系統反應時間所消耗的資料(批次)數: ", dataErr)
 
-                b = self.Time.ReadNowTime()
+                
+                
                 # -----------------------------------資料整併(軌跡)--------------------------------------------------------------
                 oldFile_PoseMat = "dataBase/dynamicllyPlanTEST/PoseMat.csv"
                 newFile_PoseMat = "dataBase/dynamicllyPlanTEST/newPoseMat.csv"
@@ -1587,8 +1573,9 @@ class Motomancontrol():
                 closestData, closestIndex = dataOperating.searchSimilar(data_frame2, targetData)
                 # 要合併的新資料
                 dfBuffer2 = data_frame2.iloc[closestIndex+1:]
-                stacked_df = pd.concat([dfBuffer1, dfBuffer2], axis=0)
-                stacked_df.to_csv(RemixFile_PoseMat, index=False,  header=True)
+                Remix_PoseMat_df = pd.concat([dfBuffer1, dfBuffer2], axis=0)
+                Remix_PoseMat_df.to_csv(RemixFile_PoseMat, index=False,  header=True)
+                Remix_PoseMat = np.array(Remix_PoseMat_df).reshape(-1, 1, 6)
                 # --------------------------------------------------------------------------------------------------------------
 
                 # -----------------------------------資料整併(速度)--------------------------------------------------------------
@@ -1605,24 +1592,39 @@ class Motomancontrol():
                 targetData = data_frame1.iloc[oldFileIndex]
                 # 要合併的新資料
                 dfBuffer2 = data_frame2.iloc[closestIndex+1:]
-                stacked_df = pd.concat([dfBuffer1, dfBuffer2], axis=0)
-                stacked_df.to_csv(RemixFile_Speed, index=False,  header=True)
-                # --------------------------------------------------------------------------------------------------------------
-                a = self.Time.ReadNowTime()
-                TimeErr = self.Time.TimeError(b, a)
-                print("合併資料所需時間: ", TimeErr["millisecond"])
+                Remix_Speed_df = pd.concat([dfBuffer1, dfBuffer2], axis=0)
+                Remix_Speed_df.to_csv(RemixFile_Speed, index=False,  header=True)
+                Remix_Speed = np.array(Remix_Speed_df)
 
+                # 固定流程(資料分割與初步封裝)
+                Remix_PoseMat, Remix_Speed = Motomancontrol.deleteFirstTrajectoryData(Remix_PoseMat, Remix_Speed)
+                NewRemixBatch = self.calculateDataGroupBatch(Remix_PoseMat)
+                NewRemixRPdata, NewRemixSpeeddata = self.dataSegmentation(Remix_PoseMat, Remix_Speed, NewRemixBatch)
+                # --------------------------------------------------------------------------------------------------------------
                 
-                # 減去時間差的資料後，覆蓋掉舊軌跡資料
-                RPdata = NewRPdata[dataErr:]
-                Veldata = NewVeldata[dataErr:]
-                # 更新batch，但必須扣除系統反應時間(計算新軌跡所花費的總時間)
-                batch = NewBatch-dataErr
-                # 更新資料計數器(已覆蓋成新軌跡資料，所以由計算新軌跡所花費時間差為開始)
-                alreadySentNBR = dataErr
+                # # 減去時間差的資料後，覆蓋掉舊軌跡資料
+                # RPdata = NewRPdata[dataErr:]
+                # Veldata = NewVeldata[dataErr:]
+                # # 更新batch，但必須扣除系統反應時間(計算新軌跡所花費的總時間)
+                # batch = NewBatch-dataErr
+                # # 更新資料計數器(已覆蓋成新軌跡資料，所以由計算新軌跡所花費時間差為開始)
+                # alreadySentNBR = dataErr
+
+                # 使用合併後的軌跡檔案(已分割與封裝)，覆蓋原始的軌跡資料
+                RPdata = NewRemixRPdata
+                Veldata = NewRemixSpeeddata
+                # 更新資料計數器，因使用合併後的軌跡檔案，故將計數器的值加上[計算新軌跡所花費的總時間(以批次計算)]
+                # alreadySentNBR += dataErr
+                # 更新Batch，將總批次數更新成與合併後的軌跡檔案相符的
+                batch = NewRemixBatch
                 
                 Thread_started = False
                 print("--------------新軌跡資料已覆寫---------------")
+
+                a = self.Time.ReadNowTime()
+                err = self.Time.TimeError(b,a)
+                err = err["millisecond"]
+                print(f"新軌跡規劃後處理2所花時長: {err} ms")
 
                 # 計算IK
                 SimThread = threading.Thread(target=self.simulation)
@@ -1635,10 +1637,6 @@ class Motomancontrol():
             self.Time.time_sleep(laveTime*0.001)
             # print("迴圈剩餘時間: ", laveTime, "ms")
 
-            self.RealTrajectoryData[self.RealDataCounter] = RPdata[alreadySentNBR]
-            self.RealSpeedData[self.RealDataCounter] = Veldata[alreadySentNBR]
-            self.RealDataCounter+=1
-            
 
             
 if __name__ == "__main__":

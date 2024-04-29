@@ -2595,14 +2595,14 @@ pandas資料合併與垂直堆疊
 """
 DX200端 執行軌跡架構 Updata:2024/04/28
 """
-# dataLen = 108
+# dataLen = 225
 # # I001 = 100//18 + 1
 
 # # I001改用batch為單位
 # I001 = dataLen//9 + 1 
 # I000 = 2
 # I028 = 0
-# while I001>=I028:
+# while I001>I028: # INFORM邏輯稍微有些不同 要使用>  python使用>=
 #     # 確認是否已傳送完n組的數據
 #     # if I028 > I001:
 #     #     break
@@ -2624,29 +2624,42 @@ DX200端 執行軌跡架構 Updata:2024/04/28
 
 """
 """
-from PyQt5.QtCore import QObject
-from UI_control import DataSignal
+# from PyQt5.QtCore import QObject
+# from UI_control import DataSignal
 
-class DataReceiver(QObject):
-    def __init__(self):
-        super().__init__()
-        self.signal = DataSignal()
-        self.signal.data_changed.connect(self.handle_data_changed)
+# class DataReceiver(QObject):
+#     def __init__(self):
+#         super().__init__()
+#         self.signal = DataSignal()
+#         self.signal.data_changed.connect(self.handle_data_changed)
 
-    def handle_data_changed(self, data1, data2, data3):
-        if data1:
-            print("銲接走速(m/s)：", data1)
-        if data2:
-            print("銲接電流(AC)：", data2)
-        if data3:
-            print("銲接電流(AVP)：", data3)
+#     def handle_data_changed(self, data1, data2, data3):
+#         if data1:
+#             print("銲接走速(m/s)：", data1)
+#         if data2:
+#             print("銲接電流(AC)：", data2)
+#         if data3:
+#             print("銲接電流(AVP)：", data3)
 
-def main():
+# def main():
     
-    while True:
-        signal = DataSignal()
-        receiver = DataReceiver()
-        time.sleep(0.05)
+#     while True:
+#         signal = DataSignal()
+#         receiver = DataReceiver()
+#         time.sleep(0.05)
     
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()
+
+"""
+"""
+import numpy as np
+
+# 示例数组
+a = np.array([ 958.521 ,  -37.042 , -164.943 , -165.2876,   -7.1723,   17.5191])
+b = np.array([ 958.519,-37.198,-164.956,-165.288,-7.1705,17.5168])
+
+# 计算欧几里得距离
+distance = np.linalg.norm(a - b)
+
+print("a与b的欧几里得距离:", distance)

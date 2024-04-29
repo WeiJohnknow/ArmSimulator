@@ -1077,7 +1077,7 @@ class Motomancontrol():
         Online(含通訊之測試) >> True  要記得解開self.Udp的相關註解
         Offline(純邏輯測試) >> False
         """
-        self.Line = False
+        self.Line = True
         self.Udp = MotomanUDP()
         
         self.Kin = Kinematics()
@@ -1213,9 +1213,12 @@ class Motomancontrol():
             # 將需要填充的Row與原資料進行(Row堆疊)
             padded_array = np.vstack((trajectoryData, padding))
 
-        # 將資料分割成以批次(一批次有9筆資料)為單位
-        reshaped_trajectoryData = padded_array.reshape(batch, 9, 6)
-        
+            # 將資料分割成以批次(一批次有9筆資料)為單位
+            reshaped_trajectoryData = padded_array.reshape(batch, 9, 6)
+        else:
+            # 將資料分割成以批次(一批次有9筆資料)為單位
+            reshaped_trajectoryData = trajectoryData.reshape(batch, 9, 6)
+
         # 将第4、5、6列的值都乘以10
         reshaped_trajectoryData[:, :, 3:6]*= 10
         # 完成初步分割與封裝後的軌跡資料
@@ -1236,9 +1239,12 @@ class Motomancontrol():
             # 將需要填充的Row與原資料進行(Row堆疊)
             padded_array = np.vstack((velocityData, padding))
 
-        # 將資料分割成以批次(一批次有9筆資料)為單位
-        reshaped_velocityData = padded_array.reshape(batch, 9)
-        
+            # 將資料分割成以批次(一批次有9筆資料)為單位
+            reshaped_velocityData = padded_array.reshape(batch, 9)
+        else:
+            # 將資料分割成以批次(一批次有9筆資料)為單位
+            reshaped_velocityData = velocityData.reshape(batch, 9)
+
         # 將所有值都乘以10(DX200的速度指令只接受整數，送入後會將數值自動*0.1，故發送前須將數值都乘以10)
         reshaped_velocityData *= 10
         Veldata = reshaped_velocityData
@@ -1292,7 +1298,7 @@ class Motomancontrol():
             RPstatus = []
             Istatus =[]
 
-        if RPstatus == [] and Istatus:
+        if RPstatus == [] and Istatus == []:
             Is_success = True
         else:
             Is_success = False
@@ -1333,7 +1339,7 @@ class Motomancontrol():
         database_JointAngle.Save(JointAngleData, "dataBase/dynamicllyPlanTEST/newJointAngle.csv", "w")
         # self.Sim.paitGL(JointAngleData, newHomogeneousMat)
 
-    def NormalCmd(self, RPdata, Veldata, alreadySentNBR, sysTime, I0):
+    def NormalCmd(self, RPdata, Veldata, alreadySentNBR, sysTime, I0, batch):
         """基本任務
         1.讀取機器手臂位置
         2.讀取DX200 I000變數值
@@ -1341,14 +1347,13 @@ class Motomancontrol():
         if self.Line is True:
             # 讀取實際手臂位置
             pos_result, coordinate = self.Udp.getcoordinateMH(101)
-            # 讀取I000變數
-            I0 = self.Udp.ReadVar("Integer", 0)
+            # # 讀取I000變數
+            # I0 = self.Udp.ReadVar("Integer", 0)
             # 儲存實際軌跡資料
-            # TODO 未測試
             self.RealTrajectory[self.RealDataCounter] = np.array([coordinate])
             self.RealsysTime[self.RealDataCounter] = sysTime
-            self.RealDataCounter+=1
 
+    
         else:
             # 模擬讀取實際手臂位置並儲存
             self.RealTrajectoryData[self.RealDataCounter] = RPdata[alreadySentNBR]
@@ -1409,9 +1414,28 @@ class Motomancontrol():
         
         if self.Line is False:
             # I0模擬
-            I0 = [2]
+            self.I0 = [2]
 
+        # 實驗三段變速實驗用
+        Threadcount = 0
+
+        # 主迴圈旗標 | 開關
+        mainLoop = False
         while True:
+            if self.Line is True:
+                pos_result, coordinate = self.Udp.getcoordinateMH(101)
+                if np.linalg.norm(np.array(coordinate) - self.trjData[0, 0]) <= 0.12:
+                    print("------------------------------實測實驗開始------------------------------")
+                    print(f"軌跡開始位置: {coordinate}")
+                    mainLoop = True
+                    break
+            else:
+                print("------------------------------模擬實驗開始------------------------------")
+                mainLoop = True
+                break
+        
+        while mainLoop:
+    
             singlelooptime1 = self.Time.ReadNowTime()
             # 更新每禎時間
             nowTime = self.Time.ReadNowTime()
@@ -1426,7 +1450,9 @@ class Motomancontrol():
             
             #----------------------------------------------命令執行區-----------------------------------------
             # 常規命令>>讀取位置與I000
-            I0 = self.NormalCmd(RPdata, Veldata, alreadySentNBR, sysTime, I0)
+            # self.I0 = self.NormalCmd(RPdata, Veldata, alreadySentNBR, sysTime, self.I0, batch)
+            # 讀取I000變數
+            self.I0 = self.Udp.ReadVar("Integer", 0)
             
             #----------------------------------------------資料通訊區-----------------------------------------
             """
@@ -1436,7 +1462,8 @@ class Motomancontrol():
             2. I11 - I19
             """
             
-            if I0 == [3] and finalDataFlag is True:
+            
+            if self.I0 == [3] and finalDataFlag is True:
                 # 起始變數位置
                 firstAddress = 11
                 # 打包需要傳送的變數資料
@@ -1444,11 +1471,20 @@ class Motomancontrol():
                 # 將打包完的資料寫入DX200
                 Is_success = self.writeRPvarINTvar(firstAddress, RPpacket, Velpacket)
 
-                if self.Line is False:
+                # 紀錄通訊所傳輸的資料
+                if self.Line is True:
+                    if alreadySentNBR == batch:
+                        self.RealTrajectoryData[self.RealDataCounter] = RPdata[batch-1]
+                        self.RealSpeedData[self.RealDataCounter] = Veldata[batch-1]
+                    else:    
+                        self.RealTrajectoryData[self.RealDataCounter] = RPdata[alreadySentNBR]
+                        self.RealSpeedData[self.RealDataCounter] = Veldata[alreadySentNBR]
+                    self.RealDataCounter += 1
+                else:
                     # 模擬通訊時間
                     self.Time.time_sleep(0.36)
 
-            elif I0 == [11] and finalDataFlag is True:
+            elif self.I0 == [11] and finalDataFlag is True:
                 # 起始變數位置
                 firstAddress = 2
                 # 打包需要傳送的變數資料
@@ -1456,9 +1492,22 @@ class Motomancontrol():
                 # 將打包完的資料寫入DX200
                 Is_success = self.writeRPvarINTvar(firstAddress, RPpacket, Velpacket)
                 
-                if self.Line is False:
+                # 紀錄通訊所傳輸的資料
+                if self.Line is True:
+                    if alreadySentNBR == batch:
+                        self.RealTrajectoryData[self.RealDataCounter] = RPdata[batch-1]
+                        self.RealSpeedData[self.RealDataCounter] = Veldata[batch-1]
+                    else:    
+                        self.RealTrajectoryData[self.RealDataCounter] = RPdata[alreadySentNBR]
+                        self.RealSpeedData[self.RealDataCounter] = Veldata[alreadySentNBR]
+                    self.RealDataCounter += 1
+
+                else:
                     # 模擬通訊時間
                     self.Time.time_sleep(0.36)
+            
+            
+            self.I0 = self.NormalCmd(RPdata, Veldata, alreadySentNBR, sysTime, self.I0, batch)
 
             if alreadySentNBR == batch and finalDataFlag is True:
                 """結束條件
@@ -1470,10 +1519,48 @@ class Motomancontrol():
                 print(sysTime)
 
                 # -------------------------------------驗證軌跡與速度資料集-----------------------------------
+                # 讀取最後一刻軌跡資料
+                
                 if self.Line is True:
-                    # 濾除整個row為0的部分
-                    non_zero_rows_Trajectory = np.any(self.RealTrajectory != 0, axis=(1, 2))
-                    database_PoseMat.Save(self.RealTrajectory, "dataBase/dynamicllyPlanTEST/RealTrajectory.csv", "w")
+                    
+                    can_End = False
+                    while True:
+                        self.I0 = self.NormalCmd(RPdata, Veldata, alreadySentNBR, sysTime, self.I0, batch)
+                        # 讀取I000變數
+                        self.I0 = self.Udp.ReadVar("Integer", 0)
+                        quotient, remainder = divmod(RPdata.shape[0]*RPdata.shape[1], 18)
+                        
+                        if remainder == 9 and self.I0 == [11]:
+                            can_End = True
+                        elif remainder == 0 and self.I0 == [2]:
+                            can_End = True
+                        else: 
+                            can_End = False
+
+                        if can_End is True:
+                            # feedback的軌跡資料
+                            # 濾除整個row為0的部分
+                            non_zero_rows_Trajectory = np.any(self.RealTrajectory != 0, axis=(1, 2))
+                            non_zero_rows_Time = np.any(self.RealsysTime != 0, axis=1)
+
+                            self.RealTrajectory = self.RealTrajectory[non_zero_rows_Trajectory]
+                            self.RealsysTime = self.RealsysTime[non_zero_rows_Time]
+                            database_PoseMat.Save(self.RealTrajectory, "dataBase/dynamicllyPlanTEST/RealTrajectory.csv", "w")
+                            database_time.Save(self.RealsysTime, "dataBase/dynamicllyPlanTEST/RealsysTime.csv", "w")
+                            
+                            # 儲存通訊所送出的軌跡資料
+                            self.RealTrajectoryData = self.RealTrajectoryData.reshape(-1, 1, 6)
+                            self.RealSpeedData = self.RealSpeedData.reshape(-1, 1)
+                            # 濾除整個row為0的部分
+                            non_zero_rows_Trajectory = np.any(self.RealTrajectoryData != 0, axis=(1, 2))
+                            non_zero_rows_Speed = np.any(self.RealSpeedData != 0, axis=1)
+
+                            self.RealTrajectoryData = self.RealTrajectoryData[non_zero_rows_Trajectory]
+                            self.RealSpeedData = self.RealSpeedData[non_zero_rows_Speed]
+                            database_PoseMat.Save(self.RealTrajectoryData, "dataBase/dynamicllyPlanTEST/verifyTrajectory.csv", "w")
+                            database_Velocity.Save(self.RealSpeedData, "dataBase/dynamicllyPlanTEST/verifySpeed.csv", "w")
+                            
+                            break
                 else:
                     self.RealTrajectoryData = self.RealTrajectoryData.reshape(-1, 1, 6)
                     self.RealSpeedData = self.RealSpeedData.reshape(-1, 1)
@@ -1510,19 +1597,26 @@ class Motomancontrol():
                         if self.Line is True:
                             # 讀取當下位置
                             pos_result, coordinate = self.Udp.getcoordinateMH(101)
+                            # 設定新軌跡起點
+                            NowEnd = [coordinate[0], coordinate[1], coordinate[2], coordinate[3], coordinate[4], coordinate[5]]
                         else:
                             # 模擬讀取當下位置
                             coordinate = RPdata[startPlan_alreadySentNBR, 0]
+                            # 設定新軌跡起點
+                            NowEnd = [coordinate[0], coordinate[1], coordinate[2], coordinate[3]/10, coordinate[4]/10, coordinate[5]/10]
 
-                        # 設定新軌跡起點
-                        NowEnd = [coordinate[0], coordinate[1], coordinate[2], coordinate[3]/10, coordinate[4]/10, coordinate[5]/10]
+                        
 
                         # 終點與原軌跡保持一致
                         GoalEnd = [self.trjData[-1, 0, 0], self.trjData[-1, 0, 1], self.trjData[-1, 0, 2], self.trjData[-1, 0, 3], self.trjData[-1, 0, 4], self.trjData[-1, 0, 5]]
                         
                         # TODO 預計由UI寫入
                         # GoalSpeed = float(input("請輸入走速："))
-                        GoalSpeed = 1.5
+                        if Threadcount == 0:
+                            GoalSpeed = 1.5
+                        else: 
+                            GoalSpeed = 2
+                        print(f"理想速度: {GoalSpeed} mm/s")
                         
                         # 執行緒
                         planThread = GetNewTrj(target=self.PlanNewTrj, args=(NowEnd, GoalEnd, sampleTime, GoalSpeed))
@@ -1530,6 +1624,7 @@ class Motomancontrol():
 
                         # 改變狀態旗標>>> 執行續已被啟動過
                         Thread_started = True
+                        Threadcount += 1
                         
 
             if planThread.is_alive() is False and Thread_started is True:
@@ -1557,7 +1652,7 @@ class Motomancontrol():
                 print("系統反應時間所消耗的資料(批次)數: ", dataErr)
 
                 
-                
+                # TODO 資料整併只支援1段變速，並不支援2段變速
                 # -----------------------------------資料整併(軌跡)--------------------------------------------------------------
                 oldFile_PoseMat = "dataBase/dynamicllyPlanTEST/PoseMat.csv"
                 newFile_PoseMat = "dataBase/dynamicllyPlanTEST/newPoseMat.csv"
@@ -1596,8 +1691,13 @@ class Motomancontrol():
                 Remix_Speed_df.to_csv(RemixFile_Speed, index=False,  header=True)
                 Remix_Speed = np.array(Remix_Speed_df)
 
+                # 將物件變數中的軌跡資料替換為新的軌跡資料
+                self.trjData = Remix_PoseMat
+                self.velData = Remix_Speed
+                
+
                 # 固定流程(資料分割與初步封裝)
-                Remix_PoseMat, Remix_Speed = Motomancontrol.deleteFirstTrajectoryData(Remix_PoseMat, Remix_Speed)
+                Remix_PoseMat, Remix_Speed = Motomancontrol.deleteFirstTrajectoryData(self.trjData, self.velData)
                 NewRemixBatch = self.calculateDataGroupBatch(Remix_PoseMat)
                 NewRemixRPdata, NewRemixSpeeddata = self.dataSegmentation(Remix_PoseMat, Remix_Speed, NewRemixBatch)
                 # --------------------------------------------------------------------------------------------------------------
@@ -1616,7 +1716,7 @@ class Motomancontrol():
                 a = self.Time.ReadNowTime()
                 err = self.Time.TimeError(b,a)
                 err = err["millisecond"]
-                print(f"新軌跡規劃後處理2所花時長: {err} ms")
+                print(f"新軌跡規劃後處理所花時長: {err} ms")
 
                 # 計算IK
                 SimThread = threading.Thread(target=self.simulation)

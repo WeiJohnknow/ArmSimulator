@@ -283,7 +283,9 @@ def calculate_distance_speed(PoseMat_file, Time_file, sampleTime):
     Time = database_time.Load(Time_file)
     # pathdata_df = pd.read_csv( Time_file)
 
+    Time = np.insert(Time, 0, 0, axis=0)
     
+
     x  = np.zeros(PoseMat6x1.shape[0])
     y  = np.zeros(PoseMat6x1.shape[0])
     z  = np.zeros(PoseMat6x1.shape[0])
@@ -1101,8 +1103,8 @@ if __name__ == "__main__" :
     # Time_file =    "Experimental_data/20240129/13_3mms/timeEL.csv"
     # calculate_distance_speed(PoseMat_file, Time_file, 0.04)
 
-    PoseMat_file = "dataBase/dynamicllyPlanTEST/verifyTrajectory.csv"
-    Time_file =    "dataBase/dynamicllyPlanTEST/verifySpeed.csv"
+    PoseMat_file = "dataBase/dynamicllyPlanTEST/RealTrajectory.csv"
+    Time_file =    "dataBase/dynamicllyPlanTEST/RealsysTime.csv"
 
     calculate_distance_speed(PoseMat_file, Time_file, 0.04)
 

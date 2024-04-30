@@ -1077,7 +1077,7 @@ class Motomancontrol():
         Online(含通訊之測試) >> True  要記得解開self.Udp的相關註解
         Offline(純邏輯測試) >> False
         """
-        self.Line = True
+        self.Line = False
         self.Udp = MotomanUDP()
         
         self.Kin = Kinematics()
@@ -1356,9 +1356,13 @@ class Motomancontrol():
     
         else:
             # 模擬讀取實際手臂位置並儲存
-            self.RealTrajectoryData[self.RealDataCounter] = RPdata[alreadySentNBR]
-            self.RealSpeedData[self.RealDataCounter] = Veldata[alreadySentNBR]
-            self.RealDataCounter+=1
+            if alreadySentNBR == batch:
+                self.RealTrajectoryData[self.RealDataCounter] = RPdata[batch-1]
+                self.RealSpeedData[self.RealDataCounter] = Veldata[batch-1]
+            else:    
+                self.RealTrajectoryData[self.RealDataCounter] = RPdata[alreadySentNBR]
+                self.RealSpeedData[self.RealDataCounter] = Veldata[alreadySentNBR]
+            self.RealDataCounter += 1
 
             # 模擬I0變換
             if I0 == [3]:
@@ -1452,7 +1456,15 @@ class Motomancontrol():
             # 常規命令>>讀取位置與I000
             # self.I0 = self.NormalCmd(RPdata, Veldata, alreadySentNBR, sysTime, self.I0, batch)
             # 讀取I000變數
-            self.I0 = self.Udp.ReadVar("Integer", 0)
+            if self.Line is True:
+                self.I0 = self.Udp.ReadVar("Integer", 0)
+
+            else:
+                # 模擬I0變換
+                if self.I0 == [3]:
+                    self.I0 = [11]
+                else:
+                    self.I0 = [3]
             
             #----------------------------------------------資料通訊區-----------------------------------------
             """

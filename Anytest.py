@@ -2658,7 +2658,7 @@ DX200端 執行軌跡架構 Updata:2024/04/28
 
 # # 示例数组
 # a = np.array([ 958.521 ,  -37.042 , -164.943 , -165.2876,   -7.1723,   17.5191])
-# b = np.array([ 958.519,-37.198,-164.956,-165.288,-7.1705,17.5168])
+# b = np.array([ 958.519 ,  -37.198 , -164.956 , -164.288 ,   -7.1705,   17.5168])
 
 # # 计算欧几里得距离
 # distance = np.linalg.norm(a - b)
@@ -2716,42 +2716,57 @@ DX200端 執行軌跡架構 Updata:2024/04/28
 # if __name__ == '__main__':
 #     main()
 
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtCore import QTimer, QThread
-import sys, time
-from UI_model import MyModel
-from UI_view import MyView
-from UI_control import MyController
 
-class ParameterThread(QThread):
-    def __init__(self, controller, model):
-        super().__init__()
-        self.controller = controller
-        self.model = model
+"""
+UI介面通訊
+"""
+# from PyQt5.QtWidgets import QApplication
+# from PyQt5.QtCore import QTimer, QThread
+# import sys, time
+# from UI_model import MyModel
+# from UI_view import MyView
+# from UI_control import MyController
 
-    def run(self):
-        time.sleep(2)  # 這裡的休眠是為了等待 UI 界面啟動
+# class ParameterThread(QThread):
+#     def __init__(self, controller, model):
+#         super().__init__()
+#         self.controller = controller
+#         self.model = model
+
+#     def run(self):
+#         time.sleep(2)  # 這裡的休眠是為了等待 UI 界面啟動
         
-        while True:
-            # buffer = self.controller._get_latest_data()
-            WeldingParameter = self.model.get_WeldingParameter()
-            WeldingSpeed = self.model.get_WeldingSpeed()
-            print(f"銲接參數: {WeldingParameter}, 銲接走速:{WeldingSpeed}")
-            time.sleep(0.05)
+#         while True:
+#             # buffer = self.controller._get_latest_data()
+#             WeldingParameter = self.model.get_WeldingParameter()
+#             WeldingSpeed = self.model.get_WeldingSpeed()
+#             print(f"銲接參數: {WeldingParameter}, 銲接走速:{WeldingSpeed}")
+#             time.sleep(0.05)
 
-def main():
-   app = QApplication(sys.argv)
+# def main():
+#    app = QApplication(sys.argv)
 
-   model = MyModel()
-   view = MyView()
-   controller = MyController(model, view)
+#    model = MyModel()
+#    view = MyView()
+#    controller = MyController(model, view)
 
-   view.show()
+#    view.show()
 
-   parameter_thread = ParameterThread(controller, model)
-   parameter_thread.start()
+#    parameter_thread = ParameterThread(controller, model)
+#    parameter_thread.start()
 
-   sys.exit(app.exec_())
+#    sys.exit(app.exec_())
 
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()
+"""
+"""
+import numpy as np
+
+# 創建一個示例矩陣
+matrix = np.array([1.234, 2.567, 3.891, 4.123, 5.456, 6.789])
+
+# 無條件捨去小數點後一位
+rounded_matrix = np.floor(matrix * 10) / 10
+
+print(rounded_matrix)

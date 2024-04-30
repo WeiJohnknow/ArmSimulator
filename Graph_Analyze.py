@@ -270,7 +270,7 @@ def plotMean_Std(y_data, x_data, xlabel:str, ylabel:str, title:str):
     # # 显示图形
     # plt.show()
 
-def calculate_distance_speed(PoseMat_file, Time_file, sampleTime):
+def Experimental_data_analysis(PoseMat_file, Time_file, Time_error_file):
     """計算軌跡之歐式距離與平均速度
     - Unit:
         - distance :mm
@@ -278,67 +278,115 @@ def calculate_distance_speed(PoseMat_file, Time_file, sampleTime):
         - Time_file: 依原資料之單位為主
     - 注意計算總位移與平均速度時，時間之單位
     """
-    # PoseMat6x1 = pd.read_csv(PoseMat_file)
+    
     PoseMat6x1 = database_PoseMat.Load(PoseMat_file)
     Time = database_time.Load(Time_file)
-    # pathdata_df = pd.read_csv( Time_file)
-
-    Time = np.insert(Time, 0, 0, axis=0)
+    Time_error = database_time.Load(Time_error_file)
     
 
-    x  = np.zeros(PoseMat6x1.shape[0])
-    y  = np.zeros(PoseMat6x1.shape[0])
-    z  = np.zeros(PoseMat6x1.shape[0])
-    Rx = np.zeros(PoseMat6x1.shape[0])
-    Ry = np.zeros(PoseMat6x1.shape[0])
-    Rz = np.zeros(PoseMat6x1.shape[0])
-    # time = np.zeros(pathdata_df.shape[0])
-    time = np.zeros(PoseMat6x1.shape[0])
+    Time = Time.reshape(-1)
+    TimeErr = Time_error.reshape(-1)
 
-    # for i in range(len(PoseMat6x1)):
-    #     x[i] = PoseMat6x1["X"][i]
-    #     y[i] = PoseMat6x1["Y"][i]
-    #     z[i] = PoseMat6x1["Z"][i]
-    #     Rx[i]= PoseMat6x1["Rx"][i]
-    #     Ry[i]= PoseMat6x1["Ry"][i]
-    #     Rz[i]= PoseMat6x1["Rz"][i]
-    #     # time[i] = pathdata_df['time'][i]
-    #     time[i] = PoseMat6x1['time'][i]
+    # 計算軌跡點間的歐式距離
+    PtoPEuclidean_distance = np.zeros((PoseMat6x1.shape[0]-1))
+    Coordinate = PoseMat6x1[:, :, :3].reshape(-1, 3)
+    for i in range(Coordinate.shape[0]-1):
+        PtoPEuclidean_distance[i] = np.linalg.norm(Coordinate[i+1] - Coordinate[i])
+    # 插入初值 0
+    PtoPEuclidean_distance = np.insert(PtoPEuclidean_distance, 0, 0)
 
-    for i in range(len(PoseMat6x1)):
-        x[i] = PoseMat6x1[i, 0, 0]
-        y[i] = PoseMat6x1[i, 0, 1]
-        z[i] = PoseMat6x1[i, 0, 2]
-        Rx[i]= PoseMat6x1[i, 0, 3]
-        Ry[i]= PoseMat6x1[i, 0, 4]
-        Rz[i]= PoseMat6x1[i, 0, 5]
-        time[i] = Time[i]
+    # 總歐式距離
+    TotalEuclidean_distance = np.zeros((PoseMat6x1.shape[0]))
+    for i in range(TotalEuclidean_distance.shape[0]):
+        TotalEuclidean_distance[i] = TotalEuclidean_distance[i-1] + PtoPEuclidean_distance[i]
 
-    Euclidean_distance = np.zeros(PoseMat6x1.shape[0])
-    average_speed = np.zeros(PoseMat6x1.shape[0])
-
-    for i in range(PoseMat6x1.shape[0]):
-        if i == 0:
-            Euclidean_distance[0] = 0
-        else:
-            Euclidean_distance[i] = Euclidean_distance[i-1] + np.sqrt((x[i] - x[i-1])**2 + (y[i] - y[i-1])**2 + (z[i] - z[i-1])**2)
+    # 每兩軌跡點間的平均速度
+    TimeErrSecond = TimeErr/1000 
+    PtoPavgSpeed = PtoPEuclidean_distance/TimeErrSecond
     
-    # 總位移與平均速度
-    """
-    注意時間單位(以秒為主)，需換算至秒
-    """
-    totaldistance = np.sqrt((x[-1] - x[0])**2 + (y[-1] - y[0])**2 + (z[-1] - z[0])**2)
-    avgSpeed = totaldistance/(time[-1]/1000)
+    # 设置全局字体大小
+    plt.rcParams.update({'font.size': 20})
 
-    print("軌跡總位移(mm) :", round(totaldistance, 3))
-    print("軌跡平均速度(mm/s) :", round(avgSpeed, 3))
-        
-    # 瞬時速度
-    average_speed = np.diff(Euclidean_distance) / sampleTime
-    average_speed = np.insert(average_speed, 0, 0)
+    # 繪製垂直線
+    plt.axvline(x=4320, color='r', linestyle='--')
 
-    # 计算 time 的中位数
-    median_time_ = time[-1]/2
+    plt.plot(Time, TotalEuclidean_distance, color='blue', label='Euclidean distance', marker='o')
+    # plt.plot(time, average_speed, color='green', label='Speed')
+    plt.plot(Time, PtoPavgSpeed, color='green', label='Speed', marker='o')
+
+    # 添加图例和标签
+    plt.legend()
+    plt.xlabel("time(ms)")
+    plt.ylabel("Euclidean distance(mm) and speed(mm/s)")
+    plt.title("Euclidean distance and speed")
+
+    # 显示图形
+    plt.show()
+    
+    return TotalEuclidean_distance, PtoPEuclidean_distance, PtoPavgSpeed, Time
+
+def Analysis_ExperimentalAndExpect(Experimental_EucDis, Experimental_Speed, Experimental_Time, Expect_EucDis, Expect_Speed, Expect_Time):
+    """分析實驗結果與預期之軌跡曲線
+    - Unit:
+        - distance :mm
+        - sampleTime :s
+        - Time_file: 依原資料之單位為主
+    - 注意計算總位移與平均速度時，時間之單位
+    """
+    # 時間軸以秒為單位
+    Expect_Time *= 1000
+
+    # 繪製垂直線
+    # plt.axvline(x=Expect_Time[110], color='r', linestyle='--')
+
+    # 期望曲線 
+    plt.plot(Expect_Time, Expect_EucDis, color='red', label='Euclidean distance(Expected)')
+    plt.plot(Expect_Time, Expect_Speed, color='magenta', label='Speed(Expected)')
+
+    # 實驗曲線
+    plt.plot(Experimental_Time, Experimental_EucDis, color='green', label='Euclidean distance(Estimate)')
+    plt.plot(Experimental_Time, Experimental_Speed,  color='turquoise', label='Speed(Estimate)')
+
+    # 添加图例和标签
+    plt.legend()
+    plt.xlabel("time(s)")
+    plt.ylabel("Euclidean distance(mm) and speed(mm/s)")
+    plt.title("Euclidean distance and speed")
+
+    # 显示图形
+    plt.show()
+    
+def Expect_distance_speed(PoseMat_file, Time_file, sampleTime):
+    """計算軌跡之歐式距離與平均速度
+    - Unit:
+        - distance :mm
+        - sampleTime :s
+        - Time_file: 依原資料之單位為主
+    - 注意計算總位移與平均速度時，時間之單位
+    """
+    PoseMat6x1 = database_PoseMat.Load(PoseMat_file)
+    # Time = database_time.Load(Time_file)
+
+    # 有時要-0.04 有時不用， 請多加注意
+    Time = np.arange(0, (PoseMat6x1.shape[0]*sampleTime-0.04), sampleTime)
+
+    # 計算軌跡點間的歐式距離
+    PtoPEuclidean_distance = np.zeros((PoseMat6x1.shape[0]-1))
+    Coordinate = PoseMat6x1[:, :, :3].reshape(-1, 3)
+    for i in range(Coordinate.shape[0]-1):
+        PtoPEuclidean_distance[i] = np.linalg.norm(Coordinate[i+1] - Coordinate[i])
+    # 插入初值 0
+    PtoPEuclidean_distance = np.insert(PtoPEuclidean_distance, 0, 0)
+
+    # 總歐式距離
+    TotalEuclidean_distance = np.zeros((PoseMat6x1.shape[0]))
+    for i in range(TotalEuclidean_distance.shape[0]):
+        TotalEuclidean_distance[i] = TotalEuclidean_distance[i-1] + PtoPEuclidean_distance[i]
+
+    # 每兩軌跡點間的平均速度
+    
+    timeErrSecond = sampleTime
+    PtoPavgSpeed = PtoPEuclidean_distance/timeErrSecond
 
     # 设置全局字体大小
     plt.rcParams.update({'font.size': 20})
@@ -346,11 +394,12 @@ def calculate_distance_speed(PoseMat_file, Time_file, sampleTime):
     # 在中位数位置绘制垂直虚线
     # plt.axvline(x=median_time_, color='orange', linestyle='--', label='Median')
 
-    plt.plot(time, Euclidean_distance, color='blue', label='Euclidean distance')
-    plt.plot(time, average_speed, color='green', label='Speed')
+    plt.plot(Time, TotalEuclidean_distance, color='blue', label='Euclidean distance')
+    # plt.plot(time, average_speed, color='green', label='Speed')
+    plt.plot(Time, PtoPavgSpeed, color='green', label='Speed')
 
 
-    speed_mean = np.mean(average_speed)
+    # speed_mean = np.mean(average_speed)
     # 绘制平均值水平线
     # plt.axhline(speed_mean, color='red', linestyle='--', label='Speed mean')
 
@@ -363,7 +412,7 @@ def calculate_distance_speed(PoseMat_file, Time_file, sampleTime):
     # 显示图形
     plt.show()
     
-    return Euclidean_distance, average_speed
+    return TotalEuclidean_distance, PtoPEuclidean_distance, PtoPavgSpeed, Time
 
 def calculate_distance_speed_2_curve(PoseMat_file, Time_file, ExperimentalData, sampleTime):
     """計算軌跡之歐式距離與平均速度(2曲線)
@@ -1103,12 +1152,24 @@ if __name__ == "__main__" :
     # Time_file =    "Experimental_data/20240129/13_3mms/timeEL.csv"
     # calculate_distance_speed(PoseMat_file, Time_file, 0.04)
 
-    PoseMat_file = "dataBase/dynamicllyPlanTEST/RealTrajectory.csv"
-    Time_file =    "dataBase/dynamicllyPlanTEST/RealsysTime.csv"
+    # PoseMat_file = "Experimental_data/20240429/Remix_1/testRemix_PoseMat.csv"
 
-    calculate_distance_speed(PoseMat_file, Time_file, 0.04)
+    # 預期資料
+    Expect_PoseMat_file = "Experimental_data/20240429/Remix_6/testRemix_PoseMat.csv"
+    Expect_Time_file =    "Experimental_data/20240429/Remix_6/Remix_Time.csv"
 
-    # calculate_distance_speed_2_curve(PoseMat_file, Time_file, ExperimentalData, sampleTime)
+    # 實驗結果資料
+    Experimental_PoseMat_file =    "Experimental_data/20240429/Remix_6/RealTrajectory.csv"
+    Experimental_Time_file =       "Experimental_data/20240429/Remix_6/RealsysTime.csv"
+    Experimental_Time_error_file = "Experimental_data/20240429/Remix_6/RealsysTime_err.csv"
+
+
+    # 計算理想軌跡之歐式距離與速度
+    Expect_TotalEucDis, Expect_PtoPEucDis, Expect_PtoPavgSpeed, Expect_Time = Expect_distance_speed(Expect_PoseMat_file, Expect_Time_file, 0.04)
+    # 計算實驗軌跡之歐式距離與速度
+    Experimental_TotalEucDis, Experimental_PtoPEucDis, Experimental_PtoPavgSpeed, Experimental_Time = Experimental_data_analysis(Experimental_PoseMat_file, Experimental_Time_file, Experimental_Time_error_file)
+    Analysis_ExperimentalAndExpect(Experimental_TotalEucDis, Experimental_PtoPavgSpeed, Experimental_Time, Expect_TotalEucDis, Expect_PtoPavgSpeed, Expect_Time)
+    
     # Analyze_Position(PoseMat_file, Time_file)
     # Analyze_Velocity(0.04, PoseMat_file, Time_file)
     # Analyze_Acceleration(0.04, PoseMat_file, Time_file)

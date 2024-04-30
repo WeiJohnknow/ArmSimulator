@@ -111,7 +111,7 @@ class MyController:
         Buffer = []
         if self._last_added_item_1st is not None:
             Buffer.append(self._last_added_item_1st)
-            print("銲接走速(m/s)：", self._last_added_item_1st)
+            print("銲接走速(mm/s)：", self._last_added_item_1st)
             self._last_added_item_1st = None  
 
         if self._last_added_item_2nd_1 is not None and self._last_added_item_2nd_2 is not None:

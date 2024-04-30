@@ -1,8 +1,7 @@
 # view.py
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QListWidget, QLineEdit, QHBoxLayout
 
-# view.py
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QListWidget, QLineEdit, QHBoxLayout
+
 
 class MyView(QWidget):
     def __init__(self):

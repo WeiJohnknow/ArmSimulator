@@ -1449,13 +1449,18 @@ class Motomancontrol():
                 startTime = self.Time.ReadNowTime()
                 sysflag = False
 
+                
+
             sysTime, Node = self.Time.sysTime(startTime, startNode, nowTime, sampleTime)
             sysTime = round(sysTime/1000, 1)
+            
             
             #----------------------------------------------命令執行區-----------------------------------------
             # 常規命令>>讀取位置與I000
             # self.I0 = self.NormalCmd(RPdata, Veldata, alreadySentNBR, sysTime, self.I0, batch)
             # 讀取I000變數
+            
+            # 讀取I0
             if self.Line is True:
                 self.I0 = self.Udp.ReadVar("Integer", 0)
 
@@ -1473,7 +1478,6 @@ class Motomancontrol():
             1. I02 - I10
             2. I11 - I19
             """
-            
             
             if self.I0 == [3] and finalDataFlag is True:
                 # 起始變數位置

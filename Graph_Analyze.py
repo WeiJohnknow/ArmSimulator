@@ -303,6 +303,10 @@ def Experimental_data_analysis(PoseMat_file, Time_file, Time_error_file):
     # 每兩軌跡點間的平均速度
     TimeErrSecond = TimeErr/1000 
     PtoPavgSpeed = PtoPEuclidean_distance/TimeErrSecond
+    # 找到NaN值的索引
+    nan_index = np.isnan(PtoPavgSpeed)
+    if nan_index[0] == True:
+        PtoPavgSpeed[0] = 0
     
     # 设置全局字体大小
     plt.rcParams.update({'font.size': 20})
@@ -341,10 +345,10 @@ def Analysis_ExperimentalAndExpect(Experimental_EucDis, Experimental_Speed, Expe
 
     # 期望曲線 
     plt.plot(Expect_Time, Expect_EucDis, color='red', label='Euclidean distance(Expected)')
-    plt.plot(Expect_Time, Expect_Speed, color='magenta', label='Speed(Expected)')
+    plt.plot(Expect_Time, Expect_Speed, color='green', label='Speed(Expected)')
 
     # 實驗曲線
-    plt.plot(Experimental_Time, Experimental_EucDis, color='green', label='Euclidean distance(Estimate)')
+    plt.plot(Experimental_Time, Experimental_EucDis, color='magenta', label='Euclidean distance(Estimate)')
     plt.plot(Experimental_Time, Experimental_Speed,  color='turquoise', label='Speed(Estimate)')
 
     # 添加图例和标签
@@ -368,6 +372,7 @@ def Expect_distance_speed(PoseMat_file, Time_file, sampleTime):
     # Time = database_time.Load(Time_file)
 
     # 有時要-0.04 有時不用， 請多加注意
+    # Time = np.arange(0, (PoseMat6x1.shape[0]*sampleTime), sampleTime)
     Time = np.arange(0, (PoseMat6x1.shape[0]*sampleTime-0.04), sampleTime)
 
     # 計算軌跡點間的歐式距離

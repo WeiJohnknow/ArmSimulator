@@ -2602,7 +2602,7 @@ DX200端 執行軌跡架構 Updata:2024/04/28
 # I001 = dataLen//9 + 1 
 # I000 = 2
 # I028 = 0
-# while I001>I028: # INFORM邏輯稍微有些不同 要使用>  python使用>=
+# while I001>=I028: # INFORM邏輯稍微有些不同 要使用>  python使用>=
 #     # 確認是否已傳送完n組的數據
 #     # if I028 > I001:
 #     #     break
@@ -2622,34 +2622,6 @@ DX200端 執行軌跡架構 Updata:2024/04/28
 #         I000 = 2
 #         print(f"I001: {I028}")
 
-"""
-"""
-# from PyQt5.QtCore import QObject
-# from UI_control import DataSignal
-
-# class DataReceiver(QObject):
-#     def __init__(self):
-#         super().__init__()
-#         self.signal = DataSignal()
-#         self.signal.data_changed.connect(self.handle_data_changed)
-
-#     def handle_data_changed(self, data1, data2, data3):
-#         if data1:
-#             print("銲接走速(m/s)：", data1)
-#         if data2:
-#             print("銲接電流(AC)：", data2)
-#         if data3:
-#             print("銲接電流(AVP)：", data3)
-
-# def main():
-    
-#     while True:
-#         signal = DataSignal()
-#         receiver = DataReceiver()
-#         time.sleep(0.05)
-    
-# if __name__ == '__main__':
-#     main()
 
 """
 獲得兩個數組的距離
@@ -2665,108 +2637,79 @@ DX200端 執行軌跡架構 Updata:2024/04/28
 
 # print("a与b的欧几里得距离:", distance)
 
-# from PyQt5.QtWidgets import QApplication
-# from PyQt5.QtCore import QTimer, QObject, pyqtSignal
-# import sys
-# import threading
-# import time
-# from UI_model import MyModel
-# from UI_view import MyView
-# from UI_control import MyController
-
-# class DataSignal(QObject):
-#     data_changed = pyqtSignal(str, str, str)
-
-# class ControllerThread(threading.Thread):
-#     def __init__(self, model, view, signal):
-#         super().__init__()
-#         self._model = model
-#         self._view = view
-#         self._signal = signal
-
-#     def run(self):
-#         self._app = QApplication(sys.argv)
-#         self._controller = MyController(self._model, self._view, self._signal)
-#         self._view.show()
-#         sys.exit(self._app.exec_())
-
-# class ParamThread(threading.Thread):
-#     def __init__(self, controller, signal):
-#         super().__init__()
-#         self._controller = controller
-#         self._signal = signal
-
-#     def run(self):
-#         while True:
-#             last_added_items = self._controller.get_last_added_items()
-#             self._signal.data_changed.emit(*last_added_items)
-#             time.sleep(0.1)
-
-# def main():
-#     model = MyModel()
-#     view = MyView()
-#     signal = DataSignal()
-
-#     controller_thread = ControllerThread(model, view, signal)
-#     controller_thread.start()
-
-#     param_thread = ParamThread(controller_thread._controller, signal)
-#     param_thread.start()
-
-# if __name__ == '__main__':
-#     main()
-
-
 """
 UI介面通訊
 """
-# from PyQt5.QtWidgets import QApplication
-# from PyQt5.QtCore import QTimer, QThread
-# import sys, time
-# from UI_model import MyModel
-# from UI_view import MyView
-# from UI_control import MyController
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtCore import QTimer, QThread
+import sys, time, queue
+from UI_model import MyModel
+from UI_view import MyView
+from UI_control import MyController
 
-# class ParameterThread(QThread):
-#     def __init__(self, controller, model):
-#         super().__init__()
-#         self.controller = controller
-#         self.model = model
+class ParameterThread(QThread):
+    def __init__(self, controller, model):
+        super().__init__()
+        self.controller = controller
+        self.model = model
 
-#     def run(self):
-#         time.sleep(2)  # 這裡的休眠是為了等待 UI 界面啟動
+    def run(self):
+        time.sleep(2)  # 這裡的休眠是為了等待 UI 界面啟動
+        # WeldingParamater_queue = queue.Queue(maxsize=1)
+        # WeldingSpeed_queue = queue.Queue(maxsize=1)
         
-#         while True:
-#             # buffer = self.controller._get_latest_data()
-#             WeldingParameter = self.model.get_WeldingParameter()
-#             WeldingSpeed = self.model.get_WeldingSpeed()
-#             print(f"銲接參數: {WeldingParameter}, 銲接走速:{WeldingSpeed}")
-#             time.sleep(0.05)
+        while True:
+            # buffer = self.controller._get_latest_data()
+            WeldingParameter = self.model.get_WeldingParameter()
+            WeldingSpeed = self.model.get_WeldingSpeed()
+            if len(WeldingParameter) > 1:
+                WeldingParameter = WeldingParameter[-1]
+            if len(WeldingSpeed) > 2:
+                WeldingSpeed = WeldingSpeed[-1]
+            print(f"銲接參數: {WeldingParameter}, 銲接走速:{WeldingSpeed}")
 
-# def main():
-#    app = QApplication(sys.argv)
+            # WeldingParamater_queue.put(self.model.get_WeldingParameter())
+            # WeldingSpeed_queue.put(self.model.get_WeldingSpeed())
+            # print(WeldingSpeed_queue.full())
+            # print(f"銲接參數: {WeldingParamater_queue.get()}, 銲接走速:{WeldingSpeed_queue.get()}")
+            # print(WeldingSpeed_queue.full())
+            
+            time.sleep(0.05)
 
-#    model = MyModel()
-#    view = MyView()
-#    controller = MyController(model, view)
+def main():
+    app = QApplication(sys.argv)
 
-#    view.show()
+    model = MyModel()
+    view = MyView()
+    controller = MyController(model, view)
 
-#    parameter_thread = ParameterThread(controller, model)
-#    parameter_thread.start()
+    test = [1, 2, 3]
+    print(len(test))
 
-#    sys.exit(app.exec_())
+    view.show()
 
-# if __name__ == '__main__':
-#     main()
+    parameter_thread = ParameterThread(controller, model)
+    parameter_thread.start()
+
+    sys.exit(app.exec_())
+
+if __name__ == '__main__':
+    main()
+
 """
+queue
 """
-import numpy as np
+# import queue
+# # 建立一個Queue
+# my_queue = queue.Queue()
 
-# 創建一個示例矩陣
-matrix = np.array([1.234, 2.567, 3.891, 4.123, 5.456, 6.789])
+# # 放入1~10
+# for i in range(1, 11):
+#     my_queue.put(i)
 
-# 無條件捨去小數點後一位
-rounded_matrix = np.floor(matrix * 10) / 10
+# # 取出第5個元素
+# for i in range(5):
+#     value = my_queue.get()
 
-print(rounded_matrix)
+# print("第5個元素:", value)
+

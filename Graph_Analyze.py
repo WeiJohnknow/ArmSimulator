@@ -344,12 +344,12 @@ def Analysis_ExperimentalAndExpect(Experimental_EucDis, Experimental_Speed, Expe
     # plt.axvline(x=Expect_Time[110], color='r', linestyle='--')
 
     # 期望曲線 
-    plt.plot(Expect_Time, Expect_EucDis, color='red', label='Euclidean distance(Expected)')
-    plt.plot(Expect_Time, Expect_Speed, color='green', label='Speed(Expected)')
+    plt.plot(Expect_Time, Expect_EucDis, color='red', label='Euclidean distance(Expected)', marker="o")
+    plt.plot(Expect_Time, Expect_Speed, color='green', label='Speed(Expected)', marker="o")
 
     # 實驗曲線
-    plt.plot(Experimental_Time, Experimental_EucDis, color='magenta', label='Euclidean distance(Estimate)')
-    plt.plot(Experimental_Time, Experimental_Speed,  color='turquoise', label='Speed(Estimate)')
+    plt.plot(Experimental_Time, Experimental_EucDis, color='magenta', label='Euclidean distance(Estimate)', marker="o")
+    plt.plot(Experimental_Time, Experimental_Speed,  color='turquoise', label='Speed(Estimate)', marker="o")
 
     # 添加图例和标签
     plt.legend()
@@ -372,8 +372,8 @@ def Expect_distance_speed(PoseMat_file, Time_file, sampleTime):
     # Time = database_time.Load(Time_file)
 
     # 有時要-0.04 有時不用， 請多加注意
-    # Time = np.arange(0, (PoseMat6x1.shape[0]*sampleTime), sampleTime)
-    Time = np.arange(0, (PoseMat6x1.shape[0]*sampleTime-0.04), sampleTime)
+    Time = np.arange(0, (PoseMat6x1.shape[0]*sampleTime), sampleTime)
+    # Time = np.arange(0, (PoseMat6x1.shape[0]*sampleTime-0.04), sampleTime)
 
     # 計算軌跡點間的歐式距離
     PtoPEuclidean_distance = np.zeros((PoseMat6x1.shape[0]-1))
@@ -1160,13 +1160,13 @@ if __name__ == "__main__" :
     # PoseMat_file = "Experimental_data/20240429/Remix_1/testRemix_PoseMat.csv"
 
     # 預期資料
-    Expect_PoseMat_file = "Experimental_data/20240429/Remix_6/testRemix_PoseMat.csv"
-    Expect_Time_file =    "Experimental_data/20240429/Remix_6/Remix_Time.csv"
+    Expect_PoseMat_file = "Experimental_data/20240429/Remix_1/testRemix_PoseMat.csv"
+    Expect_Time_file =    "Experimental_data/20240429/Remix_1/Remix_Time.csv"
 
     # 實驗結果資料
-    Experimental_PoseMat_file =    "Experimental_data/20240429/Remix_6/RealTrajectory.csv"
-    Experimental_Time_file =       "Experimental_data/20240429/Remix_6/RealsysTime.csv"
-    Experimental_Time_error_file = "Experimental_data/20240429/Remix_6/RealsysTime_err.csv"
+    Experimental_PoseMat_file =    "Experimental_data/20240429/Remix_1/RealTrajectory.csv"
+    Experimental_Time_file =       "Experimental_data/20240429/Remix_1/RealsysTime.csv"
+    Experimental_Time_error_file = "Experimental_data/20240429/Remix_1/RealsysTime_err.csv"
 
 
     # 計算理想軌跡之歐式距離與速度

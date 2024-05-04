@@ -1,8 +1,10 @@
+import queue
 class MyModel:
     def __init__(self):
         self._data = []
         self.WeldingParameter = []
         self.WeldingSpeed = []
+        
 
     def add_data(self, item):
         self._data.append(item)
@@ -12,6 +14,8 @@ class MyModel:
 
     def add_WeldingSpeed(self, item):
         self.WeldingSpeed.append(item)
+    
+
 
     def get_data(self):
         return self._data

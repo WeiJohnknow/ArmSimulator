@@ -2640,61 +2640,65 @@ DX200端 執行軌跡架構 Updata:2024/04/28
 """
 UI介面通訊
 """
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtCore import QTimer, QThread
-import sys, time, queue
-from UI_model import MyModel
-from UI_view import MyView
-from UI_control import MyController
+# from PyQt5.QtWidgets import QApplication
+# from PyQt5.QtCore import QTimer, QThread
+# import sys, time, queue, threading
+# from UI_model import MyModel
+# from UI_view import MyView
+# from UI_control import MyController
+# from MotomanControlUdp import *
 
-class ParameterThread(QThread):
-    def __init__(self, controller, model):
-        super().__init__()
-        self.controller = controller
-        self.model = model
+# class ParameterThread(QThread):
+    
+#     def __init__(self, controller, model):
+#         super().__init__()
+#         self.controller = controller
+#         self.model = model
+#         self.WeldingParameter = 0
+#         self.WeldingSpeed = 0
 
-    def run(self):
-        time.sleep(2)  # 這裡的休眠是為了等待 UI 界面啟動
-        # WeldingParamater_queue = queue.Queue(maxsize=1)
-        # WeldingSpeed_queue = queue.Queue(maxsize=1)
+#     def run(self):
+#         time.sleep(2)  # 這裡的休眠是為了等待 UI 界面啟動
         
-        while True:
-            # buffer = self.controller._get_latest_data()
-            WeldingParameter = self.model.get_WeldingParameter()
-            WeldingSpeed = self.model.get_WeldingSpeed()
-            if len(WeldingParameter) > 1:
-                WeldingParameter = WeldingParameter[-1]
-            if len(WeldingSpeed) > 2:
-                WeldingSpeed = WeldingSpeed[-1]
-            print(f"銲接參數: {WeldingParameter}, 銲接走速:{WeldingSpeed}")
+#         while True:
+#             WeldingParameter_buffer = self.model.get_WeldingParameter()
+#             WeldingSpeed_buffer = self.model.get_WeldingSpeed()
 
-            # WeldingParamater_queue.put(self.model.get_WeldingParameter())
-            # WeldingSpeed_queue.put(self.model.get_WeldingSpeed())
-            # print(WeldingSpeed_queue.full())
-            # print(f"銲接參數: {WeldingParamater_queue.get()}, 銲接走速:{WeldingSpeed_queue.get()}")
-            # print(WeldingSpeed_queue.full())
+#             if len(WeldingParameter_buffer) >= 1:
+#                 self.WeldingParameter = WeldingParameter_buffer[-1]
+#             if len(WeldingSpeed_buffer) >= 1:
+#                 self.WeldingSpeed = WeldingSpeed_buffer[-1]
             
-            time.sleep(0.05)
+#             print(f"銲接參數: {self.WeldingParameter}, 銲接走速:{self.WeldingSpeed}")
 
-def main():
-    app = QApplication(sys.argv)
 
-    model = MyModel()
-    view = MyView()
-    controller = MyController(model, view)
 
-    test = [1, 2, 3]
-    print(len(test))
+#             time.sleep(0.01)
 
-    view.show()
 
-    parameter_thread = ParameterThread(controller, model)
-    parameter_thread.start()
+# def main():
+#     app = QApplication(sys.argv)
 
-    sys.exit(app.exec_())
+#     model = MyModel()
+#     view = MyView()
+#     controller = MyController(model, view)
 
-if __name__ == '__main__':
-    main()
+#     view.show()
+
+#     trjdataPath = "dataBase/dynamicllyPlanTEST/PoseMat_0.csv"
+#     speeddataPath = "dataBase/dynamicllyPlanTEST/Speed_0.csv"
+#     Motoman = Motomancontrol(trjdataPath, speeddataPath)
+#     Motoman.main()
+
+    
+
+#     parameter_thread = ParameterThread(controller, model)
+#     parameter_thread.start()
+
+#     # sys.exit(app.exec_())
+
+# if __name__ == '__main__':
+#     main()
 
 """
 queue
@@ -2704,12 +2708,52 @@ queue
 # my_queue = queue.Queue()
 
 # # 放入1~10
-# for i in range(1, 11):
-#     my_queue.put(i)
+# # for i in range(1, 11):
+# #     my_queue.put(i)
+
+# my_queue.put(1)
 
 # # 取出第5個元素
-# for i in range(5):
-#     value = my_queue.get()
+# # for i in range(5):
+# #     value = my_queue.get()
+# value = my_queue.get()
 
 # print("第5個元素:", value)
+
+"""
+"""
+# import pygame
+# import queue
+
+# screen_width = 800
+# screen_height = 600
+# screen = pygame.display.set_mode((screen_width, screen_height))
+
+# my_queue = queue.Queue()
+
+# while True:
+#     for event in pygame.event.get():
+#         if event.type == pygame.KEYDOWN:
+#             if event.key == pygame.K_k:
+#                 my_queue.put(1)
+#             elif event.key == pygame.K_l:
+#                 if my_queue.empty() is False:
+#                     value = my_queue.get()
+#                     print(value)
+#                 else:
+#                     print("Queue是空的!")
+#     time.sleep(0.01)
+            
+            
+I0 = [1]
+
+while True:
+
+    if I0 == [1]:
+        I0 = [2]
+    elif I0 == [2]:
+        I0 = [1]
+    print(I0)
+
+        
 

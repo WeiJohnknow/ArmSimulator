@@ -1,4 +1,4 @@
-import queue
+
 class MyModel:
     def __init__(self):
         self._data = []

@@ -124,6 +124,13 @@ class database_time(Database_interface):
         - Args: Time(type: ndarray)(shape: 2D) 
         """
         dataTypeConverter.ndarrayTOdataframe(Time, ["Time"], filePath, mode)
+    
+    @ staticmethod
+    def Save_costTime(costTime, filePath, mode:str):
+        """
+        - Args: Cost Time(type: ndarray)(shape: 2D) 
+        """
+        dataTypeConverter.ndarrayTOdataframe(costTime, ["Trj_Algorithm", "Data_merge", "IK_Iterate"], filePath, mode)
 
     @ staticmethod
     def Load(filePath):
@@ -131,6 +138,8 @@ class database_time(Database_interface):
         Time_ndarry = dataTypeConverter.TimedataframeToNdarray(df)
 
         return Time_ndarry
+
+
 
 class validator:
     @staticmethod
@@ -279,35 +288,6 @@ class dataOperating:
         stacked_df = pd.concat([data_frame1, data_frame2], axis=0)
         stacked_df.to_csv(RemixfilePath, index=False,  header=True)
 
-
-        # # 讀取第一個 CSV 檔案中的數組
-        # file1_data = np.genfromtxt(oldFilePath, delimiter=',', dtype=np.float64, encoding='utf-8')
-        # # 舊資料切割點索引 = 舊資料與新資料交接節點(批次)*9
-        # oldFileIndex = oldFileNode*9
-        # oldfile = file1_data[:oldFileIndex]
-
-        # # 讀取第二個 CSV 檔案中的數組
-        # file2_data = np.genfromtxt(newFilePath, delimiter=',', dtype=np.float64, encoding='utf-8')
-        # # 檢查每一行是否包含 NaN 值
-        # valid_rows = ~np.isnan(file2_data).any(axis=1)
-
-        # # 篩選出沒有 NaN 的行
-        # file2_data = file2_data[valid_rows]
-
-        # targetData = file1_data[oldFileIndex]
-        # closestData, closestIndex = dataOperating.searchSimilar(file2_data, targetData)
-
-        # # 新資料切割點索引 = 新資料(批次)*9
-        # # newFileIndex = newFileNode*9
-        # newfile = file2_data[closestIndex+1:]
-
-        # stacked_arrays = np.vstack((oldfile, newfile))
-        
-        # # 合併兩個數組，指定 axis=1
-        # # merged_array = np.concatenate((oldfile, newfile), axis=1)
-
-        # # 將合併後的數組存儲為新的 CSV 檔案
-        # np.savetxt(RemixfilePath, stacked_arrays, delimiter=',', fmt='%.4f', encoding='utf-8')
 
     @ staticmethod
     def searchSimilar(dataSet, targetData):

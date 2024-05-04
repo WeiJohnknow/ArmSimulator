@@ -221,7 +221,8 @@ class MotomanUDP:
         # socket UDP setting
         self.s = socket.socket(socket.AF_INET,          #Internet socket type
                                socket.SOCK_DGRAM)
-        self.s.settimeout(2)
+        # Set time out , unit is second.
+        self.s.settimeout(0.5)
 
         # IP and Port
         self.UDP_IP = ip
@@ -233,6 +234,8 @@ class MotomanUDP:
     def sendCmd(self, reqSubHeader, reqData, procDiv=1):
         # Make Request Packet
         req_packet = UDP_packet(reqSubHeader, reqData).Pack_Req_packet()
+
+        
 
         # Send Request Packet
         self.s.sendto( req_packet,                             #UDP packet

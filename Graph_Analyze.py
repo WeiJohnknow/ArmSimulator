@@ -1125,6 +1125,24 @@ def Analyze_2curve_JointAngle(PoseMat_file_1, Time_file_1, PoseMat_file_2, Time_
         
     plot_6_chart_2curve(data1, data2, title_header, title, xlabel, ylable)
 
+def make_TimeErrorFile(Time_filePath, SaveCsv_filePath):
+    """製作時間差csv檔
+    """
+    Time = pd.read_csv(Time_filePath)
+    Time = np.array(Time).reshape(-1)
+    TimeErr = np.zeros((Time.shape[0], 1))
+
+    for i in range(Time.shape[0]):
+        if i == 0:
+            TimeErr[i] = Time[i]
+        else:
+            TimeErr[i] = Time[i] - Time[i-1] 
+    
+    database_time.Save(TimeErr, SaveCsv_filePath, "w")
+
+
+
+
 
 if __name__ == "__main__" :
     '''
@@ -1158,6 +1176,11 @@ if __name__ == "__main__" :
     # calculate_distance_speed(PoseMat_file, Time_file, 0.04)
 
     # PoseMat_file = "Experimental_data/20240429/Remix_1/testRemix_PoseMat.csv"
+
+    Time_path = "Experimental_data/20240429/1/RealsysTime.csv"
+    TimeErr_path = "Experimental_data/20240429/1/RealsysTime_err.csv"
+    # 製作時間差的csv檔
+    make_TimeErrorFile(Time_path, TimeErr_path)
 
     # 預期資料
     Expect_PoseMat_file = "Experimental_data/20240429/Remix_1/testRemix_PoseMat.csv"

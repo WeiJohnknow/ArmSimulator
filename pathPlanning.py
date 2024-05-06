@@ -673,24 +673,30 @@ class PathPlanning:
                 T = NowEnd @ D_ 
                 iterData[λ_] = T
             NowSpeed = PathPlanning.calculationSpeed(iterData[0], iterData[1], sampleTime)
-            error = NowSpeed - GoalSpeed 
+            
+
+
             # diff = GoalSpeed - NowSpeed
+            # diff_time = alltime - 
             # error = np.sqrt(np.sum(diff** 2))
 
+            # if error <= 0.1:
+            #     break
+
+            # allTime += 0.9 * error
+
+            # org method
+            error = NowSpeed - GoalSpeed 
             if error < 0.1 :
-                print("error: ", error)
-                print("迭代次數: ", iter)
-                print("alltime: ", allTime)
+                print(f"error: {error} | 迭代次數: {iter} | alltime: {allTime} | Speed: {NowSpeed}")
                 break
-            if error>10:
-                allTime += 0.1
+            if error > 10:
+                allTime += 1
             else:
-                allTime +=0.01
-            # allTime -=  0.1*error
-            # allTime -= 0.01*error
+                allTime += 0.1
             
             iter += 1
-            # print("error: ", error)
+            
 
         
 

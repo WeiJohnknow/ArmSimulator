@@ -1128,7 +1128,7 @@ class Motomancontrol():
         self.communicationRecords_Counter = 0
 
         # DX200 feedback的手臂資料紀錄
-        self.feedbackRecords_Trj = np.zeros((50000, 1, 6))
+        self.feedbackRecords_Trj = np.zeros((50000, 1, 6)) 
         self.feedbackRecords_sysTime = np.zeros((50000, 1))
         self.feedbackRecords_Counter = 0
 
@@ -1414,13 +1414,14 @@ class Motomancontrol():
         
         #-------------------------------------------------------------------------------------------------
         
-        if self.Line is False:
-            # I0模擬
-            I0 = [3]
-
+    
         # 測試通訊資料批次數
         I3count = 0
         I11count = 0
+        feedback_count = 0
+
+        # 更新位置變數時的時間點
+        updataTrjTime = self.Time.ReadNowTime()
 
         # 主迴圈旗標 | 開關
         mainLoop = False
@@ -1443,328 +1444,398 @@ class Motomancontrol():
             nowTime = self.Time.ReadNowTime()
             
             if sysflag is True:
+                """
+                此區在本迴圈只會在剛進迴圈時執行一次
+                """
                 # 儲存系統開始時間
                 startTime = self.Time.ReadNowTime()
+
+                
+                if self.Line is True:
+                    # 取得I0初值
+                    # I0 = self.Udp.ReadVar("Integer", 0)
+                    I0 = [2]
+
+                    # 紀錄feedback數據 | 紀錄初始位置與系統時間
+                    self.feedbackRecords(0)
+                else:
+                    I0 = [2]
+
                 sysflag = False
-
-                # 紀錄feedback數據 | 紀錄初始位置與系統時間
-                self.feedbackRecords(0)
-
-            sysTime, Node = self.Time.sysTime(startTime, startNode, nowTime, sampleTime)
-            sysTime = round(sysTime/1000, 1)
             
-            #----------------------------------------------命令執行區-----------------------------------------            
-            if self.Line is True:
-                I0 = self.Udp.ReadVar("Integer", 0)
-                if I0 > 3:
-                    # 因主迴圈開始時已寫入第一批軌跡資料，以防重複寫入，故偵測到I0第一次大於3時，才可開始通訊
+            else:
+                # 更新系統時間
+                sysTime, Node = self.Time.sysTime(startTime, startNode, nowTime, sampleTime)
+                sysTime = round(sysTime/1000, 1)
+                
+                #----------------------------------------------命令執行區-----------------------------------------            
+                if self.Line is True:
+                    # 更新距離上次更新軌跡時，又經過多久的時間
+                    b = self.Time.ReadNowTime()
+                    timeLeft = self.Time.TimeError(updataTrjTime, b)
+                    timeLeft_ms = timeLeft["millisecond"]
+                    print(f"距離上次更新軌跡時間經過: {timeLeft_ms} ms | 讀取I0處")
+
+                    
+                    if timeLeft_ms <= 40:
+                        I0 = self.Udp.ReadVar("Integer", 0)
+                        print(f"I000 : {I0}")
+
+                    elif timeLeft_ms > 40 and timeLeft_ms <= 60:
+                        print("已鄰近下次需要更新軌跡的時間，強制將I000變更為2或11。")
+                        if I0 >= [2] and I0 <= [10]:
+                            I0 = [11]
+                        elif I0 >= [11] and I0 <= [19]:
+                            I0 = [2]
+
+                    else:
+                        pass
+
                     CanStart_communication = True
 
-            else:
-                CanStart_communication = True
-                # 模擬I0變換
-                if I0 == [11]:
-                    I0 = [3]
-                elif I0 == [3]:
-                    I0 = [11]
-            #----------------------------------------------資料通訊區-----------------------------------------
-            """
-            通訊
-            * 變數區間:
-            1. I02 - I10
-            2. I11 - I19
-            """
-            
-            
-            if I0 == [3] and CanStart_communication is True:
-                # 起始變數位置
-                firstAddress = 11
-                # 打包需要傳送的變數資料
-                RPpacket, Velpacket = self.packetRPdataVeldata(RPdata, Veldata, alreadySent_DataBatchNBR)
-                # 將打包完的資料寫入DX200
-                Is_success = self.writeRPvarINTvar(firstAddress, RPpacket, Velpacket)
-                # 通訊紀錄
-                self.communicationRecords(RPdata, Veldata, alreadySent_DataBatchNBR, batch)
-                # 資料(批次)計數器更新
-                alreadySent_DataBatchNBR += 1
-
-                # 模擬軌跡時間
-                self.Time.time_sleep(0.36)
-
-                I3count+=1
-
-            elif I0 == [11] and CanStart_communication is True:
-                # 起始變數位置
-                firstAddress = 2
-                # 打包需要傳送的變數資料
-                RPpacket, Velpacket = self.packetRPdataVeldata(RPdata, Veldata, alreadySent_DataBatchNBR)
-                # 將打包完的資料寫入DX200
-                Is_success = self.writeRPvarINTvar(firstAddress, RPpacket, Velpacket)
-                # 通訊紀錄
-                self.communicationRecords(RPdata, Veldata, alreadySent_DataBatchNBR, batch)
-                # 資料(批次)計數器更新
-                alreadySent_DataBatchNBR += 1
-
-                # 模擬軌跡時間
-                self.Time.time_sleep(0.36)
-                    
-                I11count+=1
-            
-            else:
-                if self.Line is True:
-                    # 紀錄feedback數據
-                    self.feedbackRecords(sysTime)
-            
-            if alreadySent_DataBatchNBR == batch:
-                """結束條件
-                外迴圈數 = 批次數
-                """
-            
-                # -------------------------------------通訊資紀錄與feedback紀錄 | 處理與存檔-----------------------------------
-                # 讀取最後一刻軌跡資料       
-                if self.Line is True:
-                    can_End = False
-                    while True:
-                        # 讀取I000變數
-                        I0 = self.Udp.ReadVar("Integer", 0)
-
-                        # 更新系統時間
-                        nowTime = self.Time.ReadNowTime()
-                        # 取得系統時間
-                        sysTime, Node = self.Time.sysTime(startTime, startNode, nowTime, sampleTime)
-                        sysTime = round(sysTime/1000, 1)
-
-                        # 紀錄feedback數據
-                        self.feedbackRecords(sysTime)
-
-                        # 判斷此筆軌跡資料的I0會停留在I0=11還是I0=2
-                        quotient, remainder = divmod(RPdata.shape[0]*RPdata.shape[1], 18)
-                        
-                        if remainder == 9 and I0 == [11]:
-                            can_End = True
-                        elif remainder == 0 and I0 == [2]:
-                            can_End = True
-                        else: 
-                            can_End = False
-                            
-                        if can_End is True:
-                            # feedback的軌跡資料
-                            # 濾除整個row為0的部分
-                            non_zero_rows_Trajectory = np.any(self.feedbackRecords_Trj != 0, axis=(1, 2))
-                            non_zero_rows_Time = np.any(self.feedbackRecords_sysTime != 0, axis=1)
-                            # 系統時間需保留初值0
-                            non_zero_rows_Time[0] = True
-
-                            self.feedbackRecords_Trj = self.feedbackRecords_Trj[non_zero_rows_Trajectory]
-                            self.feedbackRecords_sysTime = self.feedbackRecords_sysTime[non_zero_rows_Time]
-                            
-                            database_PoseMat.Save(self.feedbackRecords_Trj, "dataBase/dynamicllyPlanTEST/feedbackRecords_Trj.csv", "w")
-                            database_time.Save(self.feedbackRecords_sysTime, "dataBase/dynamicllyPlanTEST/feedbackRecords_sysTime.csv", "w")
-                            
-                            # 儲存通訊所送出的軌跡資料
-                            self.communicationRecords_Trj = self.communicationRecords_Trj.reshape(-1, 1, 6)
-                            self.communicationRecords_Speed = self.communicationRecords_Speed.reshape(-1, 1)
-                            # 濾除整個row為0的部分
-                            non_zero_rows_Trajectory = np.any(self.communicationRecords_Trj != 0, axis=(1, 2))
-                            non_zero_rows_Speed = np.any(self.communicationRecords_Speed != 0, axis=1)
-                            non_zero_rows_costTime = np.any(self.costTime != 0, axis=1)
-
-                            self.communicationRecords_Trj = self.communicationRecords_Trj[non_zero_rows_Trajectory]
-                            self.communicationRecords_Speed = self.communicationRecords_Speed[non_zero_rows_Speed]
-                            self.costTime = self.costTime[non_zero_rows_costTime]
-                            database_PoseMat.Save(self.communicationRecords_Trj, "dataBase/dynamicllyPlanTEST/communicationRecords_Trj.csv", "w")
-                            database_Velocity.Save(self.communicationRecords_Speed, "dataBase/dynamicllyPlanTEST/communicationRecords_Speed.csv", "w")
-                            database_time.Save_costTime(self.costTime, "dataBase/dynamicllyPlanTEST/costTime.csv", mode)
-                            break
                 else:
-                    self.communicationRecords_Trj = self.communicationRecords_Trj.reshape(-1, 1, 6)
-                    self.communicationRecords_Speed = self.communicationRecords_Speed.reshape(-1, 1)
-                    # 濾除整個row為0的部分
-                    non_zero_rows_Trajectory = np.any(self.communicationRecords_Trj != 0, axis=(1, 2))
-                    non_zero_rows_Speed = np.any(self.communicationRecords_Speed != 0, axis=1)
-                    non_zero_rows_costTime = np.any(self.costTime != 0, axis=1)
+                    # 模擬I0變換
+                    if I0 == [11]:
+                        I0 = [2]
+                    elif I0 == [2]:
+                        I0 = [11]
 
-                    self.communicationRecords_Trj = self.communicationRecords_Trj[non_zero_rows_Trajectory]
-                    self.communicationRecords_Speed = self.communicationRecords_Speed[non_zero_rows_Speed]
-                    self.costTime = self.costTime[non_zero_rows_costTime]
-                    mode = "w"
-                    database_PoseMat.Save(self.communicationRecords_Trj, "dataBase/dynamicllyPlanTEST/communicationRecords_Trj.csv", mode)
-                    database_Velocity.Save(self.communicationRecords_Speed, "dataBase/dynamicllyPlanTEST/communicationRecords_Speed.csv", mode)
-                    database_time.Save_costTime(self.costTime, "dataBase/dynamicllyPlanTEST/costTime.csv", mode)
+                    CanStart_communication = True
+                #----------------------------------------------資料通訊區-----------------------------------------
+                """
+                通訊
+                * 變數區間:
+                1. I02 - I10
+                2. I11 - I19
+                """
                 
-                print(f"I2批次有{I3count+1}批，I11批次有{I11count}批")
-                print(f"軌跡實驗結束，共花費 {sysTime} ms")
-                break
-            #----------------------------------------------鍵盤事件區-----------------------------------------
-            for event in pygame.event.get():
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_u:
-                        """動態修改銲接參數
-                        AC:   I21
-                        AVP : I22
-                        """
-                        AC = 50
-                        AVP = 50
-                        status = self.changeWeldingPartmeter(AC, AVP)
+                if I0 == [2] and CanStart_communication is True:
+                    b = self.Time.ReadNowTime()
 
-                    elif event.key == pygame.K_p:
-                        """
-                        獲得新速度軌跡
-                        """
-                        # 創建線程
-                        # 開始重新規劃新軌跡時，紀錄舊軌跡已經寫入的資料筆數       
-                        startPlan_alreadySent_DataBatchNBR = alreadySent_DataBatchNBR
+                    # 起始變數位置
+                    firstAddress = 11
+                    # 打包需要傳送的變數資料
+                    RPpacket, Velpacket = self.packetRPdataVeldata(RPdata, Veldata, alreadySent_DataBatchNBR)
+                    # 將打包完的資料寫入DX200
+                    Is_success = self.writeRPvarINTvar(firstAddress, RPpacket, Velpacket)
+                    # 通訊紀錄
+                    self.communicationRecords(RPdata, Veldata, alreadySent_DataBatchNBR, batch)
+                    # 資料(批次)計數器更新
+                    alreadySent_DataBatchNBR += 1
+
+                    if self.Line is False:
+                        # 模擬軌跡時間
+                        self.Time.time_sleep(0.36)
+
+                    a = self.Time.ReadNowTime()
+                    err = self.Time.TimeError(updataTrjTime, a)
+                    err_ms = err["millisecond"]
+                    print(f"更新I11-I20的軌跡資料花費時間: {err_ms}ms")
+
+                    # 紀錄軌跡更新時間
+                    updataTrjTime = self.Time.ReadNowTime()
+
+                    I11count+=1
+
+                elif I0 == [11] and CanStart_communication is True:
+                    b = self.Time.ReadNowTime()
+
+                    # 起始變數位置
+                    firstAddress = 2
+                    # 打包需要傳送的變數資料
+                    RPpacket, Velpacket = self.packetRPdataVeldata(RPdata, Veldata, alreadySent_DataBatchNBR)
+                    # 將打包完的資料寫入DX200
+                    Is_success = self.writeRPvarINTvar(firstAddress, RPpacket, Velpacket)
+                    # 通訊紀錄
+                    self.communicationRecords(RPdata, Veldata, alreadySent_DataBatchNBR, batch)
+                    # 資料(批次)計數器更新
+                    alreadySent_DataBatchNBR += 1
+
+                    if self.Line is False:
+                        # 模擬軌跡時間
+                        self.Time.time_sleep(0.36)
                         
-                        if self.Line is True:
-                            # 讀取當下位置
-                            pos_result, coordinate = self.Udp.getcoordinateMH(101)
-                            # 設定新軌跡起點
-                            NowEnd = [coordinate[0], coordinate[1], coordinate[2], coordinate[3], coordinate[4], coordinate[5]]
+                    a = self.Time.ReadNowTime()
+                    err = self.Time.TimeError(b, a)
+                    err_ms = err["millisecond"]
+                    print(f"更新I02-I10的軌跡資料花費時間: {err_ms}ms")
+
+                    # 紀錄軌跡更新時間
+                    updataTrjTime = self.Time.ReadNowTime()
+
+                    I3count+=1
+
+                else:
+                    if self.Line is True:
+                        # 更新距離上次更新軌跡時，又經過多久的時間
+                        b = self.Time.ReadNowTime()
+                        timeLeft = self.Time.TimeError(updataTrjTime, b)
+                        timeLeft_ms = timeLeft["millisecond"]
+                        print(f"距離上次更新軌跡時間經過: {timeLeft_ms} ms | 讀取feedback資料處")
+
+                        if timeLeft_ms <= 40:
+                            # 紀錄feedback數據
+                            self.feedbackRecords(sysTime)
+                            feedback_count+=1
+                            print(f"feedback寫入次數: {feedback_count}次")
+                        elif timeLeft_ms > 40 and timeLeft_ms <= 60:
+                            print("已鄰近下次需要更新軌跡的時間，略過讀取feedback數據動作。")
+                            pass
+                        
                         else:
-                            # 模擬讀取當下位置
-                            coordinate = RPdata[startPlan_alreadySent_DataBatchNBR, 0]
-                            # 設定新軌跡起點
-                            NowEnd = [coordinate[0], coordinate[1], coordinate[2], coordinate[3]/10, coordinate[4]/10, coordinate[5]/10]
-
-                        # 終點與原軌跡保持一致
-                        GoalEnd = [self.trjData[-1, 0, 0], self.trjData[-1, 0, 1], self.trjData[-1, 0, 2], self.trjData[-1, 0, 3], self.trjData[-1, 0, 4], self.trjData[-1, 0, 5]]
-                        
-                        # TODO 預計由UI寫入
-                        GoalSpeed = float(input("請輸入走速："))
-                        
-                        
-                        print(f"理想速度: {GoalSpeed} mm/s")
-                        
-                        # 執行緒
-                        planThread = GetNewTrj(target=self.PlanNewTrj, args=(NowEnd, GoalEnd, sampleTime, GoalSpeed))
-                        planThread.start()
-
-                        # 改變狀態旗標>>> 執行續已被啟動過
-                        Thread_started = True
-                        
-                        
-
-            if planThread.is_alive() is False and Thread_started is True:
-                # 軌跡已變化一次，需更新計數器值
-                trjUpdataNBR += 1
-
-                # 取出執行緒計算結果
-                b = self.Time.ReadNowTime()
-                result = planThread.get_result()
+                            pass
                 
-                NewHomogeneousMat = result[0]
-                NewPoseMatData = result[1]
-                NewSpeedData = result[2]
-                NewTimeData = result[3]
-                costTime_PlanTrj = result[4]
-
+                if alreadySent_DataBatchNBR == batch:
+                    """結束條件
+                    外迴圈數 = 批次數
+                    """
                 
-                # 存檔(新軌跡資料) 
-                mode = "w"
-                database_HomogeneousMat.Save(NewHomogeneousMat, f"dataBase/dynamicllyPlanTEST/HomogeneousMat_{trjUpdataNBR}.csv", mode)
-                database_PoseMat.Save(NewPoseMatData, f"dataBase/dynamicllyPlanTEST/PoseMat_{trjUpdataNBR}.csv", mode)
-                database_Velocity.Save(NewSpeedData, f"dataBase/dynamicllyPlanTEST/Speed_{trjUpdataNBR}.csv", mode)
-                database_time.Save(NewTimeData,f"dataBase/dynamicllyPlanTEST/Time_{trjUpdataNBR}.csv", mode)
-                
-                # 規劃完時，紀錄舊軌跡已經寫入的資料批數
-                endPlan_alreadySent_DataBatchNBR = alreadySent_DataBatchNBR
-                # 計算規劃時，時間差所產生的資料落後批數
-                dataErr = endPlan_alreadySent_DataBatchNBR-startPlan_alreadySent_DataBatchNBR
-                print("系統反應時間所消耗的資料(批次)數: ", dataErr)
+                    # -------------------------------------通訊資紀錄與feedback紀錄 | 處理與存檔-----------------------------------
+                    # 讀取最後一刻軌跡資料       
+                    if self.Line is True:
+                        can_End = False
+                        while True:
+                            # 讀取I000變數
+                            I0 = self.Udp.ReadVar("Integer", 0)
 
-                
-                
-                # -----------------------------------資料整併(軌跡)--------------------------------------------------------------
-                oldFile_PoseMat = f"dataBase/dynamicllyPlanTEST/PoseMat_{Prv_trjUpdataNBR}.csv"
-                newFile_PoseMat = f"dataBase/dynamicllyPlanTEST/PoseMat_{trjUpdataNBR}.csv"
-                RemixFile_PoseMat = f"dataBase/dynamicllyPlanTEST/Remix_PoseMat_{Prv_trjUpdataNBR}_{trjUpdataNBR}.csv"
-                data_frame1 = pd.read_csv(oldFile_PoseMat, delimiter=',', dtype=np.float64, encoding='utf-8')
-                data_frame2 = pd.read_csv(newFile_PoseMat, delimiter=',', dtype=np.float64, encoding='utf-8')
-                # 取得舊資料切換新資料時的最後一筆資料
-                # 提取舊資料
-                oldFileIndex = endPlan_alreadySent_DataBatchNBR*9
-                dfBuffer1 = data_frame1.iloc[:oldFileIndex]
-                # 找相似的資料
-                targetData = data_frame1.iloc[oldFileIndex]
-                closestData, closestIndex = dataOperating.searchSimilar(data_frame2, targetData)
-                # 要合併的新資料
-                dfBuffer2 = data_frame2.iloc[closestIndex+1:]
-                Remix_PoseMat_df = pd.concat([dfBuffer1, dfBuffer2], axis=0)
-                Remix_PoseMat_df.to_csv(RemixFile_PoseMat, index=False,  header=True)
-                Remix_PoseMat = np.array(Remix_PoseMat_df).reshape(-1, 1, 6)
-                # --------------------------------------------------------------------------------------------------------------
+                            # 更新系統時間
+                            nowTime = self.Time.ReadNowTime()
+                            # 取得系統時間
+                            sysTime, Node = self.Time.sysTime(startTime, startNode, nowTime, sampleTime)
+                            sysTime = round(sysTime/1000, 1)
 
-                # -----------------------------------資料整併(速度)--------------------------------------------------------------
-                oldFile_Speed = f"dataBase/dynamicllyPlanTEST/Speed_{Prv_trjUpdataNBR}.csv"
-                newFile_Speed = f"dataBase/dynamicllyPlanTEST/Speed_{trjUpdataNBR}.csv"
-                RemixFile_Speed = f"dataBase/dynamicllyPlanTEST/Remix_Speed_{Prv_trjUpdataNBR}_{trjUpdataNBR}.csv"
-                data_frame1 = pd.read_csv(oldFile_Speed, delimiter=',', dtype=np.float64, encoding='utf-8')
-                data_frame2 = pd.read_csv(newFile_Speed, delimiter=',', dtype=np.float64, encoding='utf-8')
+                            # 紀錄feedback數據
+                            self.feedbackRecords(sysTime)
+                            feedback_count+=1
+                            print(f"feedback寫入次數: {feedback_count}次")
 
-                # 軌跡已變化一次，將上一個軌跡檔編號也須更新
-                Prv_trjUpdataNBR += 1
+                            # 判斷此筆軌跡資料的I0會停留在I0=11還是I0=2
+                            quotient, remainder = divmod(RPdata.shape[0]*RPdata.shape[1], 18)
+                            
+                            if remainder == 9 and I0 == [11]:
+                                can_End = True
+                            elif remainder == 0 and I0 == [2]:
+                                can_End = True
+                            else: 
+                                can_End = False
+                                
+                            if can_End is True:
+                                # feedback的軌跡資料
+                                # 濾除整個row為0的部分
+                                non_zero_rows_Trajectory = np.any(self.feedbackRecords_Trj != 0, axis=(1, 2))
+                                non_zero_rows_Time = np.any(self.feedbackRecords_sysTime != 0, axis=1)
+                                # 系統時間需保留初值0
+                                non_zero_rows_Time[:2] = True
 
-                # 取得舊資料切換新資料時的最後一筆資料
-                # 提取舊資料
-                oldFileIndex = endPlan_alreadySent_DataBatchNBR*9
-                dfBuffer1 = data_frame1.iloc[:oldFileIndex]
-                # 找相似的資料
-                targetData = data_frame1.iloc[oldFileIndex]
-                # 要合併的新資料
-                dfBuffer2 = data_frame2.iloc[closestIndex+1:]
-                Remix_Speed_df = pd.concat([dfBuffer1, dfBuffer2], axis=0)
-                Remix_Speed_df.to_csv(RemixFile_Speed, index=False,  header=True)
-                Remix_Speed = np.array(Remix_Speed_df)
-                # --------------------------------------------------------------------------------------------------------------
-                # 將物件變數中的軌跡資料替換為新的軌跡資料
-                self.trjData = Remix_PoseMat
-                self.velData = Remix_Speed
-                
+                                self.feedbackRecords_Trj = self.feedbackRecords_Trj[non_zero_rows_Trajectory]
+                                self.feedbackRecords_sysTime = self.feedbackRecords_sysTime[non_zero_rows_Time]
+                                
+                                database_PoseMat.Save(self.feedbackRecords_Trj, "dataBase/dynamicllyPlanTEST/feedbackRecords_Trj.csv", "w")
+                                database_time.Save(self.feedbackRecords_sysTime, "dataBase/dynamicllyPlanTEST/feedbackRecords_sysTime.csv", "w")
+                                
+                                # 儲存通訊所送出的軌跡資料
+                                self.communicationRecords_Trj = self.communicationRecords_Trj.reshape(-1, 1, 6)
+                                self.communicationRecords_Speed = self.communicationRecords_Speed.reshape(-1, 1)
+                                # 濾除整個row為0的部分
+                                non_zero_rows_Trajectory = np.any(self.communicationRecords_Trj != 0, axis=(1, 2))
+                                non_zero_rows_Speed = np.any(self.communicationRecords_Speed != 0, axis=1)
+                                non_zero_rows_costTime = np.any(self.costTime != 0, axis=1)
 
-                # 固定流程(資料分割與初步封裝)
-                Remix_PoseMat, Remix_Speed = Motomancontrol.deleteFirstTrajectoryData(self.trjData, self.velData)
-                NewRemixBatch = self.calculateDataGroupBatch(Remix_PoseMat)
-                NewRemixRPdata, NewRemixSpeeddata = self.dataSegmentation(Remix_PoseMat, Remix_Speed, NewRemixBatch)
-                # --------------------------------------------------------------------------------------------------------------
-                
-                # 使用合併後的軌跡檔案(已分割與封裝)，覆蓋原始的軌跡資料
-                RPdata = NewRemixRPdata
-                Veldata = NewRemixSpeeddata
-                
-                # 更新資料計數器，因使用合併後的軌跡檔案，故將計數器的值加上[計算新軌跡所花費的總時間(以批次計算)]
-                # alreadySent_DataBatchNBR -= dataErr
-                """
-                經實驗證實，若系統反應時間不超過1批資料時間，即可不用特別更新[資料批次計數]之批次數
-                """
-                # 更新Batch，將總批次數更新成與合併後的軌跡檔案相符的
-                batch = NewRemixBatch
-                
-                Thread_started = False
-                print("--------------新軌跡資料已覆寫---------------")
+                                self.communicationRecords_Trj = self.communicationRecords_Trj[non_zero_rows_Trajectory]
+                                self.communicationRecords_Speed = self.communicationRecords_Speed[non_zero_rows_Speed]
+                                self.costTime = self.costTime[non_zero_rows_costTime]
+                                mode = "w"
+                                database_PoseMat.Save(self.communicationRecords_Trj, "dataBase/dynamicllyPlanTEST/communicationRecords_Trj.csv", mode)
+                                database_Velocity.Save(self.communicationRecords_Speed, "dataBase/dynamicllyPlanTEST/communicationRecords_Speed.csv", mode)
+                                database_time.Save_costTime(self.costTime, "dataBase/dynamicllyPlanTEST/costTime.csv", mode)
+                                
+                                break
+                    else:
+                        self.communicationRecords_Trj = self.communicationRecords_Trj.reshape(-1, 1, 6)
+                        self.communicationRecords_Speed = self.communicationRecords_Speed.reshape(-1, 1)
+                        # 濾除整個row為0的部分
+                        non_zero_rows_Trajectory = np.any(self.communicationRecords_Trj != 0, axis=(1, 2))
+                        non_zero_rows_Speed = np.any(self.communicationRecords_Speed != 0, axis=1)
+                        non_zero_rows_costTime = np.any(self.costTime != 0, axis=1)
 
-                a = self.Time.ReadNowTime()
-                err = self.Time.TimeError(b,a)
-                costTime_dataMerge = err["millisecond"]
-                print(f"新軌跡規劃後處理所花時長: {costTime_dataMerge} ms")
+                        self.communicationRecords_Trj = self.communicationRecords_Trj[non_zero_rows_Trajectory]
+                        self.communicationRecords_Speed = self.communicationRecords_Speed[non_zero_rows_Speed]
+                        self.costTime = self.costTime[non_zero_rows_costTime]
+                        mode = "w"
+                        database_PoseMat.Save(self.communicationRecords_Trj, "dataBase/dynamicllyPlanTEST/communicationRecords_Trj.csv", mode)
+                        database_Velocity.Save(self.communicationRecords_Speed, "dataBase/dynamicllyPlanTEST/communicationRecords_Speed.csv", mode)
+                        database_time.Save_costTime(self.costTime, "dataBase/dynamicllyPlanTEST/costTime.csv", mode)
+                    
+                    print(f"I2批次有{I3count+1}批，I11批次有{I11count}批")
+                    print(f"軌跡實驗結束，共花費 {sysTime} ms")
+                    break
+                #----------------------------------------------鍵盤事件區-----------------------------------------
+                for event in pygame.event.get():
+                    if event.type == pygame.KEYDOWN:
+                        if event.key == pygame.K_u:
+                            """動態修改銲接參數
+                            AC:   I21
+                            AVP : I22
+                            """
+                            AC = 50
+                            AVP = 50
+                            status = self.changeWeldingPartmeter(AC, AVP)
 
-                self.costTime[self.costTimeDataCounter, 0] = costTime_PlanTrj
-                self.costTime[self.costTimeDataCounter, 1] = costTime_dataMerge
+                        elif event.key == pygame.K_p:
+                            """
+                            獲得新速度軌跡
+                            """
+                            # 創建線程
+                            # 開始重新規劃新軌跡時，紀錄舊軌跡已經寫入的資料筆數       
+                            startPlan_alreadySent_DataBatchNBR = alreadySent_DataBatchNBR
+                            
+                            if self.Line is True:
+                                # 讀取當下位置
+                                pos_result, coordinate = self.Udp.getcoordinateMH(101)
+                                # 設定新軌跡起點
+                                NowEnd = [coordinate[0], coordinate[1], coordinate[2], coordinate[3], coordinate[4], coordinate[5]]
+                            else:
+                                # 模擬讀取當下位置
+                                coordinate = RPdata[startPlan_alreadySent_DataBatchNBR, 0]
+                                # 設定新軌跡起點
+                                NowEnd = [coordinate[0], coordinate[1], coordinate[2], coordinate[3]/10, coordinate[4]/10, coordinate[5]/10]
 
-                # 計算IK
-                SimThread = threading.Thread(target=self.simulation, args=(trjUpdataNBR,))
-                SimThread.start()
-            #-----------------------------------------------------------------------------------------------
-            singlelooptime2 = self.Time.ReadNowTime()
-            singleloopCosttime = self.Time.TimeError(singlelooptime1, singlelooptime2)
-            # singleloopCosttime_ms = singleloopCosttime["millisecond"]
-            # print(f"單個迴圈花費 {singleloopCosttime_ms} ms")
+                            # 終點與原軌跡保持一致
+                            GoalEnd = [self.trjData[-1, 0, 0], self.trjData[-1, 0, 1], self.trjData[-1, 0, 2], self.trjData[-1, 0, 3], self.trjData[-1, 0, 4], self.trjData[-1, 0, 5]]
+                            
+                            # TODO 預計由UI寫入
+                            GoalSpeed = float(input("請輸入走速："))
+                            
+                            
+                            print(f"理想速度: {GoalSpeed} mm/s")
+                            
+                            # 執行緒
+                            planThread = GetNewTrj(target=self.PlanNewTrj, args=(NowEnd, GoalEnd, sampleTime, GoalSpeed))
+                            planThread.start()
 
-            # 剩餘時間
-            laveTime = sampleTime*1000 - singleloopCosttime["millisecond"]
-            # self.Time.time_sleep(laveTime*0.001)
+                            # 改變狀態旗標>>> 執行續已被啟動過
+                            Thread_started = True
+                            
+                            
 
+                if planThread.is_alive() is False and Thread_started is True:
+                    # 軌跡已變化一次，需更新計數器值
+                    trjUpdataNBR += 1
 
+                    # 取出執行緒計算結果
+                    b = self.Time.ReadNowTime()
+                    result = planThread.get_result()
+                    
+                    NewHomogeneousMat = result[0]
+                    NewPoseMatData = result[1]
+                    NewSpeedData = result[2]
+                    NewTimeData = result[3]
+                    costTime_PlanTrj = result[4]
 
+                    
+                    # 存檔(新軌跡資料) 
+                    mode = "w"
+                    database_HomogeneousMat.Save(NewHomogeneousMat, f"dataBase/dynamicllyPlanTEST/HomogeneousMat_{trjUpdataNBR}.csv", mode)
+                    database_PoseMat.Save(NewPoseMatData, f"dataBase/dynamicllyPlanTEST/PoseMat_{trjUpdataNBR}.csv", mode)
+                    database_Velocity.Save(NewSpeedData, f"dataBase/dynamicllyPlanTEST/Speed_{trjUpdataNBR}.csv", mode)
+                    database_time.Save(NewTimeData,f"dataBase/dynamicllyPlanTEST/Time_{trjUpdataNBR}.csv", mode)
+                    
+                    # 規劃完時，紀錄舊軌跡已經寫入的資料批數
+                    endPlan_alreadySent_DataBatchNBR = alreadySent_DataBatchNBR
+                    # 計算規劃時，時間差所產生的資料落後批數
+                    dataErr = endPlan_alreadySent_DataBatchNBR-startPlan_alreadySent_DataBatchNBR
+                    print("系統反應時間所消耗的資料(批次)數: ", dataErr)
+
+                    
+                    
+                    # -----------------------------------資料整併(軌跡)--------------------------------------------------------------
+                    oldFile_PoseMat = f"dataBase/dynamicllyPlanTEST/PoseMat_{Prv_trjUpdataNBR}.csv"
+                    newFile_PoseMat = f"dataBase/dynamicllyPlanTEST/PoseMat_{trjUpdataNBR}.csv"
+                    RemixFile_PoseMat = f"dataBase/dynamicllyPlanTEST/Remix_PoseMat_{Prv_trjUpdataNBR}_{trjUpdataNBR}.csv"
+                    data_frame1 = pd.read_csv(oldFile_PoseMat, delimiter=',', dtype=np.float64, encoding='utf-8')
+                    data_frame2 = pd.read_csv(newFile_PoseMat, delimiter=',', dtype=np.float64, encoding='utf-8')
+                    # 取得舊資料切換新資料時的最後一筆資料
+                    # 提取舊資料
+                    oldFileIndex = endPlan_alreadySent_DataBatchNBR*9
+                    dfBuffer1 = data_frame1.iloc[:oldFileIndex]
+                    # 找相似的資料
+                    targetData = data_frame1.iloc[oldFileIndex]
+                    closestData, closestIndex = dataOperating.searchSimilar(data_frame2, targetData)
+                    # 要合併的新資料
+                    dfBuffer2 = data_frame2.iloc[closestIndex+1:]
+                    Remix_PoseMat_df = pd.concat([dfBuffer1, dfBuffer2], axis=0)
+                    Remix_PoseMat_df.to_csv(RemixFile_PoseMat, index=False,  header=True)
+                    Remix_PoseMat = np.array(Remix_PoseMat_df).reshape(-1, 1, 6)
+                    # --------------------------------------------------------------------------------------------------------------
+
+                    # -----------------------------------資料整併(速度)--------------------------------------------------------------
+                    oldFile_Speed = f"dataBase/dynamicllyPlanTEST/Speed_{Prv_trjUpdataNBR}.csv"
+                    newFile_Speed = f"dataBase/dynamicllyPlanTEST/Speed_{trjUpdataNBR}.csv"
+                    RemixFile_Speed = f"dataBase/dynamicllyPlanTEST/Remix_Speed_{Prv_trjUpdataNBR}_{trjUpdataNBR}.csv"
+                    data_frame1 = pd.read_csv(oldFile_Speed, delimiter=',', dtype=np.float64, encoding='utf-8')
+                    data_frame2 = pd.read_csv(newFile_Speed, delimiter=',', dtype=np.float64, encoding='utf-8')
+
+                    # 軌跡已變化一次，將上一個軌跡檔編號也須更新
+                    Prv_trjUpdataNBR += 1
+
+                    # 取得舊資料切換新資料時的最後一筆資料
+                    # 提取舊資料
+                    oldFileIndex = endPlan_alreadySent_DataBatchNBR*9
+                    dfBuffer1 = data_frame1.iloc[:oldFileIndex]
+                    # 找相似的資料
+                    targetData = data_frame1.iloc[oldFileIndex]
+                    # 要合併的新資料
+                    dfBuffer2 = data_frame2.iloc[closestIndex+1:]
+                    Remix_Speed_df = pd.concat([dfBuffer1, dfBuffer2], axis=0)
+                    Remix_Speed_df.to_csv(RemixFile_Speed, index=False,  header=True)
+                    Remix_Speed = np.array(Remix_Speed_df)
+                    # --------------------------------------------------------------------------------------------------------------
+                    # 將物件變數中的軌跡資料替換為新的軌跡資料
+                    self.trjData = Remix_PoseMat
+                    self.velData = Remix_Speed
+                    
+
+                    # 固定流程(資料分割與初步封裝)
+                    Remix_PoseMat, Remix_Speed = Motomancontrol.deleteFirstTrajectoryData(self.trjData, self.velData)
+                    NewRemixBatch = self.calculateDataGroupBatch(Remix_PoseMat)
+                    NewRemixRPdata, NewRemixSpeeddata = self.dataSegmentation(Remix_PoseMat, Remix_Speed, NewRemixBatch)
+                    # --------------------------------------------------------------------------------------------------------------
+                    
+                    # 使用合併後的軌跡檔案(已分割與封裝)，覆蓋原始的軌跡資料
+                    RPdata = NewRemixRPdata
+                    Veldata = NewRemixSpeeddata
+                    
+                    # 更新資料計數器，因使用合併後的軌跡檔案，故將計數器的值加上[計算新軌跡所花費的總時間(以批次計算)]
+                    # alreadySent_DataBatchNBR -= dataErr
+                    """
+                    經實驗證實，若系統反應時間不超過1批資料時間，即可不用特別更新[資料批次計數]之批次數
+                    """
+                    # 更新Batch，將總批次數更新成與合併後的軌跡檔案相符的
+                    batch = NewRemixBatch
+                    
+                    Thread_started = False
+                    print("--------------新軌跡資料已覆寫---------------")
+
+                    a = self.Time.ReadNowTime()
+                    err = self.Time.TimeError(b,a)
+                    costTime_dataMerge = err["millisecond"]
+                    print(f"新軌跡規劃後處理所花時長: {costTime_dataMerge} ms")
+
+                    self.costTime[self.costTimeDataCounter, 0] = costTime_PlanTrj
+                    self.costTime[self.costTimeDataCounter, 1] = costTime_dataMerge
+
+                    # 計算IK
+                    SimThread = threading.Thread(target=self.simulation, args=(trjUpdataNBR,))
+                    SimThread.start()
+                #-----------------------------------------------------------------------------------------------
+                singlelooptime2 = self.Time.ReadNowTime()
+                singleloopCosttime = self.Time.TimeError(singlelooptime1, singlelooptime2)
+                # singleloopCosttime_ms = singleloopCosttime["millisecond"]
+                # print(f"單個迴圈花費 {singleloopCosttime_ms} ms")
+
+                # 剩餘時間
+                laveTime = sampleTime*1000 - singleloopCosttime["millisecond"]
+                # self.Time.time_sleep(laveTime*0.001)
             
 if __name__ == "__main__":
 

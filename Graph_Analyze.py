@@ -1177,19 +1177,19 @@ if __name__ == "__main__" :
 
     # PoseMat_file = "Experimental_data/20240429/Remix_1/testRemix_PoseMat.csv"
 
-    Time_path = "Experimental_data/20240429/1/RealsysTime.csv"
-    TimeErr_path = "Experimental_data/20240429/1/RealsysTime_err.csv"
+    Time_path = "dataBase/dynamicllyPlanTEST/feedbackRecords_sysTime.csv"
+    TimeErr_path = "dataBase/dynamicllyPlanTEST/feedbackRecords_sysTime_err.csv"
     # 製作時間差的csv檔
     make_TimeErrorFile(Time_path, TimeErr_path)
 
     # 預期資料
-    Expect_PoseMat_file = "Experimental_data/20240429/Remix_1/testRemix_PoseMat.csv"
-    Expect_Time_file =    "Experimental_data/20240429/Remix_1/Remix_Time.csv"
+    Expect_PoseMat_file = "dataBase/dynamicllyPlanTEST/PoseMat_0.csv"
+    Expect_Time_file =    "dataBase/dynamicllyPlanTEST/Time_0.csv"
 
     # 實驗結果資料
-    Experimental_PoseMat_file =    "Experimental_data/20240429/Remix_1/RealTrajectory.csv"
-    Experimental_Time_file =       "Experimental_data/20240429/Remix_1/RealsysTime.csv"
-    Experimental_Time_error_file = "Experimental_data/20240429/Remix_1/RealsysTime_err.csv"
+    Experimental_PoseMat_file =    "dataBase/dynamicllyPlanTEST/feedbackRecords_Trj.csv"
+    Experimental_Time_file =       "dataBase/dynamicllyPlanTEST/feedbackRecords_sysTime.csv"
+    Experimental_Time_error_file = "dataBase/dynamicllyPlanTEST/feedbackRecords_sysTime_err.csv"
 
 
     # 計算理想軌跡之歐式距離與速度

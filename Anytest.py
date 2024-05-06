@@ -2745,15 +2745,5 @@ queue
 #     time.sleep(0.01)
             
             
-I0 = [1]
 
-while True:
-
-    if I0 == [1]:
-        I0 = [2]
-    elif I0 == [2]:
-        I0 = [1]
-    print(I0)
-
-        
 

@@ -245,6 +245,24 @@ class MotomanUDP:
         (Ans_packet, address) = self.s.recvfrom(512)
 
         return Ans_packet
+    
+    
+    
+    def _sendCmd(self, req_packet):
+        """Send Request Packet
+        """
+        # Send Request Packet
+        self.s.sendto( req_packet,                             #UDP packet
+                           (self.UDP_IP, self.UDP_PORT) )
+        
+        
+    def _rceiveAns(self):
+        """Receive reply packet.
+        """
+        (Ans_packet, address) = self.s.recvfrom(512)
+
+        return Ans_packet
+
 
     def ServoMH(self, state):
         """Servo ON/OFF
@@ -309,6 +327,9 @@ class MotomanUDP:
                     'Padding': (0, 0) }
         reqData = []
         
+        
+
+        # 原先版本
         Ans_packet = self.sendCmd( reqSubHeader, reqData)
         data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
         
@@ -343,6 +364,10 @@ class MotomanUDP:
                     'Padding': (0, 0) }
         reqData = []
         
+        
+
+
+        # 原版
         Ans_packet = self.sendCmd( reqSubHeader, reqData)
         data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
         result = self.Cvt_SignInt(data)
@@ -1399,7 +1424,7 @@ if __name__ == "__main__":
     udp = MotomanUDP()
     Time = TimeTool()
     dB = dataBase()
-    import numpy as np
+    
 
 
     # 遠端起弧測試OK
@@ -1516,6 +1541,7 @@ if __name__ == "__main__":
     # 最小值: 83.0
     # 平均值: 91.62
     # format : {'number' :[dataType, Form, Toolnumber, UserCoordinate, firstCoordinate, SecondCoordinate, ThirdCoordinate, FourthCoordinate, FifthCoordinate, SixthCoordinate]}
+    # b = Time.ReadNowTime()
     # data = {'0':[17, 4, 5, 0, 958.535, -37.777, -104.713, -165.2944, -7.1707, 17.5149],
     #         '1':[17, 4, 5, 0, 959.535, -37.777, -104.713, -165.2944, -7.1707, 17.5149],
     #         '2':[17, 4, 5, 0, 960.535, -37.777, -104.713, -165.2944, -7.1707, 17.5149],
@@ -1526,6 +1552,10 @@ if __name__ == "__main__":
     #         '7':[17, 4, 5, 0, 965.535, -37.777, -104.713, -165.2944, -7.1707, 17.5149],
     #         '8':[17, 4, 5, 0, 966.535, -37.777, -104.713, -165.2944, -7.1707, 17.5149]}
     # status = udp.multipleWriteRPVar(36, 9, data)
+    # a = Time.ReadNowTime()
+    # err = Time.TimeError(b,a)
+    # err_ms = err["millisecond"]
+    # print(f"花費時間: {err_ms}ms")
 
     # 伺服電源開啟
     # status = udp.ServoMH(1)

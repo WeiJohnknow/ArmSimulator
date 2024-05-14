@@ -327,13 +327,50 @@ class MotomanUDP:
                     'Padding': (0, 0) }
         reqData = []
         
-        
-
-        # 原先版本
         Ans_packet = self.sendCmd( reqSubHeader, reqData)
         data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
         
         
+        return data
+
+    def getSysTime(self, Type):
+        """Get DX200 system time
+        - Args:
+            1 :Control power ON time
+            10 :Servo power ON time (TOTAL)
+            11 to 18 :Servo power ON time (R1 to R8)
+            21 to 44 :Servo power ON time (S1 to S24)
+            110 :Play back time (TOTAL)
+            111 to 118 :Play back time (R1 to R8)
+            121 to 144 :Play back time (S1 to S24)
+            210 :Motion time (TOTAL)
+            211 to 218 :Motion time (R1 to R8)
+            221 to 244 :Motion time (S1 to S24)
+            301 to 308 :Operation time (application 1 to 8)
+        """
+        # TODO 待測試
+
+        if Type>255:
+            # 移除 '0x' 前綴並填充零，確保至少有兩個字元
+            Type = Type[2:].zfill(4)
+
+            # 將十六進位表示法分為高位元和低位元
+            high_byte = int(Type[:2], 16)
+            low_byte = int(Type[2:], 16)
+        else:
+            high_byte = 0
+            low_byte = Type
+
+        reqSubHeader= { 'Command_No': (0x88, 0x00),
+                    'Instance': [low_byte, high_byte],
+                    'Attribute': 0,
+                    'Service':  0x01,
+                    'Padding': (0, 0) }
+        reqData = []
+
+        Ans_packet = self.sendCmd( reqSubHeader, reqData)
+        data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
+           
         return data
     
     def getcoordinateMH(self, Type:int):
@@ -351,7 +388,7 @@ class MotomanUDP:
                 - Type = 1   ➔[S degree, L degree, U degree, R degree, B degree, T degree]
                 - Type = 101 ➔[x, y, z, Rx, Ry, Rz]
         """
-        # TODO 新增讀取pulse功能，但尚未測試
+        
         """
         - Instance: R1
             - Read Pulse data: 1
@@ -363,11 +400,8 @@ class MotomanUDP:
                     'Service':  0x0E,
                     'Padding': (0, 0) }
         reqData = []
+    
         
-        
-
-
-        # 原版
         Ans_packet = self.sendCmd( reqSubHeader, reqData)
         data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
         result = self.Cvt_SignInt(data)

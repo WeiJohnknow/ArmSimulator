@@ -133,6 +133,16 @@ class database_time(Database_interface):
         dataTypeConverter.ndarrayTOdataframe(costTime, ["Trj_Algorithm", "Data_merge", "IK_Iterate"], filePath, mode)
 
     @ staticmethod
+    def Save_I0AndPrvUpdataTimeAndSysTime(I0AndPrvUpdataTimeAndSysTime, filePath, mode:str):
+        """
+        """
+        dataTypeConverter.ndarrayTOdataframe(I0AndPrvUpdataTimeAndSysTime, ["I0", "PrvUpdataTime", "SysTime", "WriteTrjSysTime", "WriteTrjCostTime", "WriteInterval"], filePath, mode)
+    
+    @ staticmethod
+    def Save_PoseMat_Time(PoseMatAndTime, filePath, mode:str):
+        dataTypeConverter.ndarrayTOdataframe(PoseMatAndTime, ['X', 'Y', 'Z', 'Rx', 'Ry', 'Rz', "Time"], filePath, mode)
+
+    @ staticmethod
     def Load(filePath):
         df = validator.Is_existence(filePath)
         Time_ndarry = dataTypeConverter.TimedataframeToNdarray(df)

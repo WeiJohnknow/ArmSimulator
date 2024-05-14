@@ -16,7 +16,7 @@ class Generator:
 
     @classmethod
     def generateTrajectory(cls, NowPoseMat, GoalPoseMat, sampleTime, GoalSpeed):
-        """
+        """矩陣軌跡法 | 速度版本
         - Args:
             1. NowPoseMat
             2. GoalPoseMat
@@ -44,6 +44,35 @@ class Generator:
         PoseMatData = database_PoseMat.HomogeneousMatToPoseMat(HomogeneousMatData)
         
         return HomogeneousMatData, PoseMatData, VelocityData, TimeData
+    
+    @classmethod
+    def generateTrajectory_totalTime(cls, NowPoseMat, GoalPoseMat, sampleTime, totalTime):
+        """矩陣軌跡法 | 時間版本
+        - Args:
+            1. NowPoseMat
+            2. GoalPoseMat
+            3. sampleTime(s)
+            4. GoalSpeed : (unit: mm/s)
+        - Return:
+            1. HomogeneousMatData(3D array)
+            2. PoseMatData
+            3. VelocityData
+            4. TimeData
+        """
+        d2r = np.deg2rad
+        NowEnd = np.eye(4)
+        GoalEnd = np.eye(4)
+        
+        NowEnd = NowEnd @ cls.Mat.TransXYZ(NowPoseMat[0], NowPoseMat[1], NowPoseMat[2]) @ cls.Mat.RotaXYZ(d2r(NowPoseMat[3]), d2r(NowPoseMat[4]), d2r(NowPoseMat[5])) 
+        GoalEnd = GoalEnd @ cls.Mat.TransXYZ(GoalPoseMat[0], GoalPoseMat[1], GoalPoseMat[2]) @ cls.Mat.RotaXYZ(d2r(GoalPoseMat[3]), d2r(GoalPoseMat[4]), d2r(GoalPoseMat[5]))
+        
+        # 矩陣軌跡法(總時間版)
+        HomogeneousMatData, SpeedData, TimeData = cls.TrjPlan.MatrixPathPlanning(GoalEnd, NowEnd, totalTime, sampleTime)
+        
+        # HomogeneousMat to PoseMat
+        PoseMatData = database_PoseMat.HomogeneousMatToPoseMat(HomogeneousMatData)
+        
+        return HomogeneousMatData, PoseMatData, SpeedData, TimeData
 
     @classmethod
     def generateTrajectoryJointAngle(cls, nowJointAngle, HomogeneousMatData):
@@ -83,15 +112,19 @@ if __name__ == "__main__":
         2. 計算IK
         3. 模擬
         """
+        # 歐式距離: 18mm
         NowEnd = [958.521, -37.126, -164.943, -165.2876, -7.1723, 17.5191]
-        # NowEnd = [958.521, -27.534, -164.943, -165.2876, -7.1723, 17.5191]
         GoalEnd = [958.525, -18.527, -164.933, -165.2873, -7.1725, 17.5181]
-        # GoalEnd = [958.525, 112.874, -164.933, -165.2873, -7.1725, 17.5181]
+        # 歐式距離: 150mm
+        # NowEnd = [958.521, -109.209, -158.398, -164.6564, -7.5189, 18.1239]
+        # GoalEnd = [958.525, 41.670, -158.417, -164.6548, -7.5165, 18.1217]
+        
         Goalspeed = 2
         sampleTime = 0.04
         
         b = Time.ReadNowTime()
-        HomogeneousMatData, PoseMatData, VelocityData, TimeData = Generator.generateTrajectory(NowEnd, GoalEnd, sampleTime, Goalspeed)
+        # HomogeneousMatData, PoseMatData, VelocityData, TimeData = Generator.generateTrajectory(NowEnd, GoalEnd, sampleTime, Goalspeed)
+        HomogeneousMatData, PoseMatData, VelocityData, TimeData = Generator.generateTrajectory_totalTime(NowEnd, GoalEnd, sampleTime, 8.8)
         a = Time.ReadNowTime()
         calerr = Time.TimeError(b, a)
         print("計算新軌跡總共花費: ", calerr["millisecond"], "ms")
@@ -105,11 +138,17 @@ if __name__ == "__main__":
         PoseMat_file = filename_header + f"PoseMat_{number}.csv"
         Speed_file = filename_header + f"Speed_{number}.csv"
         Time_file = filename_header + f"Time_{number}.csv"
+        PoseMatAndTime_file = filename_header + f"PoseMatAndTime_{number}.csv"
+
+        
 
         database_HomogeneousMat.Save(HomogeneousMatData, HomogeneousMat_file, mode)
         database_PoseMat.Save(PoseMatData, PoseMat_file, mode)
         database_Velocity.Save(VelocityData, Speed_file, mode)
         database_time.Save(TimeData, Time_file, mode)
+        TimeData = TimeData.reshape(-1, 1, 1)
+        PoseMatAndTime = np.concatenate((PoseMatData, TimeData), axis=2)
+        database_time.Save_PoseMat_Time(PoseMatAndTime, PoseMatAndTime_file, mode)
         
         nowJointAngle = (np.zeros((6,1)))
         nowJointAngle[0, 0] =  d2r(-0.006)

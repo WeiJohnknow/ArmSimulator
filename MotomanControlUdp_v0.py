@@ -1047,8 +1047,13 @@ MatrixPlan+434 軌跡實驗(上機)
 #     # cv2.destroyAllWindows()
     
 """
-動態軌跡規劃與通訊實驗(模擬實驗架構)
-20240503
+- 版本: 0.0
+- 名稱: 動態軌跡規劃與通訊架構(模擬實驗架構)
+- 最後使用日期: 20240512
+- 問題: 送軌跡之通訊會導致軌跡延遲問題，平均通訊一組，延遲60ms。
+- 解決方案:
+    1.減少送出的軌跡點數量
+    2.配合DX200之系統時間進行補償
 """
 import pygame
 import threading
@@ -1061,6 +1066,7 @@ from armControl import Generator
 from SimulatorV2 import Simulator
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import QTimer, QThread
+from communctionThread import *
 
 
 class GetNewTrj(threading.Thread):
@@ -1080,7 +1086,7 @@ class Motomancontrol():
         Online(含通訊之測試) >> True  要記得解開self.Udp的相關註解
         Offline(純邏輯測試) >> False
         """
-        self.Line = False
+        self.Line = True
         self.Udp = MotomanUDP()
         
         self.Kin = Kinematics()
@@ -1138,6 +1144,15 @@ class Motomancontrol():
         """
         self.costTime = np.zeros((100, 3))
         self.costTimeDataCounter = 0
+
+        # I0驗證系統
+        """
+        I0、PrvUpdataTime、SysTime :[I0, PrvUpdataTime, SysTime]
+        """
+        self.I0AndPrvUpdataTimeAndSysTime = np.zeros((50000, 6))
+        self.I0AndPrvUpdataTimeAndSysTimeCounter = 0
+        
+        self.WriteSpeedBypass = 0
 
         
     @staticmethod
@@ -1293,7 +1308,13 @@ class Motomancontrol():
         
         if self.Line is True:
             RPstatus = self.Udp.multipleWriteRPVar(firstAddress, 9, RPpacket)
-            Istatus = self.Udp.multipleWriteVar(firstAddress, 9, Velpacket)
+            if self.WriteSpeedBypass >= 2:
+                Istatus = []
+                pass
+            else:
+                Istatus = self.Udp.multipleWriteVar(firstAddress, 9, Velpacket)
+                self.WriteSpeedBypass += 1
+            
         else:
             # 靜態測試的模擬訊號
             RPstatus = []
@@ -1386,8 +1407,7 @@ class Motomancontrol():
         # 變軌跡次數
         trjUpdataNBR = 0
         Prv_trjUpdataNBR = 0
-        # 最後一筆資料覆寫
-        CanStart_communication = False
+        
 
         # 計算資料分割的組數與批數
         batch = self.calculateDataGroupBatch(self.trjData)
@@ -1423,6 +1443,13 @@ class Motomancontrol():
         # 更新位置變數時的時間點
         updataTrjTime = self.Time.ReadNowTime()
 
+        # 時間限制
+        timeLimit = 100
+
+        # 互鎖
+        I2Lock = False
+        I11Lock = False
+
         # 主迴圈旗標 | 開關
         mainLoop = False
         while True:
@@ -1455,16 +1482,31 @@ class Motomancontrol():
                     # 取得I0初值
                     # I0 = self.Udp.ReadVar("Integer", 0)
                     I0 = [2]
+                    # 起始變數位置
+                    firstAddress = 11
+                    # 打包需要傳送的變數資料
+                    RPpacket, Velpacket = self.packetRPdataVeldata(RPdata, Veldata, alreadySent_DataBatchNBR)
+                    # 將打包完的資料寫入DX200
+                    Is_success = self.writeRPvarINTvar(firstAddress, RPpacket, Velpacket)
+                    # 通訊紀錄
+                    self.communicationRecords(RPdata, Veldata, alreadySent_DataBatchNBR, batch)
+                    # 資料(批次)計數器更新
+                    alreadySent_DataBatchNBR += 1
+
+                    I11count+=1
+                    
+                    
 
                     # 紀錄feedback數據 | 紀錄初始位置與系統時間
                     self.feedbackRecords(0)
                 else:
-                    I0 = [2]
+                    I0 = [3]
 
                 sysflag = False
             
             else:
                 # 更新系統時間
+                
                 sysTime, Node = self.Time.sysTime(startTime, startNode, nowTime, sampleTime)
                 sysTime = round(sysTime/1000, 1)
                 
@@ -1477,30 +1519,59 @@ class Motomancontrol():
                     print(f"距離上次更新軌跡時間經過: {timeLeft_ms} ms | 讀取I0處")
 
                     
-                    if timeLeft_ms <= 40:
-                        I0 = self.Udp.ReadVar("Integer", 0)
-                        print(f"I000 : {I0}")
+                    I2Lock = True
+                    I11Lock = True
 
-                    elif timeLeft_ms > 40 and timeLeft_ms <= 60:
-                        print("已鄰近下次需要更新軌跡的時間，強制將I000變更為2或11。")
-                        if I0 >= [2] and I0 <= [10]:
-                            I0 = [11]
-                        elif I0 >= [11] and I0 <= [19]:
-                            I0 = [2]
-
+                    Prv_I0 = I0
+                    I0 = self.Udp.ReadVar("Integer", 0)
+                    # 將I0、PrvUpdataTime、SysTimer記錄下來
+                    self.I0AndPrvUpdataTimeAndSysTime[self.I0AndPrvUpdataTimeAndSysTimeCounter, 0] = I0[0]
+                    self.I0AndPrvUpdataTimeAndSysTime[self.I0AndPrvUpdataTimeAndSysTimeCounter, 1] = timeLeft_ms
+                    self.I0AndPrvUpdataTimeAndSysTime[self.I0AndPrvUpdataTimeAndSysTimeCounter, 2] = sysTime
+                    
+                    print(f"I000 : {I0}")
+                    """
+                    防止重複
+                    """
+                    if Prv_I0 != I0 and I0 >= [2] and I0 <= [10]:
+                        I2Lock = True
+                        # print(f"I0: {I0}，允許寫入I11-I19")
+                    elif Prv_I0 != I0 and I0 >= [11] and I0 <= [19]:
+                        I11Lock = True
+                        # print(f"I0: {I0}，允許寫入I02-I10")
                     else:
                         pass
+                    print(f"上次的I0與本次I0相同，不允許寫入。")
 
-                    CanStart_communication = True
+                    """
+                    計算更新時間
+                    """
+                    # if timeLeft_ms <= timeLimit:
+                    #     I0 = self.Udp.ReadVar("Integer", 0)
+                    #     print(f"I000 : {I0}")
+
+                    # elif timeLeft_ms > timeLimit :
+                        
+                    #     if I0 >= [2] and I0 <= [10]:
+                    #         I0 = [11]
+                    #         print("已鄰近下次需要更新軌跡的時間，強制將I000變更為11。")
+                    #     elif I0 >= [11] and I0 <= [19]:
+                    #         I0 = [2]
+                    #         print("已鄰近下次需要更新軌跡的時間，強制將I000變更為2。")
+
+                    # else:
+                    #     pass
+
+                    
 
                 else:
                     # 模擬I0變換
                     if I0 == [11]:
-                        I0 = [2]
-                    elif I0 == [2]:
+                        I0 = [3]
+                    elif I0 == [3]:
                         I0 = [11]
 
-                    CanStart_communication = True
+                    
                 #----------------------------------------------資料通訊區-----------------------------------------
                 """
                 通訊
@@ -1509,8 +1580,10 @@ class Motomancontrol():
                 2. I11 - I19
                 """
                 
-                if I0 == [2] and CanStart_communication is True:
-                    b = self.Time.ReadNowTime()
+                if I0 == [2] and I2Lock is True:
+                    self.I0AndPrvUpdataTimeAndSysTime[self.I0AndPrvUpdataTimeAndSysTimeCounter, 3] = sysTime
+                    
+                    I2_b = self.Time.ReadNowTime()
 
                     # 起始變數位置
                     firstAddress = 11
@@ -1527,18 +1600,26 @@ class Motomancontrol():
                         # 模擬軌跡時間
                         self.Time.time_sleep(0.36)
 
-                    a = self.Time.ReadNowTime()
-                    err = self.Time.TimeError(updataTrjTime, a)
-                    err_ms = err["millisecond"]
-                    print(f"更新I11-I20的軌跡資料花費時間: {err_ms}ms")
+                    I2_a = self.Time.ReadNowTime()
+                    I2err = self.Time.TimeError(I2_b, I2_a)
+                    I2err_ms = I2err["millisecond"]
+                    print(f"更新I11-I20的軌跡資料花費時間: {I2err_ms}ms")
+
+                    # 紀錄送軌跡所花費的時間與變數區間
+                    self.I0AndPrvUpdataTimeAndSysTime[self.I0AndPrvUpdataTimeAndSysTimeCounter, 4] = I2err_ms
+                    self.I0AndPrvUpdataTimeAndSysTime[self.I0AndPrvUpdataTimeAndSysTimeCounter, 5] = 2
+                    self.I0AndPrvUpdataTimeAndSysTimeCounter += 1
 
                     # 紀錄軌跡更新時間
                     updataTrjTime = self.Time.ReadNowTime()
 
                     I11count+=1
+                    I2Lock = False
+                    
 
-                elif I0 == [11] and CanStart_communication is True:
-                    b = self.Time.ReadNowTime()
+                elif I0 == [11] and I11Lock is True:
+                    self.I0AndPrvUpdataTimeAndSysTime[self.I0AndPrvUpdataTimeAndSysTimeCounter, 3] = sysTime
+                    I11_b = self.Time.ReadNowTime()
 
                     # 起始變數位置
                     firstAddress = 2
@@ -1555,35 +1636,46 @@ class Motomancontrol():
                         # 模擬軌跡時間
                         self.Time.time_sleep(0.36)
                         
-                    a = self.Time.ReadNowTime()
-                    err = self.Time.TimeError(b, a)
-                    err_ms = err["millisecond"]
-                    print(f"更新I02-I10的軌跡資料花費時間: {err_ms}ms")
+                    I11_a = self.Time.ReadNowTime()
+                    I11_err = self.Time.TimeError(I11_b, I11_a)
+                    I11_err_ms = I11_err["millisecond"]
+                    print(f"更新I02-I10的軌跡資料花費時間: {I11_err_ms}ms")
+
+                    # 紀錄送軌跡所花費的時間與變數區間
+                    self.I0AndPrvUpdataTimeAndSysTime[self.I0AndPrvUpdataTimeAndSysTimeCounter, 4] = I11_err_ms
+                    self.I0AndPrvUpdataTimeAndSysTime[self.I0AndPrvUpdataTimeAndSysTimeCounter, 5] = 1
+                    self.I0AndPrvUpdataTimeAndSysTimeCounter += 1
 
                     # 紀錄軌跡更新時間
                     updataTrjTime = self.Time.ReadNowTime()
 
                     I3count+=1
+                    I11Lock = False
 
                 else:
-                    if self.Line is True:
-                        # 更新距離上次更新軌跡時，又經過多久的時間
-                        b = self.Time.ReadNowTime()
-                        timeLeft = self.Time.TimeError(updataTrjTime, b)
-                        timeLeft_ms = timeLeft["millisecond"]
-                        print(f"距離上次更新軌跡時間經過: {timeLeft_ms} ms | 讀取feedback資料處")
+                    self.I0AndPrvUpdataTimeAndSysTimeCounter += 1
+                    # if self.Line is True:
+                    #     # 更新距離上次更新軌跡時，又經過多久的時間
+                    #     b = self.Time.ReadNowTime()
+                    #     timeLeft = self.Time.TimeError(updataTrjTime, b)
+                    #     timeLeft_ms = timeLeft["millisecond"]
+                    #     print(f"距離上次更新軌跡時間經過: {timeLeft_ms} ms | 讀取feedback資料處")
+                    #     # 紀錄feedback數據
+                    #     self.feedbackRecords(sysTime)
+                    #     feedback_count+=1
 
-                        if timeLeft_ms <= 40:
-                            # 紀錄feedback數據
-                            self.feedbackRecords(sysTime)
-                            feedback_count+=1
-                            print(f"feedback寫入次數: {feedback_count}次")
-                        elif timeLeft_ms > 40 and timeLeft_ms <= 60:
-                            print("已鄰近下次需要更新軌跡的時間，略過讀取feedback數據動作。")
-                            pass
+                    #     if timeLeft_ms <= timeLimit:
+                    #         # 紀錄feedback數據
+                    #         self.feedbackRecords(sysTime)
+                    #         feedback_count+=1
+                    #         print(f"feedback寫入次數: {feedback_count}次")
+                    #     elif timeLeft_ms > timeLimit :
+                    #         print("已鄰近下次需要更新軌跡的時間，略過讀取feedback數據動作。")
+                    #         pass
                         
-                        else:
-                            pass
+                    #     else:
+                    #         pass
+                   
                 
                 if alreadySent_DataBatchNBR == batch:
                     """結束條件
@@ -1649,6 +1741,10 @@ class Motomancontrol():
                                 database_Velocity.Save(self.communicationRecords_Speed, "dataBase/dynamicllyPlanTEST/communicationRecords_Speed.csv", mode)
                                 database_time.Save_costTime(self.costTime, "dataBase/dynamicllyPlanTEST/costTime.csv", mode)
                                 
+                                # 儲存 I0、PrvUdpataTime、SysTime紀錄(Debug)
+                                non_zero_rows_I0AndPrvUpdataTimeAndSysTime = np.any(self.I0AndPrvUpdataTimeAndSysTime != 0, axis=1)
+                                self.I0AndPrvUpdataTimeAndSysTime = self.I0AndPrvUpdataTimeAndSysTime[non_zero_rows_I0AndPrvUpdataTimeAndSysTime]
+                                database_time.Save_I0AndPrvUpdataTimeAndSysTime(self.I0AndPrvUpdataTimeAndSysTime, "dataBase/dynamicllyPlanTEST/I0AndPrvUpdataTimeAndSysTime.csv", mode)
                                 break
                     else:
                         self.communicationRecords_Trj = self.communicationRecords_Trj.reshape(-1, 1, 6)

@@ -2745,5 +2745,114 @@ queue
 #     time.sleep(0.01)
             
             
+"""
+傅立葉變換
+"""
+
+# import numpy as np
+# import matplotlib.pyplot as plt
+# from scipy.fft import fft
+# import pandas as pd
+
+# df = pd.read_excel('WeldingData/weld_and_tungsten_data.xlsx', sheet_name="Original Weld Widths")
+# df = np.array(df)[:, 1]
+# # 定義信號參數
+# totalTime = 87
+# dataNBR = 2575
+# fs = totalTime/dataNBR # 取樣頻率(秒/次)
+# T = 1 / fs  # 取樣間隔
+# t = np.arange(0, 87, fs)  # 時間軸
+# t = t[1:]
+
+# # 取梯度
+# gradient_df = np.gradient(df)
+
+# # 取平均值、標準差
+# gradient_mean = np.mean(gradient_df)
+# gradient_std = np.std(gradient_df)
+
+# mean = np.mean(df)
+# std = np.std(df)
+
+# # # 使用一倍標準差過濾梯度
+# # gradient_df[gradient_df > mean + std] = mean + std
+# # gradient_df[gradient_df < -mean - std] = -mean - std
+# threshold = 0.2
 
 
+# indices_positive = np.where(np.abs(gradient_df) > threshold)[0]
+
+
+# # 滤除梯度大于1的数据
+# filtered_df = np.delete(df, indices_positive+1)
+# filtered_t = np.delete(t, indices_positive+1)
+
+
+# # 原始
+# plt.subplot(3, 1, 1)
+# plt.plot(t, df, marker="o")
+# plt.xlabel('Time [s]')
+# plt.ylabel('Weld bead width [mm]')
+# plt.title('Original Data (Time Domain)')
+
+# plt.subplot(3, 1, 2)
+# plt.plot(filtered_t, filtered_df)
+# plt.xlabel('Time [s]')
+# plt.ylabel('Weld bead width [mm]')
+# plt.title('filtered Data (Time Domain)')
+
+# plt.subplot(3, 1, 3)
+# plt.plot(t, gradient_df)
+# plt.xlabel('Time [s]')
+# plt.ylabel('Weld bead width [mm]')
+# plt.title('gradient Data (Time Domain)')
+# plt.tight_layout()
+
+# # 執行傅立葉變換
+# X = fft(df)
+
+# # 計算頻率軸
+# N = len(t)
+# freqs = np.fft.fftfreq(N, T)
+
+# # 繪製原始信號和頻域表示
+# plt.figure(figsize=(10, 6))
+
+# # 原始信號
+# plt.subplot(2, 1, 1)
+# plt.plot(t, df, marker="o")
+# plt.xlabel('Time [s]')
+# plt.ylabel('Amplitude')
+# plt.title('Original Signal (Time Domain)')
+
+# # 頻域表示
+# plt.subplot(2, 1, 2)
+# plt.plot(freqs, np.abs(X), marker="o")
+# plt.xlabel('Frequency [Hz]')
+# plt.ylabel('Magnitude')
+# plt.title('Frequency Domain Representation')
+# plt.tight_layout()
+# plt.show()
+
+
+import numpy as np
+
+# 创建示例矩阵
+matrix1 = np.zeros((223, 1, 6))
+matrix2 = np.ones((223, 1, 1))
+
+# 将两个矩阵按行融合
+result = np.concatenate((matrix1, matrix2), axis=2)
+
+print("行逐行融合后的矩阵：\n", result)
+
+import numpy as np
+
+# 定义两个示例数组
+array1 = np.array([[958.425, -18.627, -164.833, -1652.876, -71.723, 175.191]])
+array2 = np.array([[958.525, -18.527, -164.933, -1652.876, -71.723, 175.191]])
+
+# 计算两个数组之间的欧式距离
+euclidean_distance = np.linalg.norm(array1 - array2)
+
+print("数组之间的欧式距离：", euclidean_distance)

@@ -12,7 +12,7 @@ from dataBase_v0 import dataBase
 from sklearn.linear_model import LinearRegression
 from scipy.stats import norm
 from dataBase_v1 import *
-
+from scipy.interpolate import interp1d
 
 
 """
@@ -353,7 +353,7 @@ def Analysis_ExperimentalAndExpect(Experimental_EucDis, Experimental_Speed, Expe
 
     # 添加图例和标签
     plt.legend()
-    plt.xlabel("time(s)")
+    plt.xlabel("time(ms)")
     plt.ylabel("Euclidean distance(mm) and speed(mm/s)")
     plt.title("Euclidean distance and speed")
 
@@ -1140,7 +1140,44 @@ def make_TimeErrorFile(Time_filePath, SaveCsv_filePath):
     
     database_time.Save(TimeErr, SaveCsv_filePath, "w")
 
+def I000_SysTime_chart():
+    data = pd.read_csv("Experimental_data/20240507/3/I0AndPrvUpdataTimeAndSysTime.csv")
+    
+    I0 = np.array(data["I0"])
+    SysTime = np.array(data["SysTime"])
 
+    indices = np.where((I0 == 2) | (I0 == 11))[0]
+
+    # 设置全局字体大小
+    plt.rcParams.update({'font.size': 20})
+
+    for i, index in enumerate(indices):
+        x_value = SysTime[index]
+        plt.axvline(x=x_value, color='orange', linestyle='--')
+        # 交替设置标签位置
+        if i % 2 == 0:
+            plt.text(x_value, plt.ylim()[1], f'{x_value}', verticalalignment='bottom', horizontalalignment='center', color='red', fontsize=15)
+        else:
+            plt.text(x_value, plt.ylim()[0], f'{x_value}', verticalalignment='center', horizontalalignment='center', color='red', fontsize=15)
+
+    # 期望曲線 
+    # plt.plot(SysTime, I0, color='red', label='Euclidean distance(Expected)', marker="o")
+    plt.plot(SysTime, I0, marker="o")
+
+    
+   
+
+    # 添加图例和标签
+    plt.legend()
+    plt.xlabel("Sys time(ms)")
+    plt.ylabel("Variable I000")
+    plt.title("Communication sequence diagram")
+
+    # 显示图形
+    plt.show()
+    
+
+  
 
 
 
@@ -1177,19 +1214,25 @@ if __name__ == "__main__" :
 
     # PoseMat_file = "Experimental_data/20240429/Remix_1/testRemix_PoseMat.csv"
 
-    Time_path = "dataBase/dynamicllyPlanTEST/feedbackRecords_sysTime.csv"
-    TimeErr_path = "dataBase/dynamicllyPlanTEST/feedbackRecords_sysTime_err.csv"
+    """
+    製作通訊時序表
+    """
+    # I000_SysTime_chart()
+
+
+    Time_path = "Experimental_data/20240507/3/feedbackRecords_sysTime.csv"
+    TimeErr_path = "Experimental_data/20240507/3/feedbackRecords_sysTime_err.csv"
     # 製作時間差的csv檔
     make_TimeErrorFile(Time_path, TimeErr_path)
 
     # 預期資料
-    Expect_PoseMat_file = "dataBase/dynamicllyPlanTEST/PoseMat_0.csv"
-    Expect_Time_file =    "dataBase/dynamicllyPlanTEST/Time_0.csv"
+    Expect_PoseMat_file = "Experimental_data/20240507/3/PoseMat_0.csv"
+    Expect_Time_file =    "Experimental_data/20240507/3/Time_0.csv"
 
     # 實驗結果資料
-    Experimental_PoseMat_file =    "dataBase/dynamicllyPlanTEST/feedbackRecords_Trj.csv"
-    Experimental_Time_file =       "dataBase/dynamicllyPlanTEST/feedbackRecords_sysTime.csv"
-    Experimental_Time_error_file = "dataBase/dynamicllyPlanTEST/feedbackRecords_sysTime_err.csv"
+    Experimental_PoseMat_file =    "Experimental_data/20240507/3/feedbackRecords_Trj.csv"
+    Experimental_Time_file =       "Experimental_data/20240507/3/feedbackRecords_sysTime.csv"
+    Experimental_Time_error_file = "Experimental_data/20240507/3/feedbackRecords_sysTime_err.csv"
 
 
     # 計算理想軌跡之歐式距離與速度

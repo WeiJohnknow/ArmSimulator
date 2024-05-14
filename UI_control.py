@@ -4,7 +4,7 @@ from PyQt5.QtCore import QTimer
 import sys
 from UI_model import MyModel
 from UI_view import MyView
-from MotomanControlUdp import *
+from MotomanControlUdp_v0 import *
 
 class MyController:
     def __init__(self, model, view, Motoman):

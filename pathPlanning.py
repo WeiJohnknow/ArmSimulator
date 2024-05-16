@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from dataBase_v0 import dataBase
 from Matrix import Matrix4x4
 from Kinematics import Kinematics
-# from Simulator_v2 import Simulator
+from scipy.interpolate import CubicSpline
 
 class PathPlanning:
     def __init__(self):
@@ -526,7 +526,38 @@ class PathPlanning:
 
         return AccList, VelList, SList, TimeList
     
-    
+    @staticmethod
+    def cubicSpline(startPoint, endPoint, numberOfSamplePoint=40):
+        """
+        Args:
+            startPoint: [x, y, z], type:ndarray.
+            endPoint: [x, y, z], type:ndarray.
+        Return:
+            x: X axis point, type:ndarray.
+            y: Y axis point, type:ndarray.
+            z: Z axis point, type:ndarray.
+            Control Point:[x, y, z], shape:2D, type:ndarray.
+        """ 
+        # 設置控制點
+        x = [startPoint[0], (endPoint[0]-startPoint[0])*0.88, endPoint[0]]
+        y = [startPoint[1], (endPoint[1]-startPoint[1])*0.12, endPoint[1]]
+        z = [startPoint[2], (endPoint[2]-startPoint[2])/2   , endPoint[2]]
+        controlPoint = np.array([x, y, z])
+
+        # 使用樣條插值函數
+        t = [0, 1, 2]  # 參數t的範圍
+        cs_x = CubicSpline(t, x, bc_type='natural')
+        cs_y = CubicSpline(t, y, bc_type='natural')
+        cs_z = CubicSpline(t, z, bc_type='natural')
+
+        # 生成樣條曲線上的點
+        t_new = np.linspace(0, 2, numberOfSamplePoint)  # 新的參數範圍
+        x = cs_x(t_new)
+        y = cs_y(t_new)
+        z = cs_z(t_new)
+        
+        return x, y, z, controlPoint
+
     @staticmethod
     def MatrixPathPlanning(GoalEnd, NowEnd, allTime, sampleTime = 0.04, startTime=0):
         """Homogeneous matrix interpolation method, it's a Cartesian space trajectory planning method.
@@ -977,27 +1008,27 @@ class PathPlanning:
         """
         4-3-4 Trajectory Planning Test
         """
-        rate = 0.25
-        alltime = 6
-        t1, t2, t3 = alltime/3, alltime/3, alltime/3
-        # t1, t2, t3 = 0.6, 4.8, 0.6
-        Pinit, Vinit, Ainit, Vfinal, Afinal = 0, 0, 0, 0, 0
-        Pfinal = 1
-        Plift_off = Pfinal*rate
-        Pset_down = Pfinal*(1-rate)
-        sampleTime = 0.04
+        # rate = 0.25
+        # alltime = 6
+        # t1, t2, t3 = alltime/3, alltime/3, alltime/3
+        # # t1, t2, t3 = 0.6, 4.8, 0.6
+        # Pinit, Vinit, Ainit, Vfinal, Afinal = 0, 0, 0, 0, 0
+        # Pfinal = 1
+        # Plift_off = Pfinal*rate
+        # Pset_down = Pfinal*(1-rate)
+        # sampleTime = 0.04
         
-        TimeData, PosData , VelData, AccData = self.TrajectoryPlanning_434\
-            (Pinit, Plift_off, Pset_down, Pfinal, t1, t2, t3, sampleTime)
+        # TimeData, PosData , VelData, AccData = self.TrajectoryPlanning_434\
+        #     (Pinit, Plift_off, Pset_down, Pfinal, t1, t2, t3, sampleTime)
 
-        plt.plot(TimeData, AccData, label='Acc')
-        plt.plot(TimeData, VelData, label='Vel')
-        plt.plot(TimeData, PosData, label='S')
-        plt.title('4-3-4 motion planning')
-        plt.xlabel('time')
-        plt.ylabel('Unit')
-        # plt.tight_layout()
-        plt.show()
+        # plt.plot(TimeData, AccData, label='Acc')
+        # plt.plot(TimeData, VelData, label='Vel')
+        # plt.plot(TimeData, PosData, label='S')
+        # plt.title('4-3-4 motion planning')
+        # plt.xlabel('time')
+        # plt.ylabel('Unit')
+        # # plt.tight_layout()
+        # plt.show()
 
         """
         MatrixPathPlanning
@@ -1052,6 +1083,15 @@ class PathPlanning:
         # plt.ylabel('Unit')
         # # plt.tight_layout()
         # plt.show()
+
+        """
+        Spline
+        """
+        startPoint = np.array([0, 0, 0])
+        endPoint   = np.array([7, 7, 0])
+        samplePoint = 40
+        x , y, z, controlPoint = PathPlanning.cubicSpline(startPoint, endPoint, samplePoint)
+
 
 
         

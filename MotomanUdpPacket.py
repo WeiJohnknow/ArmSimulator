@@ -2,10 +2,8 @@ import struct
 import socket
 import pandas as pd
 from Toolbox import TimeTool
-import time
-import keyboard
-import cv2
 from dataBase_v0 import dataBase
+import numpy as np
 
 class UDP_packet:
     def __init__(self, Sub_header, data=[]) -> None:
@@ -187,11 +185,12 @@ class UDP_packet:
             elif add_status[0] == '0x3' and add_status[1] == '0xb0':
                 Error = ['Error code: B003','Requiring data size error.']
                 return Error
-            
             elif add_status[0] == '0x2' and add_status[1] == '0xa0':
                 Error = ['Error code: A002','Attribute error.']
                 return Error
-            
+            elif add_status[0] == '0x0' and add_status[1] == '0xc8':
+                Error = ['Error code: C800','System error.']
+                return Error
             else:
                 return add_status
         
@@ -333,45 +332,69 @@ class MotomanUDP:
         
         return data
 
-    def getSysTime(self, Type):
+    def getSysTime(self, Type=211):
         """Get DX200 system time
         - Args:
-            1 :Control power ON time
-            10 :Servo power ON time (TOTAL)
-            11 to 18 :Servo power ON time (R1 to R8)
-            21 to 44 :Servo power ON time (S1 to S24)
-            110 :Play back time (TOTAL)
-            111 to 118 :Play back time (R1 to R8)
-            121 to 144 :Play back time (S1 to S24)
-            210 :Motion time (TOTAL)
-            211 to 218 :Motion time (R1 to R8)
-            221 to 244 :Motion time (S1 to S24)
-            301 to 308 :Operation time (application 1 to 8)
+            - DX200控制箱總電源開啟時計算:
+                - 1 :Control power ON time
+            - 伺服電源啟動時開始計算:
+                - 10 :Servo power ON time (TOTAL)
+                - 11 to 18 :Servo power ON time (R1 to R8)
+                - 21 to 44 :Servo power ON time (S1 to S24)
+            - 程式開始執行時開始計算:
+                - 110 :Play back time (TOTAL)
+                - 111 to 118 :Play back time (R1 to R8)
+                - 121 to 144 :Play back time (S1 to S24)
+            - 手臂開始運動時開始計算:
+                - 210 :Motion time (TOTAL)
+                - 211 to 218 :Motion time (R1 to R8) >>> defult
+                - 221 to 244 :Motion time (S1 to S24)
+            - 應用之工作類別總時數(ex: Arc welding)
+                - 301 to 308 :Operation time (application 1 to 8)
+        - Return:
+           - hours: 總小時數
+           - minutes: 分鐘數
+           - seconds: 秒數
+           - totalSeconds: 總秒數(hour*3600 + minutes*60 + seconds)
         """
         # TODO 待測試
+        Type = hex(Type)
 
-        if Type>255:
-            # 移除 '0x' 前綴並填充零，確保至少有兩個字元
-            Type = Type[2:].zfill(4)
+        # 移除 '0x' 前綴並填充零，確保至少有兩個字元
+        Type = Type[2:].zfill(4)
 
-            # 將十六進位表示法分為高位元和低位元
-            high_byte = int(Type[:2], 16)
-            low_byte = int(Type[2:], 16)
-        else:
-            high_byte = 0
-            low_byte = Type
+        # 將十六進位表示法分為高位元和低位元
+        high_byte = int(Type[:2], 16)
+        low_byte = int(Type[2:], 16)
 
+        
         reqSubHeader= { 'Command_No': (0x88, 0x00),
                     'Instance': [low_byte, high_byte],
-                    'Attribute': 0,
-                    'Service':  0x01,
+                    'Attribute': 2,
+                    'Service':  0x0E,
                     'Padding': (0, 0) }
         reqData = []
 
         Ans_packet = self.sendCmd( reqSubHeader, reqData)
         data = UDP_packet.Unpack_Ans_packet(self, Ans_packet)
-           
-        return data
+        
+        result = self.list_to_char_string(data)
+        # 將時間字串分割為總時數和分鐘秒數
+        total_hour_str, minutes_seconds_str = result.split(':')
+
+        # 總小時數
+        hours = int(total_hour_str)
+        # 分離出分鐘和秒數
+        minutes, seconds = map(int, minutes_seconds_str.split("'"))
+        # 計算總秒數
+        totalSeconds = hours *3600 + minutes * 60 + seconds
+       
+        return hours, minutes, seconds, totalSeconds
+    
+    def list_to_char_string(self, lst):
+        # 將列表中的數字轉換為對應的ASCII字元並組成字串
+        char_string = ''.join([chr(num) for num in lst])
+        return char_string
     
     def getcoordinateMH(self, Type:int):
         """Get coordniate or Motor Pulse
@@ -577,7 +600,7 @@ class MotomanUDP:
                 databuffer = (data[i+3] << 24) | (data[i+2] << 16) | (data[i+1] << 8) | data[i]
       
                 result.append(databuffer)
-
+        
         return result
     
     ################################################ I/O ################################################
@@ -1459,8 +1482,11 @@ if __name__ == "__main__":
     Time = TimeTool()
     dB = dataBase()
     
-
-
+    # 讀取DX200系統時間命令
+    # 讀取DX200系統時間所花費的時間: 最慢11ms | 最快7ms | 平均9.56ms
+    hour, minutes, seconds, startTotal_seconds = udp.getSysTime(1)
+    # print(startTotal_seconds)
+    
     # 遠端起弧測試OK
 
     # 送線

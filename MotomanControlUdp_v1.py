@@ -27,7 +27,7 @@ class Motomancontrol():
         Online(含通訊之測試) >> True  要記得解開self.Udp的相關註解
         Offline(純邏輯測試) >> False
         """
-        self.Line = False
+        self.Line = True
         self.Udp = MotomanUDP()
         self.Kin = Kinematics()
         self.Time = TimeTool()
@@ -45,7 +45,7 @@ class Motomancontrol():
         """
         self.I0 = 2
         self.I1 = 0
-        self.I28 = 0
+        self.I28 = 19
 
         if self.Line is True:
             status = self.Udp.multipleWriteVar(0, 2, [self.I0, self.I1])
@@ -56,12 +56,12 @@ class Motomancontrol():
         self.Speed = database_Velocity.Load(VeldatafilePath)
         
         # 載入軌跡時間紀錄檔
-        self.Time = database_time.Load("dataBase/dynamicllyPlanTEST/Time_0.csv")
+        self.SysTime = database_time.Load("dataBase/dynamicllyPlanTEST/Time_0.csv")
         
         # 刪除軌跡資料第一筆資料
         self.Trj = Motomancontrol.deleteFirstData(self.Trj)
         self.Speed = Motomancontrol.deleteFirstData(self.Speed)
-        self.Time = Motomancontrol.deleteFirstData(self.Time)
+        self.SysTime = Motomancontrol.deleteFirstData(self.SysTime)
 
         # PC >> DX200 通訊紀錄
         self.communicationRecords_Trj = np.zeros((50000, 9, 6))
@@ -91,14 +91,14 @@ class Motomancontrol():
             copies: 等份數(ex: copies=18，將軌跡資料分成18等份。)
         """
         # 將資料分成指定等份
-        indices = np.linspace(0, len(TrjData)-1, copies, dtype=int)
-        TrjData = TrjData[indices]
+        indices = np.linspace(0, len(Trj)-1, copies, dtype=int)
+        Trj = Trj[indices]
         Speed = Speed[indices]
 
-        return TrjData, Speed
+        return Trj, Speed
     
     @staticmethod
-    def dataProcessBeforeSent(TrjData, Speed):
+    def dataProcessBeforeSent(Trj, Speed):
         """將資料處理成DX200需要的格式
         - 處理過程如下: 
         1. 改變資料形式
@@ -106,14 +106,18 @@ class Motomancontrol():
             Speed: [int(2.1254*10)]
         2. 將資料容器調整為n*9*6的shape
         """
+        # 處理軌跡資料
+        Trj_copy = np.copy(Trj)
+        Trj_copy[:, :, 3:6]*= 10
 
-        TrjData[:, :, 3:6]*= 10
-        Speed *= 10
-        Speed = Speed.astype(int)
+        # 處理速度資料
+        Speed_copy = np.copy(Speed)
+        Speed_copy *= 10
+        Speed_copy = Speed_copy.astype(int)
 
         # 一批次>>9筆資料
-        RPdata = TrjData.reshape(-1, 9, 6)
-        Veldata = Speed.reshape(-1, 9)
+        RPdata = Trj_copy.reshape(-1, 9, 6)
+        Veldata = Speed_copy.reshape(-1, 9)
 
         return RPdata, Veldata
     
@@ -189,20 +193,23 @@ class Motomancontrol():
         self.communicationRecords_Counter += 1
 
     
-    def readSysTime(self):
+    def readSysTime(self, ArmSysStartTime_second):
         """讀取DX200系統時間
         """
         beforeReadSysTime = self.Time.ReadNowTime()
         # 讀取系統時間
-        ArmSysTime = self.Udp.getSysTime(self, 211)
+        hours, minutes, seconds, totalSecond = self.Udp.getSysTime()
 
         afterReadSysTime = self.Time.ReadNowTime()
         communicationCostTime = self.Time.TimeError(beforeReadSysTime, afterReadSysTime)
         # TODO 扣除讀取系統時間所花費的通訊時間
-        communicationCostTime_ms = ArmSysTime["millisecond"]
-        communicationCostTime_ms -= communicationCostTime
+        # communicationCostTime_ms = ArmSysTime["millisecond"]
+        # communicationCostTime_ms -= communicationCostTime
 
-        return ArmSysTime
+        # 計算從開始到現在經過的時間
+        elapsedTime = totalSecond - ArmSysStartTime_second
+
+        return elapsedTime
 
     def judgmentTrj(self, eucDisThreshold):
         """判斷軌跡情況 | 超前 or 落後
@@ -213,21 +220,25 @@ class Motomancontrol():
                 True : 需補償
                 False: 無須補償
         """
-        feedbackTrjAndTime = self.feedbackRecords_Trj_ArmSysTime[-1]
+        feedbackTrjAndTime = self.feedbackRecords_Trj_ArmSysTime[self.feedbackRecords_Counter-1]
         # 現在位置(不含姿態)
-        feedbackNowPos = feedbackTrjAndTime[:3]
-        feedbackTime = feedbackTrjAndTime[-1]
+        feedbackNowPos = feedbackTrjAndTime[0, :3]
+        feedbackTime = feedbackTrjAndTime[-1, -1]
+        print(f"最新DX200系統時間{feedbackTime}s")
 
         # 期望系統時間與回饋系統時間比較
-        closestData, closestIndex = dataOperating.searchSimilar(self.Time, feedbackTime)
+        SysTime = pd.read_csv("dataBase/dynamicllyPlanTEST/Time_0.csv")
+        closestData, closestIndex = dataOperating.searchSimilar(SysTime, feedbackTime)
         # 此時期望軌跡需到達的位置
-        expectNowPos = self.Trj[closestIndex][:3]
+        if closestIndex == 0:
+            closestIndex = 1
+        expectNowPos = self.Trj[closestIndex-1][:3]
         # 利用理想軌跡的已移動距離 與 現實軌跡的已移動距離 進行比較
         expectMoveDis = np.linalg.norm(expectNowPos - self.Trj[0][:3])
-        realMoveDis = np.linalg.norm(feedbackNowPos - self.feedbackRecords_Trj_ArmSysTime[0][:3])
+        realMoveDis = np.linalg.norm(feedbackNowPos - self.feedbackRecords_Trj_ArmSysTime[0, 0, :3])
 
         # 剩餘的軌跡時間 = 理想的軌跡總時間 - 現在實際經過的系統時間
-        timeLeft = self.Time[-1] - feedbackTime
+        timeLeft = self.SysTime[-1] - feedbackTime
 
         compenseFlag = False
         
@@ -267,7 +278,9 @@ class Motomancontrol():
 
         # 系統時間與軌跡節點
         sysTime, Node = 0, 0
+        startTime = 0
         startNode = 0
+        ArmSysStartTime = 0
         # 取樣時間
         sampleTime = 0.04
         # 系統時間初始化flag
@@ -276,9 +289,9 @@ class Motomancontrol():
         # 要傳送給DX200的軌跡點數量(目前有18個Robot Position variable可以使用)
         copies = 18
         # 切割軌跡為18個點
-        self.Trj, self.Speed = Motomancontrol.CutTrj(copies, self.Trj, self.Speed)
+        Trj, Speed = Motomancontrol.CutTrj(copies, self.Trj, self.Speed)
         # 資料處理
-        RPdata, Veldata = Motomancontrol.dataProcessBeforeSent(self.Trj, self.Speed)
+        RPdata, Veldata = Motomancontrol.dataProcessBeforeSent(Trj, Speed)
 
         # 包裝、傳送所有軌跡點
         firstAddress = 2
@@ -312,11 +325,6 @@ class Motomancontrol():
                 break
 
         while mainLoop:
-            # 更新每禎時間
-            nowTime = self.Time.ReadNowTime()
-            # 更新系統時間
-            sysTime, Node = self.Time.sysTime(startTime, startNode, nowTime, sampleTime)
-            sysTime = round(sysTime/1000, 1)
             # -----------------------此區在本迴圈只會在剛進迴圈時執行一次-------------------
             if sysflag is True:
                 # 儲存系統開始時間
@@ -325,14 +333,21 @@ class Motomancontrol():
                 if self.Line is True:
                     # 紀錄feedback數據 | 紀錄初始位置與系統時間
                     pos_result, coordinate = self.Udp.getcoordinateMH(101)
-                    ArmSysTime = self.readSysTime()
-                    self.feedbackRecords(coordinate, ArmSysTime)
+                    # 取得DX200初始系統時間
+                    hours, minutes, seconds, totalSecond = self.Udp.getSysTime()
+                    ArmSysStartTime = totalSecond
+                    self.feedbackRecords(coordinate, 0)
                 else:
                     I0 = [3]
                 sysflag = False
 
             # ---------------------------------------------------------------------------
             else:
+                # 更新每禎時間
+                nowTime = self.Time.ReadNowTime()
+                # 更新系統時間
+                sysTime, Node = self.Time.sysTime(startTime, startNode, nowTime, sampleTime)
+                sysTime = round(sysTime/1000, 1)
                 """
                 1.讀取位置、系統時間
                 2.比對期望的位置時間表
@@ -344,84 +359,82 @@ class Motomancontrol():
                 pos_result, coordinate = self.Udp.getcoordinateMH(101)
                 # 讀取DX200系統時間
                 # TODO 需回扣讀取系統時間所消耗的通訊時間
-                ArmSysTime = self.readSysTime()
-                self.feedbackRecords(coordinate, ArmSysTime)
+                ArmSysTime = self.readSysTime(ArmSysStartTime)
+                self.feedbackRecords(coordinate, sysTime)
 
                 # 判斷是否需要速度補償
                 eucDisThreshold = 0.2
                 compenseFlag, timeLeft = self.judgmentTrj(eucDisThreshold)
 
-                if compenseFlag is True:
-                    # 取得剩餘時間 | 剩餘多少時間需要將此軌跡跑完
-                    # 利用矩陣軌跡法(時間版本)規劃新軌跡
-                    # 進行通訊前的資料處理
-                    # 以I000判斷實際軌跡走到哪一部分
-                    # 更新尚未走到的軌跡點
+                # if compenseFlag is True:
+                #     # 取得剩餘時間 | 剩餘多少時間需要將此軌跡跑完
+                #     # 利用矩陣軌跡法(時間版本)規劃新軌跡
+                #     # 進行通訊前的資料處理
+                #     # 以I000判斷實際軌跡走到哪一部分
+                #     # 更新尚未走到的軌跡點
                 
-                    totalTime = timeLeft
-                    sampleTime = 0.04
-                    I0 = self.Udp.ReadVar("Integer", 0)
-                    NowEnd = self.Trj[I0+1]
-                    GoalEnd = self.Trj[-1]
+                #     totalTime = timeLeft
+                #     sampleTime = 0.04
+                #     I0 = self.Udp.ReadVar("Integer", 0)
+                #     NowEnd = self.Trj[I0+1]
+                #     GoalEnd = self.Trj[-1]
 
-                    # 執行緒
-                    compenseThread = GetNewTrj(target=self.PlanNewTrj, args=(NowEnd, GoalEnd, sampleTime, totalTime))
-                    compenseThread.start()
+                #     # 執行緒
+                #     compenseThread = GetNewTrj(target=self.PlanNewTrj, args=(NowEnd, GoalEnd, sampleTime, totalTime))
+                #     compenseThread.start()
 
-                if compenseThread.is_alive() is False:
-                    # 軌跡已變化一次，需更新計數器值
-                    compenseTrjNBR += 1
-                    result = compenseThread.get_result()
+                # if compenseThread.is_alive() is False:
+                #     # 軌跡已變化一次，需更新計數器值
+                #     compenseTrjNBR += 1
+                #     result = compenseThread.get_result()
                     
-                    NewHomogeneousMat = result[0]
-                    NewPoseMatData = result[1]
-                    NewSpeedData = result[2]
-                    NewTimeData = result[3]
-                    costTime_PlanTrj = result[4]
+                #     NewHomogeneousMat = result[0]
+                #     NewPoseMatData = result[1]
+                #     NewSpeedData = result[2]
+                #     NewTimeData = result[3]
+                #     costTime_PlanTrj = result[4]
 
-                    # 存檔(新軌跡資料) 
-                    mode = "w"
-                    database_HomogeneousMat.Save(NewHomogeneousMat, f"dataBase/dynamicllyPlanTEST/HomogeneousMat_{compenseTrjNBR}.csv", mode)
-                    database_PoseMat.Save(NewPoseMatData, f"dataBase/dynamicllyPlanTEST/PoseMat_{compenseTrjNBR}.csv", mode)
-                    database_Velocity.Save(NewSpeedData, f"dataBase/dynamicllyPlanTEST/Speed_{compenseTrjNBR}.csv", mode)
-                    database_time.Save(NewTimeData,f"dataBase/dynamicllyPlanTEST/Time_{compenseTrjNBR}.csv", mode)
+                #     # 存檔(新軌跡資料) 
+                #     mode = "w"
+                #     database_HomogeneousMat.Save(NewHomogeneousMat, f"dataBase/dynamicllyPlanTEST/HomogeneousMat_{compenseTrjNBR}.csv", mode)
+                #     database_PoseMat.Save(NewPoseMatData, f"dataBase/dynamicllyPlanTEST/PoseMat_{compenseTrjNBR}.csv", mode)
+                #     database_Velocity.Save(NewSpeedData, f"dataBase/dynamicllyPlanTEST/Speed_{compenseTrjNBR}.csv", mode)
+                #     database_time.Save(NewTimeData,f"dataBase/dynamicllyPlanTEST/Time_{compenseTrjNBR}.csv", mode)
 
-                    # 要傳送給DX200的軌跡點數量
-                    I0 = self.Udp.ReadVar("Integer", 0)
-                    copies = 18-I0
-                    # 切割軌跡為copies個點
-                    self.Trj, self.Speed = Motomancontrol.CutTrj(copies, NewPoseMatData, NewSpeedData)
-                    # 資料處理
-                    RPdata, Veldata = Motomancontrol.dataProcessBeforeSent(self.Trj, self.Speed)
+                #     # 要傳送給DX200的軌跡點數量
+                #     I0 = self.Udp.ReadVar("Integer", 0)
+                #     copies = 18-I0
+                #     # 切割軌跡為copies個點
+                #     self.Trj, self.Speed = Motomancontrol.CutTrj(copies, NewPoseMatData, NewSpeedData)
+                #     # 資料處理
+                #     RPdata, Veldata = Motomancontrol.dataProcessBeforeSent(self.Trj, self.Speed)
 
-                    # TODO 此區尚未完成
-                    # 包裝、傳送所有軌跡點
-                    firstAddress = 2
-                    number = 9
-                    for i in range(copies//9):
-                        # 包裝n筆資料  
-                        RPpacket, Velpacket = self.packetRPdataVeldata(RPdata, Veldata, alreadySent_DataBatchNBR)
-                        # 傳送n筆資料
-                        Is_success = self.writeRPvarINTvar(firstAddress, number, RPpacket, Velpacket)
-                        # 紀錄通訊所送出的軌跡資料 | 用於驗證
-                        self.communicationRecords(RPdata, Veldata, alreadySent_DataBatchNBR)
-                        # 資料(批次)計數器更新
-                        alreadySent_DataBatchNBR += 1
+                #     # TODO 此區尚未完成
+                #     # 包裝、傳送所有軌跡點
+                #     firstAddress = 2
+                #     number = 9
+                #     for i in range(copies//9):
+                #         # 包裝n筆資料  
+                #         RPpacket, Velpacket = self.packetRPdataVeldata(RPdata, Veldata, alreadySent_DataBatchNBR)
+                #         # 傳送n筆資料
+                #         Is_success = self.writeRPvarINTvar(firstAddress, number, RPpacket, Velpacket)
+                #         # 紀錄通訊所送出的軌跡資料 | 用於驗證
+                #         self.communicationRecords(RPdata, Veldata, alreadySent_DataBatchNBR)
+                #         # 資料(批次)計數器更新
+                #         alreadySent_DataBatchNBR += 1
 
-                        firstAddress+=number
+                #         firstAddress+=number
                 
-
-
                 # 結束
-                if np.linalg.norm(self.Trj[-1][:3]- np.array(coordinate)[:3]) < 0.1:
+                if np.linalg.norm(self.Trj[-1, 0, :3]- np.array(coordinate)[:3]) < 0.1:
                     mode = "w"
                     # feedback的軌跡資料
                     # 濾除整個row為0的部分
                     non_zero_rows_Trajectory = np.any(self.feedbackRecords_Trj != 0, axis=(1, 2))
                     non_zero_rows_Time = np.any(self.feedbackRecords_sysTime != 0, axis=1)
-                    non_zero_rows_PoseMat_Time = np.any(self.feedbackRecords_Trj_ArmSysTime != 0, axis=1)
+                    non_zero_rows_PoseMat_Time = np.any(self.feedbackRecords_Trj_ArmSysTime != 0, axis=(1, 2))
                     # 系統時間需保留初值0
-                    non_zero_rows_Time[:2] = True
+                    non_zero_rows_Time[:200] = True
 
                     self.feedbackRecords_Trj = self.feedbackRecords_Trj[non_zero_rows_Trajectory]
                     self.feedbackRecords_sysTime = self.feedbackRecords_sysTime[non_zero_rows_Time]
@@ -437,11 +450,11 @@ class Motomancontrol():
                     # 濾除整個row為0的部分
                     non_zero_rows_Trajectory = np.any(self.communicationRecords_Trj != 0, axis=(1, 2))
                     non_zero_rows_Speed = np.any(self.communicationRecords_Speed != 0, axis=1)
-                    non_zero_rows_costTime = np.any(self.costTime != 0, axis=1)
+                    
 
                     self.communicationRecords_Trj = self.communicationRecords_Trj[non_zero_rows_Trajectory]
                     self.communicationRecords_Speed = self.communicationRecords_Speed[non_zero_rows_Speed]
-                    self.costTime = self.costTime[non_zero_rows_costTime]
+                    
                     
                     database_PoseMat.Save(self.communicationRecords_Trj, "dataBase/dynamicllyPlanTEST/communicationRecords_Trj.csv", mode)
                     database_Velocity.Save(self.communicationRecords_Speed, "dataBase/dynamicllyPlanTEST/communicationRecords_Speed.csv", mode)

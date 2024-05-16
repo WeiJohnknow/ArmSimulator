@@ -98,6 +98,55 @@ class Generator:
 
         return JointAngleData
     
+    @classmethod
+    def generateTrajectory_Spline(cls, NowPoseMat, GoalPoseMat, sampleTime, GoalSpeed):
+        # TODO 未完成
+        startPoint = np.array([NowPoseMat[0], NowPoseMat[1], NowPoseMat[2]])
+        endPoint   = np.array([GoalPoseMat[0], GoalPoseMat[1], GoalPoseMat[2]])
+        
+        samplePoint = 40
+        x , y, z, controlPoint = PathPlanning.cubicSpline(startPoint, endPoint, samplePoint)
+
+        d2r = np.deg2rad
+
+        Prv_HomogeneousMat = []
+        Prv_Speed =[]
+        Prv_Time = []
+        
+        for i in range(len(x)-1):
+            NowEnd = np.eye(4)
+            GoalEnd = np.eye(4)
+            
+            NowEnd = NowEnd @ cls.Mat.TransXYZ(x[i], y[i], z[i]) @ cls.Mat.RotaXYZ(d2r(NowPoseMat[3]), d2r(NowPoseMat[4]), d2r(NowPoseMat[5])) 
+            GoalEnd = GoalEnd @ cls.Mat.TransXYZ(x[i+1], y[i+1], z[i+1]) @ cls.Mat.RotaXYZ(d2r(GoalPoseMat[3]), d2r(GoalPoseMat[4]), d2r(GoalPoseMat[5]))
+            # 矩陣軌跡法(速度版)
+            HomogeneousMat, Speed, Time = cls.TrjPlan.MatrixPathPlanSpeed(GoalEnd, NowEnd, GoalSpeed, sampleTime)
+        
+            if i == 0:
+                Prv_HomogeneousMat = HomogeneousMat
+                Prv_Speed = Speed
+                Prv_Time = Time
+
+            else:
+                HomogeneousMatData = np.vstack((Prv_HomogeneousMat, HomogeneousMat))
+                # 計算需要填充的行數
+                num_rows_to_pad = Speed.shape[0] - Prv_Speed.shape[0] 
+                # 將數組 a 進行填充
+                Prv_Speed = np.pad(Prv_Speed, ((0, num_rows_to_pad), (0, 0)), mode='constant')
+                SpeedData = np.vstack((Prv_Speed, Speed))
+                TimeData = np.vstack((Prv_Time, Time))
+
+                Prv_HomogeneousMat = HomogeneousMat
+                Prv_Speed = Speed
+                Prv_Time = Time
+            
+        # HomogeneousMat to PoseMat
+        PoseMatData = database_PoseMat.HomogeneousMatToPoseMat(HomogeneousMatData)
+        
+        return HomogeneousMatData, PoseMatData, SpeedData, TimeData
+
+
+    
 if __name__ == "__main__":
     d2r = np.deg2rad
     Time = TimeTool()
@@ -113,18 +162,22 @@ if __name__ == "__main__":
         3. 模擬
         """
         # 歐式距離: 18mm
-        NowEnd = [958.521, -37.126, -164.943, -165.2876, -7.1723, 17.5191]
-        GoalEnd = [958.525, -18.527, -164.933, -165.2873, -7.1725, 17.5181]
+        # NowEnd = [958.521, -37.126, -164.943, -165.2876, -7.1723, 17.5191]
+        # GoalEnd = [958.525, -18.527, -164.933, -165.2873, -7.1725, 17.5181]
         # 歐式距離: 150mm
-        # NowEnd = [958.521, -109.209, -158.398, -164.6564, -7.5189, 18.1239]
-        # GoalEnd = [958.525, 41.670, -158.417, -164.6548, -7.5165, 18.1217]
+        # NowEnd = [958.521, -109.209, -158.398, -164.6564, -7.5189, 108.1239]
+        # GoalEnd = [958.525, 41.670, -158.417, -164.6548, -7.5165, 108.1217]
+        # 曲線:150mm
+        NowEnd = [958.521, -109.209, -158.398, -164.6564, -7.5189, 108.1239]
+        GoalEnd = [808.525, 41.670, -158.417, -164.6548, -7.5165, 108.1217]
         
         Goalspeed = 2
         sampleTime = 0.04
         
         b = Time.ReadNowTime()
         # HomogeneousMatData, PoseMatData, VelocityData, TimeData = Generator.generateTrajectory(NowEnd, GoalEnd, sampleTime, Goalspeed)
-        HomogeneousMatData, PoseMatData, VelocityData, TimeData = Generator.generateTrajectory_totalTime(NowEnd, GoalEnd, sampleTime, 8.8)
+        # HomogeneousMatData, PoseMatData, VelocityData, TimeData = Generator.generateTrajectory_totalTime(NowEnd, GoalEnd, sampleTime, 8.8)
+        HomogeneousMatData, PoseMatData, VelocityData, TimeData = Generator.generateTrajectory_Spline(NowEnd, GoalEnd, sampleTime, Goalspeed)
         a = Time.ReadNowTime()
         calerr = Time.TimeError(b, a)
         print("計算新軌跡總共花費: ", calerr["millisecond"], "ms")

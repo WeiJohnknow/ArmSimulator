@@ -2834,25 +2834,254 @@ queue
 # plt.tight_layout()
 # plt.show()
 
+"""
+數組 融合
+"""
+# import numpy as np
+
+# # 创建示例矩阵
+# matrix1 = np.zeros((223, 1, 6))
+# matrix2 = np.ones((223, 1, 1))
+
+# # 将两个矩阵按行融合
+# result = np.concatenate((matrix1, matrix2), axis=2)
+
+# print("行逐行融合后的矩阵：\n", result)
+
+# import numpy as np
+
+# # 定义两个示例数组
+# array1 = np.array([[958.425, -18.627, -164.833, -1652.876, -71.723, 175.191]])
+# array2 = np.array([[958.525, -18.527, -164.933, -1652.876, -71.723, 175.191]])
+
+# # 计算两个数组之间的欧式距离
+# euclidean_distance = np.linalg.norm(array1 - array2)
+
+# print("数组之间的欧式距离：", euclidean_distance)
+
+
+"""
+32bit Integer >> 16bit char
+"""
+# def list_to_char_string(lst):
+#     # 將列表中的數字轉換為對應的ASCII字元並組成字串
+#     char_string = ''.join([chr(num) for num in lst])
+#     return char_string
+
+# # 測試
+# lst = [50, 49, 49, 52, 47, 49, 48, 47, 49, 56, 32, 48, 49, 58, 52, 57]
+# char_string = list_to_char_string(lst)
+# print(char_string)
+
+
+# def time_str_to_int(time_str):
+#     # 分割時間字串，取得秒、分、時
+#     total_seconds_str, minutes_seconds_str = time_str.split(':')
+#     minutes, seconds = map(int, minutes_seconds_str.split("'"))
+    
+#     # 計算總秒數
+#     total_seconds = int(total_seconds_str)
+#     total_seconds += minutes * 60 + seconds
+    
+#     # 將總秒數轉換為 32 位元整數
+#     int_value = total_seconds & 0xFFFFFFFF  # 只保留低 32 位元
+#     return int_value
+
+# # 測試
+# time_str = "667828:07'45"
+# int_value = time_str_to_int(time_str)
+# print(int_value)
+
+"""
+生成弧線
+"""
+# import numpy as np
+# import matplotlib.pyplot as plt
+# from mpl_toolkits.mplot3d import Axes3D
+
+# # 定義圓弧的參數
+# r = 1  # 半徑
+# theta1 = 0  # 起始角度
+# theta2 = np.pi / 2  # 結束角度（90度）
+
+# # 生成圓弧上的點
+# theta = np.linspace(theta1, theta2, 100)  # 在起始角度和結束角度之間均勻分佈的角度值
+# x = r * np.cos(theta)
+# y = r * np.sin(theta)
+# z = np.zeros_like(x)  # 在xy平面上
+
+# # 取樣40個點
+# num_samples = 40
+# indices = np.linspace(0, len(theta) - 1, num_samples, dtype=int)
+# x_samples = x[indices]
+# y_samples = y[indices]
+# z_samples = z[indices]
+
+# # 輸出40個點的座標
+# for i in range(num_samples):
+#     print(f"Point {i+1}: ({x_samples[i]}, {y_samples[i]}, {z_samples[i]})")
+
+# # 繪製圓弧
+# fig = plt.figure()
+# ax = fig.add_subplot(111, projection='3d')
+# ax.plot(x, y, z)
+
+# # 設置圖形屬性
+# ax.set_xlabel('X')
+# ax.set_ylabel('Y')
+# ax.set_zlabel('Z')
+# ax.set_title('3D Circle Arc')
+
+# # 顯示圖形
+# plt.show()
+
+"""
+Spline
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.interpolate import CubicSpline
+
+# # 定義a、b和c的座標
+# a = np.array([0, 0, 0])
+# b = np.array([6, 1, 0])
+# c = np.array([7, 7, 0])
+
+# # 設置控制點
+# x = [a[0], b[0], c[0]]
+# y = [a[1], b[1], c[1]]
+# z = [a[2], b[2], c[2]]
+
+# # 使用樣條插值函數
+# t = [0, 1, 2]  # 參數t的範圍
+# cs_x = CubicSpline(t, x, bc_type='natural')
+# cs_y = CubicSpline(t, y, bc_type='natural')
+# cs_z = CubicSpline(t, z, bc_type='natural')
+
+# # 生成樣條曲線上的點
+# t_new = np.linspace(0, 2, 40)  # 新的參數範圍
+# x_spline = cs_x(t_new)
+# y_spline = cs_y(t_new)
+# z_spline = cs_z(t_new)
+
+# # 繪製曲線
+# fig = plt.figure()
+# ax = fig.add_subplot(111, projection='3d')
+# ax.plot(x_spline, y_spline, z_spline)
+
+# # 將控制點繪製到曲線上
+# ax.scatter(x, y, z, color='red', label='Control Points')
+
+# # 設置圖形屬性
+# ax.set_xlabel('X')
+# ax.set_ylabel('Y')
+# ax.set_zlabel('Z')
+# ax.set_title('Spline Curve Connecting Points A, B, and C')
+
+# # 顯示圖形
+# plt.show()
+
+# def cubicSpline(startPoint, endPoint):
+#     """
+#     Args:
+#         startPoint: [x, y, z], type:ndarray.
+#         endPoint: [x, y, z], type:ndarray.
+
+#     """ 
+#     # 設置控制點
+#     x = [startPoint[0], (endPoint[0]-startPoint[0])*0.88, endPoint[0]]
+#     y = [startPoint[1], (endPoint[1]-startPoint[1])*0.12, endPoint[1]]
+#     z = [startPoint[2], (endPoint[2]-startPoint[2])/2   , endPoint[2]]
+#     controlPoint = np.array([x, y, z])
+
+#     # 使用樣條插值函數
+#     t = [0, 1, 2]  # 參數t的範圍
+#     cs_x = CubicSpline(t, x, bc_type='natural')
+#     cs_y = CubicSpline(t, y, bc_type='natural')
+#     cs_z = CubicSpline(t, z, bc_type='natural')
+
+#     # 生成樣條曲線上的點
+#     t_new = np.linspace(0, 2, 40)  # 新的參數範圍
+#     x_spline = cs_x(t_new)
+#     y_spline = cs_y(t_new)
+#     z_spline = cs_z(t_new)
+    
+#     return x_spline, y_spline, z_spline, controlPoint
+
+# startPoint = [0, 0, 0]
+# endPoint   = [7, 7, 0]
+# x_spline, y_spline, z_spline, controlPoint = cubicSpline(startPoint, endPoint)
+
+# # 繪製曲線
+# fig = plt.figure()
+# ax = fig.add_subplot(111, projection='3d')
+# ax.plot(x_spline, y_spline, z_spline)
+
+# # 將控制點繪製到曲線上
+# ax.scatter(controlPoint[0], controlPoint[1], controlPoint[2], color='red', label='Control Points')
+
+# # 設置圖形屬性
+# ax.set_xlabel('X')
+# ax.set_ylabel('Y')
+# ax.set_zlabel('Z')
+# ax.set_title('Spline Curve Connecting Points A, B, and C')
+
+# # 顯示圖形
+# plt.show()
+
+"""
+B-Spline
+"""
+# import numpy as np
+# import matplotlib.pyplot as plt
+# from scipy.interpolate import BSpline
+
+# # 控制點
+# # points = np.array([[0, 0], [1, 1], [2, -1], [3, 0], [4, 2]])
+# points = np.array([[0, 0], [4, 0], [6, 2], [6, 5]])
+
+# # 次數
+# degree = 3
+
+# # 節點向量
+# num_knots = len(points) + degree + 1
+# knots = np.linspace(0, 1, num_knots)
+
+# # 生成 B-spline 曲線
+# bspline = BSpline(knots, points, degree)
+
+# # 生成曲線上的點
+# num_points = 1000
+# t_new = np.linspace(0, 1, num_points)
+# curve_points = bspline(t_new)
+
+
+
+# # 繪製曲線
+# plt.plot(points[:, 0], points[:, 1], 'bo-', label='Control Points')
+# plt.plot(curve_points[:, 0], curve_points[:, 1], 'r-', label='B-spline Curve')
+# plt.title('B-spline Curve')
+# plt.xlabel('X')
+# plt.ylabel('Y')
+# plt.legend()
+# plt.grid(True)
+# plt.axis('equal')
+# plt.show()
 
 import numpy as np
 
-# 创建示例矩阵
-matrix1 = np.zeros((223, 1, 6))
-matrix2 = np.ones((223, 1, 1))
+# 創建兩個形狀為 (993, 1) 和 (998, 1) 的 NumPy 數組
+a = np.random.rand(993, 1)
+b = np.random.rand(998, 1)
 
-# 将两个矩阵按行融合
-result = np.concatenate((matrix1, matrix2), axis=2)
+# 計算需要填充的行數
+num_rows_to_pad = b.shape[0] - a.shape[0]
 
-print("行逐行融合后的矩阵：\n", result)
+# 將數組 a 進行填充
+a_padded = np.pad(a, ((0, num_rows_to_pad), (0, 0)), mode='constant')
 
-import numpy as np
+# 垂直堆疊 a 和 b
+result = np.vstack((a, b))
 
-# 定义两个示例数组
-array1 = np.array([[958.425, -18.627, -164.833, -1652.876, -71.723, 175.191]])
-array2 = np.array([[958.525, -18.527, -164.933, -1652.876, -71.723, 175.191]])
-
-# 计算两个数组之间的欧式距离
-euclidean_distance = np.linalg.norm(array1 - array2)
-
-print("数组之间的欧式距离：", euclidean_distance)
+# 輸出結果的形狀
+print(result.shape)

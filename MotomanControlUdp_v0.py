@@ -1408,13 +1408,11 @@ class Motomancontrol():
         trjUpdataNBR = 0
         Prv_trjUpdataNBR = 0
         
-
         # 計算資料分割的組數與批數
         batch = self.calculateDataGroupBatch(self.trjData)
         
         # 資料分割
         RPdata, Veldata = self.dataSegmentation(self.trjData, self.velData, batch)
-        
         
         # 包裝並寫入首9筆資料   
         RPpacket, Velpacket = self.packetRPdataVeldata(RPdata, Veldata, alreadySent_DataBatchNBR)
@@ -1434,7 +1432,6 @@ class Motomancontrol():
         
         #-------------------------------------------------------------------------------------------------
         
-    
         # 測試通訊資料批次數
         I3count = 0
         I11count = 0
@@ -1495,8 +1492,6 @@ class Motomancontrol():
 
                     I11count+=1
                     
-                    
-
                     # 紀錄feedback數據 | 紀錄初始位置與系統時間
                     self.feedbackRecords(0)
                 else:

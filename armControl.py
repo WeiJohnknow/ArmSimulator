@@ -6,6 +6,7 @@ from dataBase_v1 import *
 from Toolbox import TimeTool
 from SimulatorV2 import Simulator
 import numpy as np
+import matplotlib.pyplot as plt
 
 class Generator:
     # 類別變數
@@ -100,50 +101,65 @@ class Generator:
     
     @classmethod
     def generateTrajectory_Spline(cls, NowPoseMat, GoalPoseMat, sampleTime, GoalSpeed):
-        # TODO 未完成
+        Time = TimeTool()
+        Kin = Kinematics()
+        
+        d2r = np.deg2rad
+        b = Time.ReadNowTime()
+        
         startPoint = np.array([NowPoseMat[0], NowPoseMat[1], NowPoseMat[2]])
         endPoint   = np.array([GoalPoseMat[0], GoalPoseMat[1], GoalPoseMat[2]])
-        
-        samplePoint = 40
+        samplePoint = 200
         x , y, z, controlPoint = PathPlanning.cubicSpline(startPoint, endPoint, samplePoint)
+        print(controlPoint)
 
-        d2r = np.deg2rad
+        # # 繪製曲線
+        # fig = plt.figure()
+        # ax = fig.add_subplot(111, projection='3d')
+        # ax.plot(x, y, z)
 
-        Prv_HomogeneousMat = []
-        Prv_Speed =[]
-        Prv_Time = []
-        
+        # # 將控制點繪製到曲線上
+        # ax.scatter(controlPoint[0], controlPoint[1], controlPoint[2], color='red', label='Control Points')
+
+        # # 設置圖形屬性
+        # ax.set_xlabel('X')
+        # ax.set_ylabel('Y')
+        # ax.set_zlabel('Z')
+        # ax.set_title('Spline Curve Connecting Points A, B, and C')
+
+        # # 顯示圖形
+        # plt.show()
+
+        Data = np.zeros((len(x), 4, 4))
+        Angular = np.arange(NowPoseMat[-1], GoalPoseMat[-1]+(GoalPoseMat[-1]-NowPoseMat[-1])/len(x), (GoalPoseMat[-1]-NowPoseMat[-1])/len(x))
         for i in range(len(x)-1):
-            NowEnd = np.eye(4)
+            NowEnd = np.eye(4)  
             GoalEnd = np.eye(4)
+            NowEnd = NowEnd @ cls.Mat.TransXYZ(x[i],y[i],z[i]) @ cls.Mat.RotaXYZ(d2r(-165.2876), d2r(-7.1723), d2r(Angular[i]))
+            GoalEnd = GoalEnd @ cls.Mat.TransXYZ(x[i+1],y[i+1],z[i+1]) @ cls.Mat.RotaXYZ(d2r(-165.2876), d2r(-7.1723), d2r(Angular[i+1])) 
+            homogeneousMat = PathPlanning.PathToHomogeneousMat(GoalEnd, NowEnd)
             
-            NowEnd = NowEnd @ cls.Mat.TransXYZ(x[i], y[i], z[i]) @ cls.Mat.RotaXYZ(d2r(NowPoseMat[3]), d2r(NowPoseMat[4]), d2r(NowPoseMat[5])) 
-            GoalEnd = GoalEnd @ cls.Mat.TransXYZ(x[i+1], y[i+1], z[i+1]) @ cls.Mat.RotaXYZ(d2r(GoalPoseMat[3]), d2r(GoalPoseMat[4]), d2r(GoalPoseMat[5]))
-            # 矩陣軌跡法(速度版)
-            HomogeneousMat, Speed, Time = cls.TrjPlan.MatrixPathPlanSpeed(GoalEnd, NowEnd, GoalSpeed, sampleTime)
-        
-            if i == 0:
-                Prv_HomogeneousMat = HomogeneousMat
-                Prv_Speed = Speed
-                Prv_Time = Time
+            Data[i] = homogeneousMat
 
-            else:
-                HomogeneousMatData = np.vstack((Prv_HomogeneousMat, HomogeneousMat))
-                # 計算需要填充的行數
-                num_rows_to_pad = Speed.shape[0] - Prv_Speed.shape[0] 
-                # 將數組 a 進行填充
-                Prv_Speed = np.pad(Prv_Speed, ((0, num_rows_to_pad), (0, 0)), mode='constant')
-                SpeedData = np.vstack((Prv_Speed, Speed))
-                TimeData = np.vstack((Prv_Time, Time))
+        Data = Data[:-1]
+        a = Time.ReadNowTime()
+        calerr = Time.TimeError(b, a)
+        print("計算新軌跡總共花費: ", calerr["millisecond"], "ms")
+        # Joint Angle
+        nowJointAngle = (np.zeros((6,1)))
+        nowJointAngle[0, 0] =  d2r(-0.006)
+        nowJointAngle[1, 0] =  d2r(-38.8189)
+        nowJointAngle[2, 0] =  d2r(-41.0857)
+        nowJointAngle[3, 0] =  d2r(-0.0030)
+        nowJointAngle[4, 0] =  d2r(-76.4394)
+        nowJointAngle[5, 0] =  d2r(1.0687)
 
-                Prv_HomogeneousMat = HomogeneousMat
-                Prv_Speed = Speed
-                Prv_Time = Time
-            
-        # HomogeneousMat to PoseMat
-        PoseMatData = database_PoseMat.HomogeneousMatToPoseMat(HomogeneousMatData)
-        
-        return HomogeneousMatData, PoseMatData, SpeedData, TimeData
+        # 透過逆向運動學獲得關節角度
+        JointAngleData = np.zeros((len(Data), 6, 1))
+        for i in range(Data.shape[0]):
+            JointAngleData[i] = Kin.IK_4x4(Data[i], nowJointAngle)
+    
+        Sim.paitGL(JointAngleData, Data)
 
 
     
@@ -168,8 +184,8 @@ if __name__ == "__main__":
         # NowEnd = [958.521, -109.209, -158.398, -164.6564, -7.5189, 108.1239]
         # GoalEnd = [958.525, 41.670, -158.417, -164.6548, -7.5165, 108.1217]
         # 曲線:150mm
-        NowEnd = [958.521, -109.209, -158.398, -164.6564, -7.5189, 108.1239]
-        GoalEnd = [808.525, 41.670, -158.417, -164.6548, -7.5165, 108.1217]
+        NowEnd = [958.521, -109.209, -164.943, -165.2876, -7.1723, 17.5191]
+        GoalEnd = [858.525, 41.670, -164.943, -165.2876, -7.1723, 97.5191]
         
         Goalspeed = 2
         sampleTime = 0.04
@@ -177,48 +193,49 @@ if __name__ == "__main__":
         b = Time.ReadNowTime()
         # HomogeneousMatData, PoseMatData, VelocityData, TimeData = Generator.generateTrajectory(NowEnd, GoalEnd, sampleTime, Goalspeed)
         # HomogeneousMatData, PoseMatData, VelocityData, TimeData = Generator.generateTrajectory_totalTime(NowEnd, GoalEnd, sampleTime, 8.8)
-        HomogeneousMatData, PoseMatData, VelocityData, TimeData = Generator.generateTrajectory_Spline(NowEnd, GoalEnd, sampleTime, Goalspeed)
+        Generator.generateTrajectory_Spline(NowEnd, GoalEnd, sampleTime, Goalspeed)
+        
         a = Time.ReadNowTime()
         calerr = Time.TimeError(b, a)
         print("計算新軌跡總共花費: ", calerr["millisecond"], "ms")
 
-        mode = "w"
-        filename_header = "database/dynamicllyPlanTEST/"
-        # 標號為0表示其為軌跡原檔
-        number = 0
+        # mode = "w"
+        # filename_header = "database/dynamicllyPlanTEST/"
+        # # 標號為0表示其為軌跡原檔
+        # number = 0
 
-        HomogeneousMat_file = filename_header + f"HomogeneousMat_{number}.csv"
-        PoseMat_file = filename_header + f"PoseMat_{number}.csv"
-        Speed_file = filename_header + f"Speed_{number}.csv"
-        Time_file = filename_header + f"Time_{number}.csv"
-        PoseMatAndTime_file = filename_header + f"PoseMatAndTime_{number}.csv"
+        # HomogeneousMat_file = filename_header + f"HomogeneousMat_{number}.csv"
+        # PoseMat_file = filename_header + f"PoseMat_{number}.csv"
+        # Speed_file = filename_header + f"Speed_{number}.csv"
+        # Time_file = filename_header + f"Time_{number}.csv"
+        # PoseMatAndTime_file = filename_header + f"PoseMatAndTime_{number}.csv"
 
         
 
-        database_HomogeneousMat.Save(HomogeneousMatData, HomogeneousMat_file, mode)
-        database_PoseMat.Save(PoseMatData, PoseMat_file, mode)
-        database_Velocity.Save(VelocityData, Speed_file, mode)
-        database_time.Save(TimeData, Time_file, mode)
-        TimeData = TimeData.reshape(-1, 1, 1)
-        PoseMatAndTime = np.concatenate((PoseMatData, TimeData), axis=2)
-        database_time.Save_PoseMat_Time(PoseMatAndTime, PoseMatAndTime_file, mode)
+        # database_HomogeneousMat.Save(HomogeneousMatData, HomogeneousMat_file, mode)
+        # database_PoseMat.Save(PoseMatData, PoseMat_file, mode)
+        # database_Velocity.Save(VelocityData, Speed_file, mode)
+        # database_time.Save(TimeData, Time_file, mode)
+        # TimeData = TimeData.reshape(-1, 1, 1)
+        # PoseMatAndTime = np.concatenate((PoseMatData, TimeData), axis=2)
+        # database_time.Save_PoseMat_Time(PoseMatAndTime, PoseMatAndTime_file, mode)
         
-        nowJointAngle = (np.zeros((6,1)))
-        nowJointAngle[0, 0] =  d2r(-0.006)
-        nowJointAngle[1, 0] =  d2r(-38.8189)
-        nowJointAngle[2, 0] =  d2r(-41.0857)
-        nowJointAngle[3, 0] =  d2r(-0.0030)
-        nowJointAngle[4, 0] =  d2r(-76.4394)
-        nowJointAngle[5, 0] =  d2r(1.0687)
-        HomogeneousMat = database_HomogeneousMat.Load(filename_header+f"HomogeneousMat_{number}.csv")
-        b = Time.ReadNowTime()
-        JointAngle = Generator.generateTrajectoryJointAngle(nowJointAngle, HomogeneousMat)
-        a = Time.ReadNowTime()
-        calerr = Time.TimeError(b, a)
-        print("計算新軌跡IK總共花費: ", calerr["millisecond"], "ms")
-        database_JointAngle.Save(JointAngle, filename_header+f"JointAngle_{number}.csv", mode)
+        # nowJointAngle = (np.zeros((6,1)))
+        # nowJointAngle[0, 0] =  d2r(-0.006)
+        # nowJointAngle[1, 0] =  d2r(-38.8189)
+        # nowJointAngle[2, 0] =  d2r(-41.0857)
+        # nowJointAngle[3, 0] =  d2r(-0.0030)
+        # nowJointAngle[4, 0] =  d2r(-76.4394)
+        # nowJointAngle[5, 0] =  d2r(1.0687)
+        # HomogeneousMat = database_HomogeneousMat.Load(filename_header+f"HomogeneousMat_{number}.csv")
+        # b = Time.ReadNowTime()
+        # JointAngle = Generator.generateTrajectoryJointAngle(nowJointAngle, HomogeneousMat)
+        # a = Time.ReadNowTime()
+        # calerr = Time.TimeError(b, a)
+        # print("計算新軌跡IK總共花費: ", calerr["millisecond"], "ms")
+        # database_JointAngle.Save(JointAngle, filename_header+f"JointAngle_{number}.csv", mode)
 
-        Sim.paitGL(JointAngle, HomogeneousMat)
+        # Sim.paitGL(JointAngle, HomogeneousMat)
 
 
     if userMode is False:

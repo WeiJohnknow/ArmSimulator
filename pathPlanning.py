@@ -4,6 +4,9 @@ from dataBase_v0 import dataBase
 from Matrix import Matrix4x4
 from Kinematics import Kinematics
 from scipy.interpolate import CubicSpline
+from Toolbox import TimeTool
+from dataBase_v1 import *
+
 
 class PathPlanning:
     def __init__(self):
@@ -367,9 +370,6 @@ class PathPlanning:
         v1End, v2End, v3End, v4End, v5End, v6End, v7End = 0, 0, 0, 0, 0, 0, 0
         s1End, s2End, s3End, s4End, s5End, s6End, s7End = 0, 0, 0, 0, 0, 0, 0
 
-        
-        
-        
         # # 時間函數
         # Time1List = []
         # Time2List = []
@@ -539,9 +539,9 @@ class PathPlanning:
             Control Point:[x, y, z], shape:2D, type:ndarray.
         """ 
         # 設置控制點
-        x = [startPoint[0], (endPoint[0]-startPoint[0])*0.88, endPoint[0]]
-        y = [startPoint[1], (endPoint[1]-startPoint[1])*0.12, endPoint[1]]
-        z = [startPoint[2], (endPoint[2]-startPoint[2])/2   , endPoint[2]]
+        x = [startPoint[0], startPoint[0]-20, endPoint[0]]
+        y = [startPoint[1], endPoint[1]-10  , endPoint[1]]
+        z = [startPoint[2], startPoint[2], endPoint[2]]
         controlPoint = np.array([x, y, z])
 
         # 使用樣條插值函數
@@ -557,6 +557,43 @@ class PathPlanning:
         z = cs_z(t_new)
         
         return x, y, z, controlPoint
+    
+    @staticmethod
+    def arcInterpolation(startPoint, endPoint, numberOfSamplePoint=40):
+        # TODO 未完成
+        # 定義圓弧的參數
+        r = 1  # 半徑
+        theta1 = 0  # 起始角度
+        theta2 = np.pi / 2  # 結束角度（90度）
+
+        # 生成圓弧上的點
+        theta = np.linspace(theta1, theta2, numberOfSamplePoint)  # 在起始角度和結束角度之間均勻分佈的角度值
+        x = r * np.cos(theta)
+        y = r * np.sin(theta)
+        z = np.zeros_like(x)  # 在xy平面上
+
+        # 取樣40個點
+        num_samples = 40
+        indices = np.linspace(0, len(theta) - 1, num_samples, dtype=int)
+        x_samples = x[indices]
+        y_samples = y[indices]
+        z_samples = z[indices]
+
+
+        # 繪製圓弧
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.plot(x, y, z)
+
+        # 設置圖形屬性
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        ax.set_title('3D Circle Arc')
+
+        # 顯示圖形
+        plt.show()
+
 
     @staticmethod
     def MatrixPathPlanning(GoalEnd, NowEnd, allTime, sampleTime = 0.04, startTime=0):
@@ -591,9 +628,9 @@ class PathPlanning:
             ky = (D[0,2] - D[2,0]) / u
             kz = (D[1,0] - D[0,1]) / u
         
-        Δx = GoalEnd[0,3] - NowEnd[0,3]
-        Δy = GoalEnd[1,3] - NowEnd[1,3]
-        Δz = GoalEnd[2,3] - NowEnd[2,3]   
+        # Δx = GoalEnd[0,3] - NowEnd[0,3]
+        # Δy = GoalEnd[1,3] - NowEnd[1,3]
+        # Δz = GoalEnd[2,3] - NowEnd[2,3]   
         
         sampleInterval = allTime / sampleTime
         # Create Time Point     
@@ -601,8 +638,10 @@ class PathPlanning:
         # 儲存軌跡資料(Homogeneous transformation)
         TBuffer = np.zeros(((int(sampleInterval)+1,4,4)))
 
+        λ__ = []
         for λ_ in range(int(sampleInterval)+1):
             λ = λ_ / int(sampleInterval)
+            λ__.append(λ)
             V = (1-cos(θ*λ))
             
             # Transformation matrix
@@ -640,9 +679,289 @@ class PathPlanning:
         # velData = np.diff(Euclidean_distance)
         velData = np.diff(Euclidean_distance)/sampleTime
         velData = np.insert(velData, 0, 0)
+
+        # Create Time Point     
+        timeData = np.arange(startTime, allTime+sampleTime, sampleTime)
         
-            
         return TBuffer, velData, timeData
+    
+    @staticmethod
+    def PathToHomogeneousMats(GoalEnd, NowEnd, totalTime, sampleTime):
+        sin = np.sin
+        cos = np.cos
+        arccos = np.arccos
+        inv  = np.linalg.inv
+        pi = np.pi
+        
+        D = inv(NowEnd) @ GoalEnd
+        θ = arccos(round((D[0,0] + D[1,1] + D[2,2] - 1.0)/2.0,4))
+        if type(θ) !=type(np.arccos(0.5)):
+            θ = 0
+        if round(θ % pi,4) !=round(0.0,4):
+            u = 2.0*sin(θ)
+            kx = (D[2,1] - D[1,2]) / u
+            ky = (D[0,2] - D[2,0]) / u
+            kz = (D[1,0] - D[0,1]) / u
+        else:
+            u = 0.001
+            kx = (D[2,1] - D[1,2]) / u
+            ky = (D[0,2] - D[2,0]) / u
+            kz = (D[1,0] - D[0,1]) / u
+
+        # Create Time
+        Time = np.arange(0, totalTime+sampleTime, sampleTime)
+
+        """
+        Normalization formula:
+            normalization X = (X - Xmin) / Xmax - Xmin)
+            X: Data to be normalized.
+        """
+        # 計算λ的最小值和最大值
+        minTime = np.min(Time)
+        maxTime = np.max(Time)
+        # Normalization Time
+        λ = (Time - minTime) / (maxTime - minTime)
+
+        # Create Transformation matrix
+        """
+        Transformation matrix formula:
+            np.array(([[kx**2*V+cos(θ*λ), kx*ky*V-kz*sin(θ*λ), kx*kz*V+ky*sin(θ*λ), D[0,3]*λ],
+                       [kx*ky*V+kz*sin(θ*λ),    ky**2*V+cos(θ*λ), ky*kz*V-kx*sin(θ*λ), D[1,3]*λ],
+                       [kx*kz*V-ky*sin(θ*λ), ky*kz*V+kx*sin(θ*λ),    kz**2*V+cos(θ*λ), D[2,3]*λ],
+                       [0, 0, 0, 1]]))
+        """
+        V = np.array((1-cos(θ*λ)))
+        TransMat = np.zeros((len(λ), 4, 4))
+        TransMat[:, 0, 0] = kx**2*V+cos(θ*λ)
+        TransMat[:, 1, 0] = kx*ky*V+kz*sin(θ*λ)
+        TransMat[:, 2, 0] = kx*kz*V-ky*sin(θ*λ)
+        TransMat[:, 3, 0] = 0
+
+        TransMat[:, 0, 1] = kx*ky*V-kz*sin(θ*λ)
+        TransMat[:, 1, 1] = ky**2*V+cos(θ*λ)
+        TransMat[:, 2, 1] = ky*kz*V+kx*sin(θ*λ)
+        TransMat[:, 3, 1] = 0
+
+        TransMat[:, 0, 2] = kx*kz*V+ky*sin(θ*λ)
+        TransMat[:, 1, 2] = ky*kz*V-kx*sin(θ*λ)
+        TransMat[:, 2, 2] = kz**2*V+cos(θ*λ)
+        TransMat[:, 3, 2] = 0
+
+        TransMat[:, 0, 3] = D[0,3]*λ
+        TransMat[:, 1, 3] = D[1,3]*λ
+        TransMat[:, 2, 3] = D[2,3]*λ
+        TransMat[:, 3, 3] = 1
+    
+        homogeneousMat  = NowEnd @ TransMat
+        
+        # Create Speed
+        # 計算軌跡點間的歐式距離
+        PtoPEuclidean_distance = np.zeros((homogeneousMat.shape[0]-1))
+        # 取出位置部分
+        Position = homogeneousMat[:, :3, 3].reshape(-1, 3)
+        
+        # 計算歐式距離
+        for i in range(Position.shape[0]-1):
+            PtoPEuclidean_distance[i] = np.linalg.norm(Position[i+1] - Position[i])
+
+        # 插入初值 0
+        PtoPEuclidean_distance = np.insert(PtoPEuclidean_distance, 0, 0)
+
+        # 每兩軌跡點間的平均速度
+        timeErr_Second = sampleTime
+        Speed = PtoPEuclidean_distance / timeErr_Second
+            
+        return homogeneousMat, Speed, Time
+    
+    @staticmethod
+    def PathToHomogeneousMats_Speed(GoalEnd, NowEnd, GoalSpeed, sampleTime):
+        sin = np.sin
+        cos = np.cos
+        arccos = np.arccos
+        inv  = np.linalg.inv
+        pi = np.pi
+        
+        D = inv(NowEnd) @ GoalEnd
+        θ = arccos(round((D[0,0] + D[1,1] + D[2,2] - 1.0)/2.0,4))
+        if type(θ) !=type(np.arccos(0.5)):
+            θ = 0
+        if round(θ % pi,4) !=round(0.0,4):
+            u = 2.0*sin(θ)
+            kx = (D[2,1] - D[1,2]) / u
+            ky = (D[0,2] - D[2,0]) / u
+            kz = (D[1,0] - D[0,1]) / u
+        else:
+            u = 0.001
+            kx = (D[2,1] - D[1,2]) / u
+            ky = (D[0,2] - D[2,0]) / u
+            kz = (D[1,0] - D[0,1]) / u
+        
+        
+        # 利用alltime參數迭代出速度的設定值
+        iterData = np.zeros(((2,4,4)))
+        # 給定跌代初值
+        totalTime = 0.1
+        iter = 0
+        while True:
+            sampleInterval = totalTime / sampleTime
+            for λ_ in range(2):
+                λ = λ_ / int(sampleInterval)
+                V = (1-cos(θ*λ))
+                
+                # Transformation matrix
+                D_ = np.array(([ [kx**2*V+cos(θ*λ), kx*ky*V-kz*sin(θ*λ), kx*kz*V+ky*sin(θ*λ), D[0,3]*λ],
+                                        [kx*ky*V+kz*sin(θ*λ), ky**2*V+cos(θ*λ), ky*kz*V-kx*sin(θ*λ), D[1,3]*λ],
+                                        [kx*kz*V-ky*sin(θ*λ), ky*kz*V+kx*sin(θ*λ), kz**2*V+cos(θ*λ), D[2,3]*λ],
+                                        [0, 0, 0, 1]]))
+                
+                # T 是笛卡兒空間中 NowEnd ➜ GoalEnd 過程中每一個軌跡點的齊次變換矩陣(軌跡點)
+                T = NowEnd @ D_ 
+                iterData[λ_] = T
+            NowSpeed = PathPlanning.calculationSpeed(iterData[0], iterData[1], sampleTime)
+
+            error = NowSpeed - GoalSpeed 
+            if error < 0.1 :
+                print(f"error: {error} | 迭代次數: {iter} | alltime: {totalTime} | Speed: {NowSpeed}")
+                break
+            if error > 10:
+                totalTime += 1
+            else:
+                totalTime += 0.1
+            
+            iter += 1
+
+        # Create Time
+        Time = np.arange(0, totalTime+sampleTime, sampleTime)
+
+        """
+        Normalization formula:
+            normalization X = (X - Xmin) / Xmax - Xmin)
+            X: Data to be normalized.
+        """
+        # 計算λ的最小值和最大值
+        minTime = np.min(Time)
+        maxTime = np.max(Time)
+        # Normalization Time
+        λ = (Time - minTime) / (maxTime - minTime)
+
+        # Create Transformation matrix
+        """
+        Transformation matrix formula:
+            np.array(([[kx**2*V+cos(θ*λ), kx*ky*V-kz*sin(θ*λ), kx*kz*V+ky*sin(θ*λ), D[0,3]*λ],
+                       [kx*ky*V+kz*sin(θ*λ),    ky**2*V+cos(θ*λ), ky*kz*V-kx*sin(θ*λ), D[1,3]*λ],
+                       [kx*kz*V-ky*sin(θ*λ), ky*kz*V+kx*sin(θ*λ),    kz**2*V+cos(θ*λ), D[2,3]*λ],
+                       [0, 0, 0, 1]]))
+        """
+        V = np.array((1-cos(θ*λ)))
+        TransMat = np.zeros((len(λ), 4, 4))
+        TransMat[:, 0, 0] = kx**2*V+cos(θ*λ)
+        TransMat[:, 1, 0] = kx*ky*V+kz*sin(θ*λ)
+        TransMat[:, 2, 0] = kx*kz*V-ky*sin(θ*λ)
+        TransMat[:, 3, 0] = 0
+
+        TransMat[:, 0, 1] = kx*ky*V-kz*sin(θ*λ)
+        TransMat[:, 1, 1] = ky**2*V+cos(θ*λ)
+        TransMat[:, 2, 1] = ky*kz*V+kx*sin(θ*λ)
+        TransMat[:, 3, 1] = 0
+
+        TransMat[:, 0, 2] = kx*kz*V+ky*sin(θ*λ)
+        TransMat[:, 1, 2] = ky*kz*V-kx*sin(θ*λ)
+        TransMat[:, 2, 2] = kz**2*V+cos(θ*λ)
+        TransMat[:, 3, 2] = 0
+
+        TransMat[:, 0, 3] = D[0,3]*λ
+        TransMat[:, 1, 3] = D[1,3]*λ
+        TransMat[:, 2, 3] = D[2,3]*λ
+        TransMat[:, 3, 3] = 1
+    
+        homogeneousMat  = NowEnd @ TransMat
+        
+        
+
+        # 計算軌跡點間的歐式距離
+        PtoPEuclidean_distance = np.zeros((homogeneousMat.shape[0]-1))
+        # 取出位置部分
+        Position = homogeneousMat[:, :3, 3].reshape(-1, 3)
+        
+        # 計算歐式距離
+        for i in range(Position.shape[0]-1):
+            PtoPEuclidean_distance[i] = np.linalg.norm(Position[i+1] - Position[i])
+
+        # 插入初值 0
+        PtoPEuclidean_distance = np.insert(PtoPEuclidean_distance, 0, 0)
+
+        # 每兩軌跡點間的平均速度
+        timeErr_Second = sampleTime
+        Speed = PtoPEuclidean_distance / timeErr_Second
+            
+        return homogeneousMat, Speed, Time
+    
+    
+    @staticmethod
+    def PathToHomogeneousMat(GoalEnd, NowEnd):
+        sin = np.sin
+        cos = np.cos
+        arccos = np.arccos
+        inv  = np.linalg.inv
+        pi = np.pi
+        
+        D = inv(NowEnd) @ GoalEnd
+        θ = arccos(round((D[0,0] + D[1,1] + D[2,2] - 1.0)/2.0,4))
+        if type(θ) !=type(np.arccos(0.5)):
+            θ = 0
+        if round(θ % pi,4) !=round(0.0,4):
+            u = 2.0*sin(θ)
+            kx = (D[2,1] - D[1,2]) / u
+            ky = (D[0,2] - D[2,0]) / u
+            kz = (D[1,0] - D[0,1]) / u
+        else:
+            u = 0.001
+            kx = (D[2,1] - D[1,2]) / u
+            ky = (D[0,2] - D[2,0]) / u
+            kz = (D[1,0] - D[0,1]) / u
+
+        """
+        Normalization formula:
+            normalization X = (X - Xmin) / Xmax - Xmin)
+            X: Data to be normalized.
+        """
+
+        λ = 1
+
+        # Create Transformation matrix
+        """
+        Transformation matrix formula:
+            np.array(([[kx**2*V+cos(θ*λ), kx*ky*V-kz*sin(θ*λ), kx*kz*V+ky*sin(θ*λ), D[0,3]*λ],
+                       [kx*ky*V+kz*sin(θ*λ),    ky**2*V+cos(θ*λ), ky*kz*V-kx*sin(θ*λ), D[1,3]*λ],
+                       [kx*kz*V-ky*sin(θ*λ), ky*kz*V+kx*sin(θ*λ),    kz**2*V+cos(θ*λ), D[2,3]*λ],
+                       [0, 0, 0, 1]]))
+        """
+        TransMat = np.eye(4)
+        V = np.array((1-cos(θ*λ)))
+        TransMat[0, 0] = kx**2*V+cos(θ*λ)
+        TransMat[1, 0] = kx*ky*V+kz*sin(θ*λ)
+        TransMat[2, 0] = kx*kz*V-ky*sin(θ*λ)
+        TransMat[3, 0] = 0
+
+        TransMat[0, 1] = kx*ky*V-kz*sin(θ*λ)
+        TransMat[1, 1] = ky**2*V+cos(θ*λ)
+        TransMat[2, 1] = ky*kz*V+kx*sin(θ*λ)
+        TransMat[3, 1] = 0
+
+        TransMat[0, 2] = kx*kz*V+ky*sin(θ*λ)
+        TransMat[1, 2] = ky*kz*V-kx*sin(θ*λ)
+        TransMat[2, 2] = kz**2*V+cos(θ*λ)
+        TransMat[3, 2] = 0
+
+        TransMat[0, 3] = D[0,3]*λ
+        TransMat[1, 3] = D[1,3]*λ
+        TransMat[2, 3] = D[2,3]*λ
+        TransMat[3, 3] = 1
+    
+        homogeneousMat  = NowEnd @ TransMat
+     
+        return homogeneousMat
+        
     
     @staticmethod
     def MatrixPathPlanSpeed(GoalEnd, NowEnd, GoalSpeed, sampleTime = 0.04, startTime=0):
@@ -1033,17 +1352,89 @@ class PathPlanning:
         """
         MatrixPathPlanning
         """
-        # d2r = np.deg2rad
-        # NowEnd = np.eye(4)  
-        # GoalEnd = np.eye(4)
-        # NowEnd = NowEnd @ self.Mat.TransXYZ(4.85,0,2.34) @ self.Mat.RotaXYZ(d2r(-180), d2r(20.2111), d2r(21.6879))
-        # GoalEnd = GoalEnd @ self.Mat.TransXYZ(9,-4,z=-2) @ self.Mat.RotaXYZ(d2r(-165.2922), d2r(-7.1994), d2r(17.5635)) 
-        # sampleTime = 0.04
-        # alltime = 8
-        # file_path = "dataBase/testMatrixPathPlanning.csv"
+        Time = TimeTool()
 
-        # pathData, timeData = self.MatrixPathPlanning(GoalEnd, NowEnd, alltime, file_path, sampleTime)
-        # print(pathData)
+        d2r = np.deg2rad
+        NowEnd = np.eye(4)  
+        GoalEnd = np.eye(4)
+        NowEnd_ = [958.521, -109.209, -164.943, -165.2876, -7.1723, 17.5191]
+        GoalEnd_ = [958.525, 41.670, -164.943, -165.2876, -7.1723, 17.5191]
+        NowEnd = NowEnd @ self.Mat.TransXYZ(NowEnd_[0], NowEnd_[1], NowEnd_[2]) @ self.Mat.RotaXYZ(d2r(NowEnd_[3]), d2r(NowEnd_[4]), d2r(NowEnd_[5])) 
+        GoalEnd = GoalEnd @ self.Mat.TransXYZ(GoalEnd_[0], GoalEnd_[1], GoalEnd_[2]) @ self.Mat.RotaXYZ(d2r(GoalEnd_[3]), d2r(GoalEnd_[4]), d2r(GoalEnd_[5]))
+        sampleTime = 0.04
+        GoalSpeed = 2
+        totalTime = 8
+        
+        b = Time.ReadNowTime()
+        pathData, SpeedData, timeData = self.MatrixPathPlanning(GoalEnd, NowEnd, totalTime, sampleTime)
+        a = Time.ReadNowTime()
+        err = Time.TimeError(b, a)
+        print(err["millisecond"])
+
+        b_ = Time.ReadNowTime()
+        pathData_, SpeedData_, timeData_ = self.PathToHomogeneousMats(GoalEnd, NowEnd, totalTime, sampleTime)
+        a_ = Time.ReadNowTime()
+        err_ = Time.TimeError(b_, a_)
+        print(err_["millisecond"])
+
+
+        b = Time.ReadNowTime()
+        homogeneousMat, Speed, TimeData = self.MatrixPathPlanSpeed(GoalEnd, NowEnd, GoalSpeed, sampleTime)
+        a = Time.ReadNowTime()
+        err = Time.TimeError(b, a)
+        print(err["millisecond"])
+
+        b_ = Time.ReadNowTime()
+        homogeneousMat_, Speed_, Time_ = self.PathToHomogeneousMats_Speed(GoalEnd, NowEnd, GoalSpeed, sampleTime)
+        a_ = Time.ReadNowTime()
+        err_ = Time.TimeError(b_, a_)
+        print(err_["millisecond"])
+        print()
+
+        """
+        軸角轉換
+        """
+        # Time = TimeTool()
+        # Kin = Kinematics()
+        
+        # d2r = np.deg2rad
+        # b_ = Time.ReadNowTime()
+        
+        # startPoint = np.array([958.521, -109.209, -158.398])
+        # endPoint   = np.array([808.525, 41.670, -158.417])
+        # samplePoint = 40
+        # x , y, z, controlPoint = PathPlanning.cubicSpline(startPoint, endPoint, samplePoint)
+
+        
+
+        # Data = np.zeros((len(x), 4, 4))
+        # for i in range(len(x)-1):
+        #     NowEnd = np.eye(4)  
+        #     GoalEnd = np.eye(4)
+        #     NowEnd = NowEnd @ self.Mat.TransXYZ(x[i],y[i],z[i]) @ self.Mat.RotaXYZ(d2r(-180), d2r(20.2111), d2r(21.6879))
+        #     GoalEnd = GoalEnd @ self.Mat.TransXYZ(x[i+1],y[i+1],z[i+1]) @ self.Mat.RotaXYZ(d2r(-165.2922), d2r(-7.1994), d2r(17.5635)) 
+        #     homogeneousMat = PathPlanning.PathToHomogeneousMat(GoalEnd, NowEnd)
+            
+        #     Data[i] = homogeneousMat
+        # # Joint Angle
+        # nowJointAngle = (np.zeros((6,1)))
+        # nowJointAngle[0, 0] =  d2r(-0.006)
+        # nowJointAngle[1, 0] =  d2r(-38.8189)
+        # nowJointAngle[2, 0] =  d2r(-41.0857)
+        # nowJointAngle[3, 0] =  d2r(-0.0030)
+        # nowJointAngle[4, 0] =  d2r(-76.4394)
+        # nowJointAngle[5, 0] =  d2r(1.0687)
+
+        # # 透過逆向運動學獲得關節角度
+        # JointAngleData = np.zeros((len(Data), 6, 1))
+        # for i in range(Data.shape[0]):
+        #     JointAngleData[i] = Kin.IK_4x4(Data[i], nowJointAngle)
+
+        
+
+        # a_ = Time.ReadNowTime()
+        # err_ = Time.TimeError(b_, a_)
+        # print(err_["millisecond"])
 
         """
         MatrixPath + 4-3-4
@@ -1087,18 +1478,40 @@ class PathPlanning:
         """
         Spline
         """
-        startPoint = np.array([0, 0, 0])
-        endPoint   = np.array([7, 7, 0])
-        samplePoint = 40
-        x , y, z, controlPoint = PathPlanning.cubicSpline(startPoint, endPoint, samplePoint)
+        # NowEnd = [958.521, -37.126, -164.943, -165.2876, -7.1723, 17.5191]
+        # GoalEnd = [958.525, -18.527, -164.943, -165.2876, -7.1723, 17.5191]
+        # # startPoint = np.array([0, 0, 0])
+        # # endPoint   = np.array([7, 7, 0])
+        # startPoint = np.array([958.521, -37.126, -164.943])
+        # endPoint   = np.array([938.525, -18.527, -164.943])
+        # samplePoint = 40
+        # x , y, z, controlPoint = PathPlanning.cubicSpline(startPoint, endPoint, samplePoint)
+        # # # 繪製曲線
+        # fig = plt.figure()
+        # ax = fig.add_subplot(111, projection='3d')
+        # ax.plot(x, y, z)
+
+        # # 將控制點繪製到曲線上
+        # ax.scatter(controlPoint[0], controlPoint[1], controlPoint[2], color='red', label='Control Points')
+
+        # # 設置圖形屬性
+        # ax.set_xlabel('X')
+        # ax.set_ylabel('Y')
+        # ax.set_zlabel('Z')
+        # ax.set_title('Spline Curve Connecting Points A, B, and C')
+
+        # # 顯示圖形
+        # plt.show()
 
 
 
         
 
 if __name__ == "__main__":
+    
     PathPlan = PathPlanning()
     PathPlan.main()
+
 
     
         

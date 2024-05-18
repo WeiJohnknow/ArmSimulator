@@ -2895,52 +2895,82 @@ queue
 """
 生成弧線
 """
-# import numpy as np
-# import matplotlib.pyplot as plt
-# from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
-# # 定義圓弧的參數
-# r = 1  # 半徑
-# theta1 = 0  # 起始角度
-# theta2 = np.pi / 2  # 結束角度（90度）
+def generate_3d_arc(start_point, end_point, num_points=100, num_samples=40):
+    # 計算起點和終點的中點
+    midpoint = (start_point + end_point) / 2
+    
+    # 計算起點和終點的距離
+    chord_length = np.linalg.norm(end_point - start_point)
+    
+    # 計算半徑（假設圓弧在平面內垂直於線段起點和終點）
+    radius = chord_length / 2
+    
+    # 計算法向量
+    direction_vector = end_point - start_point
+    normal_vector = np.cross(direction_vector, np.array([0, 0, 1]))
+    if np.linalg.norm(normal_vector) == 0:
+        normal_vector = np.cross(direction_vector, np.array([0, 1, 0]))
+    normal_vector = normal_vector / np.linalg.norm(normal_vector)
+    
+    # 計算圓弧的圓心
+    center = midpoint + np.sqrt(radius**2 - (chord_length / 2)**2) * normal_vector
+    
+    # 計算圓弧上的點
+    theta = np.linspace(0, np.pi, num_points)
+    v = start_point - center
+    w = np.cross(normal_vector, v)
+    w = w / np.linalg.norm(w) * np.linalg.norm(v)
+    
+    arc_points = np.array([center + np.cos(t) * v + np.sin(t) * w for t in theta])
+    
+    # 取樣點
+    indices = np.linspace(0, len(theta) - 1, num_samples, dtype=int)
+    sampled_arc_points = arc_points[indices]
+    
+    return arc_points, sampled_arc_points
 
-# # 生成圓弧上的點
-# theta = np.linspace(theta1, theta2, 100)  # 在起始角度和結束角度之間均勻分佈的角度值
-# x = r * np.cos(theta)
-# y = r * np.sin(theta)
-# z = np.zeros_like(x)  # 在xy平面上
+# 定義起點和終點
+start_point = np.array([0, 0, 0])
+end_point = np.array([1, 1, 0])
 
-# # 取樣40個點
-# num_samples = 40
-# indices = np.linspace(0, len(theta) - 1, num_samples, dtype=int)
-# x_samples = x[indices]
-# y_samples = y[indices]
-# z_samples = z[indices]
+# 生成圓弧
+arc_points, sampled_arc_points = generate_3d_arc(start_point, end_point)
 
-# # 輸出40個點的座標
-# for i in range(num_samples):
-#     print(f"Point {i+1}: ({x_samples[i]}, {y_samples[i]}, {z_samples[i]})")
+# 輸出取樣點的座標
+for i, point in enumerate(sampled_arc_points):
+    print(f"Point {i+1}: {tuple(point)}")
 
-# # 繪製圓弧
-# fig = plt.figure()
-# ax = fig.add_subplot(111, projection='3d')
-# ax.plot(x, y, z)
+# 繪製圓弧
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+ax.plot(arc_points[:, 0], arc_points[:, 1], arc_points[:, 2])
 
-# # 設置圖形屬性
-# ax.set_xlabel('X')
-# ax.set_ylabel('Y')
-# ax.set_zlabel('Z')
-# ax.set_title('3D Circle Arc')
+# 繪製起點和終點
+ax.scatter(*start_point, color='red', label='Start Point')
+ax.scatter(*end_point, color='green', label='End Point')
 
-# # 顯示圖形
-# plt.show()
+# 繪製取樣點
+ax.scatter(sampled_arc_points[:, 0], sampled_arc_points[:, 1], sampled_arc_points[:, 2], color='blue')
 
+# 設置圖形屬性
+ax.set_xlabel('X')
+ax.set_ylabel('Y')
+ax.set_zlabel('Z')
+ax.set_title('3D Arc from Start to End Point')
+ax.legend()
+
+# 顯示圖形
+plt.show()
 """
 Spline
 """
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.interpolate import CubicSpline
+# import numpy as np
+# import matplotlib.pyplot as plt
+# from scipy.interpolate import CubicSpline
 
 # # 定義a、b和c的座標
 # a = np.array([0, 0, 0])
@@ -2989,19 +3019,18 @@ from scipy.interpolate import CubicSpline
 
 #     """ 
 #     # 設置控制點
-#     x = [startPoint[0], (endPoint[0]-startPoint[0])*0.88, endPoint[0]]
-#     y = [startPoint[1], (endPoint[1]-startPoint[1])*0.12, endPoint[1]]
-#     z = [startPoint[2], (endPoint[2]-startPoint[2])/2   , endPoint[2]]
+#     x = [startPoint[0], startPoint[0]+5.5, endPoint[0]-0.1, endPoint[0], endPoint[0]]
+#     y = [startPoint[1], startPoint[1], startPoint[1]+0.1, endPoint[1]-5.5, endPoint[1]]
+#     z = [startPoint[2], startPoint[2], startPoint[2]   , endPoint[2], endPoint[2]]
 #     controlPoint = np.array([x, y, z])
-
 #     # 使用樣條插值函數
-#     t = [0, 1, 2]  # 參數t的範圍
+#     t = [0, 1, 2, 3, 4]  # 參數t的範圍
 #     cs_x = CubicSpline(t, x, bc_type='natural')
 #     cs_y = CubicSpline(t, y, bc_type='natural')
 #     cs_z = CubicSpline(t, z, bc_type='natural')
 
 #     # 生成樣條曲線上的點
-#     t_new = np.linspace(0, 2, 40)  # 新的參數範圍
+#     t_new = np.linspace(0, 4, 40)  # 新的參數範圍
 #     x_spline = cs_x(t_new)
 #     y_spline = cs_y(t_new)
 #     z_spline = cs_z(t_new)
@@ -3068,20 +3097,43 @@ B-Spline
 # plt.axis('equal')
 # plt.show()
 
-import numpy as np
+"""
+Array 垂直堆疊
+"""
+# import numpy as np
 
-# 創建兩個形狀為 (993, 1) 和 (998, 1) 的 NumPy 數組
-a = np.random.rand(993, 1)
-b = np.random.rand(998, 1)
+# # 創建兩個形狀為 (993, 1) 和 (998, 1) 的 NumPy 數組
+# a = np.random.rand(993, 1)
+# b = np.random.rand(998, 1)
 
-# 計算需要填充的行數
-num_rows_to_pad = b.shape[0] - a.shape[0]
+# # 計算需要填充的行數
+# num_rows_to_pad = b.shape[0] - a.shape[0]
 
-# 將數組 a 進行填充
-a_padded = np.pad(a, ((0, num_rows_to_pad), (0, 0)), mode='constant')
+# # 將數組 a 進行填充
+# a_padded = np.pad(a, ((0, num_rows_to_pad), (0, 0)), mode='constant')
 
-# 垂直堆疊 a 和 b
-result = np.vstack((a, b))
+# # 垂直堆疊 a 和 b
+# result = np.vstack((a, b))
 
-# 輸出結果的形狀
-print(result.shape)
+# # 輸出結果的形狀
+# print(result.shape)
+
+"""
+正規化
+"""
+# totalTime = 8
+# sampleTime = 0.04
+# sampleInterval = totalTime / sampleTime
+# samplePoint = sampleInterval
+# # λ = np.linspace(0, (samplePoint-0/samplePoint-0), samplePoint, dtype=float)
+# # print(λ, λ.shape)
+
+# λ_ = np.arange(0, totalTime+sampleTime, sampleTime)
+# print(λ_, λ_.shape)
+# # 计算λ的最小值和最大值
+# min_val = np.min(λ_)
+# max_val = np.max(λ_)
+
+# # 对λ数组进行正规化
+# λ_normalized = (λ_ - min_val) / (max_val - min_val)
+# print("Normalized λ array:", λ_normalized, λ_normalized.shape)

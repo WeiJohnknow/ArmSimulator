@@ -2895,76 +2895,76 @@ queue
 """
 生成弧線
 """
-import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+# import numpy as np
+# import matplotlib.pyplot as plt
+# from mpl_toolkits.mplot3d import Axes3D
 
-def generate_3d_arc(start_point, end_point, num_points=100, num_samples=40):
-    # 計算起點和終點的中點
-    midpoint = (start_point + end_point) / 2
+# def generate_3d_arc(start_point, end_point, num_points=100, num_samples=40):
+#     # 計算起點和終點的中點
+#     midpoint = (start_point + end_point) / 2
     
-    # 計算起點和終點的距離
-    chord_length = np.linalg.norm(end_point - start_point)
+#     # 計算起點和終點的距離
+#     chord_length = np.linalg.norm(end_point - start_point)
     
-    # 計算半徑（假設圓弧在平面內垂直於線段起點和終點）
-    radius = chord_length / 2
+#     # 計算半徑（假設圓弧在平面內垂直於線段起點和終點）
+#     radius = chord_length / 2
     
-    # 計算法向量
-    direction_vector = end_point - start_point
-    normal_vector = np.cross(direction_vector, np.array([0, 0, 1]))
-    if np.linalg.norm(normal_vector) == 0:
-        normal_vector = np.cross(direction_vector, np.array([0, 1, 0]))
-    normal_vector = normal_vector / np.linalg.norm(normal_vector)
+#     # 計算法向量
+#     direction_vector = end_point - start_point
+#     normal_vector = np.cross(direction_vector, np.array([0, 0, 1]))
+#     if np.linalg.norm(normal_vector) == 0:
+#         normal_vector = np.cross(direction_vector, np.array([0, 1, 0]))
+#     normal_vector = normal_vector / np.linalg.norm(normal_vector)
     
-    # 計算圓弧的圓心
-    center = midpoint + np.sqrt(radius**2 - (chord_length / 2)**2) * normal_vector
+#     # 計算圓弧的圓心
+#     center = midpoint + np.sqrt(radius**2 - (chord_length / 2)**2) * normal_vector
     
-    # 計算圓弧上的點
-    theta = np.linspace(0, np.pi, num_points)
-    v = start_point - center
-    w = np.cross(normal_vector, v)
-    w = w / np.linalg.norm(w) * np.linalg.norm(v)
+#     # 計算圓弧上的點
+#     theta = np.linspace(0, np.pi, num_points)
+#     v = start_point - center
+#     w = np.cross(normal_vector, v)
+#     w = w / np.linalg.norm(w) * np.linalg.norm(v)
     
-    arc_points = np.array([center + np.cos(t) * v + np.sin(t) * w for t in theta])
+#     arc_points = np.array([center + np.cos(t) * v + np.sin(t) * w for t in theta])
     
-    # 取樣點
-    indices = np.linspace(0, len(theta) - 1, num_samples, dtype=int)
-    sampled_arc_points = arc_points[indices]
+#     # 取樣點
+#     indices = np.linspace(0, len(theta) - 1, num_samples, dtype=int)
+#     sampled_arc_points = arc_points[indices]
     
-    return arc_points, sampled_arc_points
+#     return arc_points, sampled_arc_points
 
-# 定義起點和終點
-start_point = np.array([0, 0, 0])
-end_point = np.array([1, 1, 0])
+# # 定義起點和終點
+# start_point = np.array([0, 0, 0])
+# end_point = np.array([1, 1, 0])
 
-# 生成圓弧
-arc_points, sampled_arc_points = generate_3d_arc(start_point, end_point)
+# # 生成圓弧
+# arc_points, sampled_arc_points = generate_3d_arc(start_point, end_point)
 
-# 輸出取樣點的座標
-for i, point in enumerate(sampled_arc_points):
-    print(f"Point {i+1}: {tuple(point)}")
+# # 輸出取樣點的座標
+# for i, point in enumerate(sampled_arc_points):
+#     print(f"Point {i+1}: {tuple(point)}")
 
-# 繪製圓弧
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-ax.plot(arc_points[:, 0], arc_points[:, 1], arc_points[:, 2])
+# # 繪製圓弧
+# fig = plt.figure()
+# ax = fig.add_subplot(111, projection='3d')
+# ax.plot(arc_points[:, 0], arc_points[:, 1], arc_points[:, 2])
 
-# 繪製起點和終點
-ax.scatter(*start_point, color='red', label='Start Point')
-ax.scatter(*end_point, color='green', label='End Point')
+# # 繪製起點和終點
+# ax.scatter(*start_point, color='red', label='Start Point')
+# ax.scatter(*end_point, color='green', label='End Point')
 
-# 繪製取樣點
-ax.scatter(sampled_arc_points[:, 0], sampled_arc_points[:, 1], sampled_arc_points[:, 2], color='blue')
+# # 繪製取樣點
+# ax.scatter(sampled_arc_points[:, 0], sampled_arc_points[:, 1], sampled_arc_points[:, 2], color='blue')
 
-# 設置圖形屬性
-ax.set_xlabel('X')
-ax.set_ylabel('Y')
-ax.set_zlabel('Z')
-ax.set_title('3D Arc from Start to End Point')
-ax.legend()
+# # 設置圖形屬性
+# ax.set_xlabel('X')
+# ax.set_ylabel('Y')
+# ax.set_zlabel('Z')
+# ax.set_title('3D Arc from Start to End Point')
+# ax.legend()
 
-# 顯示圖形
-plt.show()
+# # 顯示圖形
+# plt.show()
 """
 Spline
 """
@@ -3137,3 +3137,20 @@ Array 垂直堆疊
 # # 对λ数组进行正规化
 # λ_normalized = (λ_ - min_val) / (max_val - min_val)
 # print("Normalized λ array:", λ_normalized, λ_normalized.shape)
+
+"""
+取出float的整數與浮點數部分
+"""
+# import math
+
+# num = 123.4
+# fractional_part, integer_part = math.modf(num)
+# print(fractional_part)  # 输出: 0.45600000000000307
+"""
+"""
+def greet(**kwargs):
+    for key, value in kwargs.items():
+        
+        print(f"{key} 是 {value} 歲。")
+
+greet(小明=25, 小華=30)

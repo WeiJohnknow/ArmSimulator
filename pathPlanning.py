@@ -6,6 +6,7 @@ from Kinematics import Kinematics
 from scipy.interpolate import CubicSpline
 from Toolbox import TimeTool
 from dataBase_v1 import *
+from decimal import Decimal
 
 
 class PathPlanning:
@@ -821,7 +822,7 @@ class PathPlanning:
 
             error = NowSpeed - GoalSpeed 
             if error < 0.1 :
-                print(f"error: {error} | 迭代次數: {iter} | alltime: {totalTime} | Speed: {NowSpeed}")
+                print(f"error: {error} | 迭代次數: {iter} | Total time: {totalTime} | Speed: {NowSpeed}")
                 break
             if error > 10:
                 totalTime += 1
@@ -964,7 +965,7 @@ class PathPlanning:
         
     
     @staticmethod
-    def MatrixPathPlanSpeed(GoalEnd, NowEnd, GoalSpeed, sampleTime = 0.04, startTime=0):
+    def MatrixPathPlanSpeed(GoalEnd:np.ndarray, NowEnd:np.ndarray, GoalSpeedType:str, GoalSpeed:float, sampleTime = 0.04, startTime=0):
         """Homogeneous matrix interpolation method, it's a Cartesian space trajectory planning method(速度調變版本).
         - Args:
             - GoalEnd(Homogeneous matrix), NowEnd(Homogeneous matrix), allTime, filePath
@@ -976,6 +977,7 @@ class PathPlanning:
 
         - Ref. 2023hurocup file robot.py fun.GetDmat
         """ 
+
         sin = np.sin
         cos = np.cos
         arccos = np.arccos
@@ -997,20 +999,24 @@ class PathPlanning:
             ky = (D[0,2] - D[2,0]) / u
             kz = (D[1,0] - D[0,1]) / u
         
-        Δx = GoalEnd[0,3] - NowEnd[0,3]
-        Δy = GoalEnd[1,3] - NowEnd[1,3]
-        Δz = GoalEnd[2,3] - NowEnd[2,3]   
-        
-        
         # 利用alltime參數迭代出速度的設定值
         iterData = np.zeros(((2,4,4)))
+        iterAngularVelocity = np.zeros(((2)))
         # allTime = 50
         allTime = 0.1
         iter = 0
+
+        # 啟用最快速度
+        FastestSpeed = False
         while True:
-            sampleInterval = allTime / sampleTime
+            samplePoint = allTime / sampleTime
+            if samplePoint < 1 :
+                print("輸入的速度無法到達， 將規劃可行的最高速度!!!")
+                samplePoint = 1
+                FastestSpeed = True
+
             for λ_ in range(2):
-                λ = λ_ / int(sampleInterval)
+                λ = λ_ / int(samplePoint)
                 V = (1-cos(θ*λ))
                 
                 # Transformation matrix
@@ -1022,10 +1028,45 @@ class PathPlanning:
                 # T 是笛卡兒空間中 NowEnd ➜ GoalEnd 過程中每一個軌跡點的齊次變換矩陣(軌跡點)
                 T = NowEnd @ D_ 
                 iterData[λ_] = T
-            NowSpeed = PathPlanning.calculationSpeed(iterData[0], iterData[1], sampleTime)
+                iterAngularVelocity[λ_] = θ*λ
+            if FastestSpeed is False:
+                # 計算速度或角速度
+                if GoalSpeedType == "Velocity":
+                    # 速度
+                    NowSpeed = PathPlanning.calculationSpeed(iterData[0], iterData[1], sampleTime)
+                    error = NowSpeed - GoalSpeed 
+                    if error < 0.1 and error > -0.1:
+                        print(f"error: {error} | 迭代次數: {iter} | alltime: {allTime} | Speed: {NowSpeed}")
+                        break
+                    if error > 10:
+                        allTime += 1
+                    else:
+                        allTime += 0.1
+                    iter += 1
+                    
+                else:
+                    # 角速度
+                    NowSpeed = iterAngularVelocity[1] - iterAngularVelocity[0]
+                    error = NowSpeed - GoalSpeed
+                    
+                    if error < 0.1 and error > -0.1:
+                        print(f"error: {error} | 迭代次數: {iter} | alltime: {allTime} | Speed: {NowSpeed}")
+                        break
+                    
+                    if error > 10:
+                        allTime += 0.01
+                    elif error <= 10 and error >= 0:
+                        allTime += 0.01
+                    elif error < -10:
+                        allTime -= 0.01
+                    elif error >= -10:
+                        allTime -= 0.01
+                    iter += 1
+            else:
+                allTime = 0.04
+                print(f"迭代次數: {iter} | alltime: {allTime} | Speed: 最高速度")
+                break
             
-
-
             # diff = GoalSpeed - NowSpeed
             # diff_time = alltime - 
             # error = np.sqrt(np.sum(diff** 2))
@@ -1036,29 +1077,33 @@ class PathPlanning:
             # allTime += 0.9 * error
 
             # org method
-            error = NowSpeed - GoalSpeed 
-            if error < 0.1 :
-                print(f"error: {error} | 迭代次數: {iter} | alltime: {allTime} | Speed: {NowSpeed}")
-                break
-            if error > 10:
-                allTime += 1
-            else:
-                allTime += 0.1
+            # if error < 0.1 and error > -0.1:
+            #         print(f"error: {error} | 迭代次數: {iter} | alltime: {allTime} | Speed: {NowSpeed}")
+            #         break
+            # if error > 10:
+            #     allTime += 1
+            # elif error < -10:
+            #     allTime -= 0.01
+            # elif error <= 10:
+            #     allTime += 0.1
+            # elif error >= -10:
+            #     allTime -= 0.001
+            # iter += 1
             
-            iter += 1
             
-
-        
-
         #---------------------------------獲得正確alltime參數，並生成軌跡--------------------------------------
-        sampleInterval = allTime / sampleTime
+        samplePoint = allTime / sampleTime
         # Create Time Point     
-        timeData = np.arange(startTime, allTime, sampleTime)
+        result = Decimal(f"{allTime}") % Decimal(f"{sampleTime}")
+        if result == 0:
+            timeData = np.arange(startTime, allTime+sampleTime, sampleTime)
+        else:
+            timeData = np.arange(startTime, allTime, sampleTime)
         # 儲存軌跡資料(Homogeneous transformation)
-        TBuffer = np.zeros(((int(sampleInterval)+1,4,4)))
+        TBuffer = np.zeros(((int(samplePoint)+1,4,4)))
 
-        for λ_ in range(int(sampleInterval)+1):
-            λ = λ_ / int(sampleInterval)
+        for λ_ in range(int(samplePoint)+1):
+            λ = λ_ / int(samplePoint)
             V = (1-cos(θ*λ))
             
             # Transformation matrix
@@ -1365,17 +1410,17 @@ class PathPlanning:
         GoalSpeed = 2
         totalTime = 8
         
-        b = Time.ReadNowTime()
-        pathData, SpeedData, timeData = self.MatrixPathPlanning(GoalEnd, NowEnd, totalTime, sampleTime)
-        a = Time.ReadNowTime()
-        err = Time.TimeError(b, a)
-        print(err["millisecond"])
+        # b = Time.ReadNowTime()
+        # pathData, SpeedData, timeData = self.MatrixPathPlanning(GoalEnd, NowEnd, totalTime, sampleTime)
+        # a = Time.ReadNowTime()
+        # err = Time.TimeError(b, a)
+        # print(err["millisecond"])
 
-        b_ = Time.ReadNowTime()
-        pathData_, SpeedData_, timeData_ = self.PathToHomogeneousMats(GoalEnd, NowEnd, totalTime, sampleTime)
-        a_ = Time.ReadNowTime()
-        err_ = Time.TimeError(b_, a_)
-        print(err_["millisecond"])
+        # b_ = Time.ReadNowTime()
+        # pathData_, SpeedData_, timeData_ = self.PathToHomogeneousMats(GoalEnd, NowEnd, totalTime, sampleTime)
+        # a_ = Time.ReadNowTime()
+        # err_ = Time.TimeError(b_, a_)
+        # print(err_["millisecond"])
 
 
         b = Time.ReadNowTime()

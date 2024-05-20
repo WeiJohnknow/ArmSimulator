@@ -397,38 +397,38 @@ def main():
         """
         RR manipulator simulator (Static force)
         """
-        # Fk
-        d2r = np.deg2rad
-        cos = np.cos
-        sin = np.sin
+        # # Fk
+        # d2r = np.deg2rad
+        # cos = np.cos
+        # sin = np.sin
 
-        base = np.eye(4)
-        base_v = np.array([[1],
-                             [0],
-                             [0],
-                             [1]])
-        baseToJ1 = Mat.RotaZ(d2r(30)) 
-        baseToJ1_v = baseToJ1 @ base_v
-        J1 = base @ baseToJ1
-        J1_v = J1 @ base_v
-        draw_vector(baseToJ1_v, 2, yellow)
+        # base = np.eye(4)
+        # base_v = np.array([[1],
+        #                      [0],
+        #                      [0],
+        #                      [1]])
+        # baseToJ1 = Mat.RotaZ(d2r(30)) 
+        # baseToJ1_v = baseToJ1 @ base_v
+        # J1 = base @ baseToJ1
+        # J1_v = J1 @ base_v
+        # draw_vector(baseToJ1_v, 2, yellow)
 
-        J1ToJ2 = Mat.TransXYZ(4,1,0) @ Mat.RotaZ(d2r(75)) 
-
-        
-        
-        
-        J2 = J1 @ J1ToJ2
-
-        J2ToJ3 = Mat.TransXYZ(4,1,0) 
-        J3 = J2 @ J2ToJ3
+        # J1ToJ2 = Mat.TransXYZ(4,1,0) @ Mat.RotaZ(d2r(75)) 
 
         
         
-        Sim.draw_axis(base, 0.8)
-        Sim.draw_axis(J1, 0.8)
-        Sim.draw_axis(J2, 0.8)
-        Sim.draw_axis(J3, 0.8)
+        
+        # J2 = J1 @ J1ToJ2
+
+        # J2ToJ3 = Mat.TransXYZ(4,1,0) 
+        # J3 = J2 @ J2ToJ3
+
+        
+        
+        # Sim.draw_axis(base, 0.8)
+        # Sim.draw_axis(J1, 0.8)
+        # Sim.draw_axis(J2, 0.8)
+        # Sim.draw_axis(J3, 0.8)
 
 
         # static force
@@ -485,24 +485,24 @@ def main():
         
 
 
-        # # # Rodrigues' rotation formula
-        # k = np.array(([0.0, 0.0, 1.0]))
-        # v = np.array(([0.0, 0.707, 0.707]))
-        # v_parallel = (dot(v,k)/norm(k))*(k/norm(k))
-        # v_vertical = v - v_parallel
-        # θ = d2r(60)
-        # vrot_ = cos(θ)*v_vertical + sin(θ)*cross(k,v_vertical)
-        # vrot = cos(θ)*v + (1-cos(θ))*(dot(k,v))*k + sin(θ)*cross(k,v)
-        # vrot_parallel = (dot(vrot,k)/norm(k))*(k/norm(k))
-        # vrot_vertical = vrot - vrot_parallel
-        # draw_vector(k, 2, blue)
-        # draw_vector(v, 2, green)
-        # draw_vector(v_parallel, 5, red)
-        # draw_vector(v_vertical, 5, red)
-        # draw_vector(vrot, 2, orange)
-        # draw_vector(vrot_parallel, 5, Purple)
-        # draw_vector(vrot_vertical, 5, Purple)
-        # print(calculate_angle(v_vertical, vrot_vertical))
+        # # Rodrigues' rotation formula
+        k = np.array(([0.0, 0.0, 1.0]))
+        v = np.array(([0.0, 0.707, 0.707]))
+        v_parallel = (dot(v,k)/norm(k))*(k/norm(k))
+        v_vertical = v - v_parallel
+        θ = d2r(60)
+        vrot_ = cos(θ)*v_vertical + sin(θ)*cross(k,v_vertical)
+        vrot = cos(θ)*v + (1-cos(θ))*(dot(k,v))*k + sin(θ)*cross(k,v)
+        vrot_parallel = (dot(vrot,k)/norm(k))*(k/norm(k))
+        vrot_vertical = vrot - vrot_parallel
+        draw_vector(k, 2, blue)
+        draw_vector(v, 2, green)
+        draw_vector(v_parallel, 5, red)
+        draw_vector(v_vertical, 5, red)
+        draw_vector(vrot, 2, orange)
+        draw_vector(vrot_parallel, 5, Purple)
+        draw_vector(vrot_vertical, 5, Purple)
+        print(calculate_angle(v_vertical, vrot_vertical))
 
         # # 測試叉積
         # a = [3.0, 0.0, 0.0]

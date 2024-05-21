@@ -191,7 +191,157 @@ class Generator:
         # 使用 np.concatenate 連接數組
         result = np.concatenate((arrays), axis=axis)
         return result
+    
+    def BoxPath():
+        """
+        1. 生成軌跡
+        2. 計算IK
+        3. 模擬
+        """
+        # 歐式距離: 18mm
+        # 第一段
+        # NowEnd1 = [958.521, -37.126, -164.943, -165.2876, -7.1723, 17.5191]
+        # GoalEnd1 = [958.525, -18.527, -164.933, -165.2873, -7.1725, 17.5181]
+        # # 第一段 to 第二段 純姿態轉換
+        # NowEnd2 = [958.521, -18.527, -164.943, -165.2876, -7.1723, 17.5191]
+        # GoalEnd2 = [958.525, -18.527, -164.933, -165.2873, -7.1725, 107.5181]
+        # # 第二段
+        # NowEnd3 = [958.521, -18.527, -164.943, -165.2876, -7.1723, 97.5181]
+        # GoalEnd3 = [940.525, -18.527, -164.933, -165.2873, -7.1725, 97.5181]
 
+
+        # 歐式距離: 150mm
+        # NowEnd = [958.521, -109.209, -158.398, -165.2876, -52.1723, 17.5191]
+        # GoalEnd = [958.525, 41.670, -158.417, -165.2876, -52.1723, 17.5191]
+
+        # NowEnd = [958.525, 41.670, -158.417, -165.2876, -52.1723, 97.5191]
+        # GoalEnd = [808.525, 41.670, -158.417, -165.2876, -52.1723, 97.5191]
+        # 曲線:150mm
+        # NowEnd = [958.521, -109.209, -164.943, -165.2876, -7.1723, 17.5191]
+        # GoalEnd = [858.525, 41.670, -164.943, -165.2876, -7.1723, 97.5191]
+        """L型軌跡
+        第一段:
+            起點: [1031.987, -104.122, -139.911, -152.7425, 23.1266, 20.5289]
+            姿態修改起點:[1032.008, 37.584, -139.896, -152.746, 23.1284, 20.5184]
+            終點:[1033.112, 47.657, -140.156, -152.7421, 23.1349, 110.6475]
+        第二段:
+            起點:[1033.112, 47.657, -140.156, -152.7421, 23.1349, 110.6475]
+            姿態修正起點:[893.962, 48.64, -139.7, -152.7357, 23.1516, 110.6175]
+        """
+
+        """矩形軌跡
+        Org = [485.126, -1.295, 234.296, 179.9772, 20.2428, 1.6694]
+
+        PreGo:[1028.838, -100.512, -60.384, 153.7943, -12.9858, -137.0558]
+
+        第一段起點:[1028.892, -100.126, -133.43, 153.7838, -12.9644, -137.0478]
+        第一段姿態變換起點:[1028.898, 39.173, -133.479, 153.7858, -12.965, -137.0483]
+
+        第二段起點:[1031.113, 46.448, -133.548, 153.794, -12.9626, -67.5844]
+        第二段姿態變換前:[889.137, 46.416, -133.527, 153.7951, -12.9672, -67.5838]
+
+        第三段起點:[883.23, 46.267, -136.13, 152.7504, 9.8314, 46.9511]
+        第三段姿態變換前:[883.227, -94.75, -133.892, 152.7565, 9.824, 46.9406]
+
+        第四段起點:[883.285, -103.725, -135.859, 166.9137, 9.1798, 131.1553]
+        第四段終點:[1034.248, -103.696, -135.859, 166.9115, 9.179, 131.1576]
+
+        PreBack:[1034.267, -103.681, -45.869, 166.9084, 9.181, 131.1607]
+        
+        Org = [485.126, -1.295, 234.296, 179.9772, 20.2428, 1.6694]
+        """
+        PreGo             = [1028.838, -100.512, -60.384, 153.7943, -12.9858, -137.0558]
+
+        line1stStart      = [1028.892, -100.126, -133.43, 153.7838, -12.9644, -137.0478]
+        line1stFixPosture = [1028.898, 39.173, -133.479, 153.7858, -12.965, -137.0483]
+        line1stEnd        = [1031.113, 46.448, -133.548, 153.794, -12.9626, -67.5844]
+
+        line2ndStart      = [1031.113, 46.448, -133.548, 153.794, -12.9626, -67.5844]
+        line2ndFixPosture = [889.137, 46.416, -133.527, 153.7951, -12.9672, -67.5838]
+        line2ndEnd        = [883.23, 46.267, -136.13, 152.7504, 9.8314, 46.9511]
+        
+        line3rdStart      = [883.23, 46.267, -136.13, 152.7504, 9.8314, 46.9511]
+        line3rdFixPosture = [883.227, -94.75, -133.892, 152.7565, 9.824, 46.9406]
+        line3rdEnd        = [883.285, -103.725, -135.859, 166.9137, 9.1798, 131.1553]
+        
+        line4thStart      = [883.285, -103.725, -135.859, 166.9137, 9.1798, 131.1553]
+        line4thEnd        = [1034.248, -103.696, -135.859, 166.9115, 9.179, 131.1576]
+
+        PreBack           = [1034.267, -103.681, -45.869, 166.9084, 9.181, 131.1607]
+        
+        WeldSpeed = 2
+        angularVelocity = np.deg2rad(10)
+        sampleTime = 0.04
+        
+        b = Time.ReadNowTime()
+        """
+        Box Path
+        """
+        # 第一直線段
+        HomogeneousMatData1, PoseMatData1, VelocityData1, TimeData1 = Generator.generateTrajectory(line1stStart, line1stFixPosture, sampleTime, Velocity=WeldSpeed)
+        # 第一段>>第二段 姿態規劃
+        HomogeneousMatData2, PoseMatData2, VelocityData2, TimeData2 = Generator.generateTrajectory(line1stFixPosture, line1stEnd, sampleTime, angularVelocity=angularVelocity)
+        # 第二直線段
+        HomogeneousMatData3, PoseMatData3, VelocityData3, TimeData3 = Generator.generateTrajectory(line2ndStart, line2ndFixPosture, sampleTime, Velocity=WeldSpeed)
+        # 第二段>>第三段 姿態規劃
+        HomogeneousMatData4, PoseMatData4, VelocityData4, TimeData4 = Generator.generateTrajectory(line2ndFixPosture, line2ndEnd, sampleTime, angularVelocity=angularVelocity)
+        # 第三直線段
+        HomogeneousMatData5, PoseMatData5, VelocityData5, TimeData5 = Generator.generateTrajectory(line3rdStart, line3rdFixPosture, sampleTime, Velocity=WeldSpeed)
+        # 第三段>>第四段 姿態規劃
+        HomogeneousMatData6, PoseMatData6, VelocityData6, TimeData6 = Generator.generateTrajectory(line3rdFixPosture, line3rdEnd, sampleTime, angularVelocity=angularVelocity)
+        # 第四直線段
+        HomogeneousMatData7, PoseMatData7, VelocityData7, TimeData7 = Generator.generateTrajectory(line4thStart, line4thEnd, sampleTime, Velocity=WeldSpeed)
+        
+        
+        # Generator.generateTrajectory_Spline(NowEnd, GoalEnd, sampleTime, Goalspeed)
+        # HomogeneousMatData2, PoseMatData2, VelocityData2, TimeData2 = Generator.generateTrajectory_totalTime(NowEnd2, GoalEnd2, sampleTime, 1)
+        a = Time.ReadNowTime()
+        calerr = Time.TimeError(b, a)
+        print("計算新軌跡總共花費: ", calerr["millisecond"], "ms")
+
+        # 軌跡資料整併
+        axis = 0
+        HomogeneousMatData = Generator.mergeTrjs(axis, HomogeneousMatData1, HomogeneousMatData2, HomogeneousMatData3, HomogeneousMatData4, HomogeneousMatData5, HomogeneousMatData6, HomogeneousMatData7)
+        PoseMatData = Generator.mergeTrjs(axis, PoseMatData1, PoseMatData2, PoseMatData3, PoseMatData4, PoseMatData5, PoseMatData6, PoseMatData7)
+        VelocityData = Generator.mergeTrjs(axis, VelocityData1, VelocityData2, VelocityData3, VelocityData4, VelocityData5, VelocityData6, VelocityData7)
+        TimeData = Generator.mergeTrjs(axis, TimeData1, TimeData2, TimeData3, TimeData4, TimeData5, TimeData6, TimeData7)
+        
+        mode = "w"
+        filename_header = "database/dynamicllyPlanTEST/"
+        # 標號為0表示其為軌跡原檔
+        number = 0
+
+        HomogeneousMat_file = filename_header + f"HomogeneousMat_{number}.csv"
+        PoseMat_file = filename_header + f"PoseMat_{number}.csv"
+        Speed_file = filename_header + f"Speed_{number}.csv"
+        Time_file = filename_header + f"Time_{number}.csv"
+        PoseMatAndTime_file = filename_header + f"PoseMatAndTime_{number}.csv"
+
+        
+        database_HomogeneousMat.Save(HomogeneousMatData, HomogeneousMat_file, mode)
+        database_PoseMat.Save(PoseMatData, PoseMat_file, mode)
+        database_Velocity.Save(VelocityData, Speed_file, mode)
+        database_time.Save(TimeData, Time_file, mode)
+        TimeData = TimeData.reshape(-1, 1, 1)
+        PoseMatAndTime = np.concatenate((PoseMatData, TimeData), axis=2)
+        database_time.Save_PoseMat_Time(PoseMatAndTime, PoseMatAndTime_file, mode)
+        
+        nowJointAngle = (np.zeros((6,1)))
+        nowJointAngle[0, 0] =  d2r(-0.006)
+        nowJointAngle[1, 0] =  d2r(-38.8189)
+        nowJointAngle[2, 0] =  d2r(-41.0857)
+        nowJointAngle[3, 0] =  d2r(-0.0030)
+        nowJointAngle[4, 0] =  d2r(-76.4394)
+        nowJointAngle[5, 0] =  d2r(1.0687)
+        HomogeneousMat = database_HomogeneousMat.Load(filename_header+f"HomogeneousMat_{number}.csv")
+        b = Time.ReadNowTime()
+        JointAngle = Generator.generateTrajectoryJointAngle(nowJointAngle, HomogeneousMat)
+        a = Time.ReadNowTime()
+        calerr = Time.TimeError(b, a)
+        print("計算新軌跡IK總共花費: ", calerr["millisecond"], "ms")
+        database_JointAngle.Save(JointAngle, filename_header+f"JointAngle_{number}.csv", mode)
+
+        Sim.paitGL(JointAngle, HomogeneousMat)
 
     
 if __name__ == "__main__":
@@ -208,21 +358,22 @@ if __name__ == "__main__":
         2. 計算IK
         3. 模擬
         """
+        
         # 歐式距離: 18mm
         # 第一段
-        NowEnd1 = [958.521, -37.126, -164.943, -165.2876, -7.1723, 17.5191]
-        GoalEnd1 = [958.525, -18.527, -164.933, -165.2873, -7.1725, 17.5181]
-        # 第一段 to 第二段 純姿態轉換
-        NowEnd2 = [958.521, -18.527, -164.943, -165.2876, -7.1723, 17.5191]
-        GoalEnd2 = [958.525, -18.527, -164.933, -165.2873, -7.1725, 107.5181]
-        # 第二段
-        NowEnd3 = [958.521, -18.527, -164.943, -165.2876, -7.1723, 97.5181]
-        GoalEnd3 = [940.525, -18.527, -164.933, -165.2873, -7.1725, 97.5181]
+        # NowEnd1 = [958.521, -37.126, -164.943, -165.2876, -7.1723, 17.5191]
+        # GoalEnd1 = [958.525, -18.527, -164.933, -165.2873, -7.1725, 17.5181]
+        # # 第一段 to 第二段 純姿態轉換
+        # NowEnd2 = [958.521, -18.527, -164.943, -165.2876, -7.1723, 17.5191]
+        # GoalEnd2 = [958.525, -18.527, -164.933, -165.2873, -7.1725, 107.5181]
+        # # 第二段
+        # NowEnd3 = [958.521, -18.527, -164.943, -165.2876, -7.1723, 97.5181]
+        # GoalEnd3 = [940.525, -18.527, -164.933, -165.2873, -7.1725, 97.5181]
 
 
         # 歐式距離: 150mm
-        # NowEnd = [958.521, -109.209, -158.398, -165.2876, -52.1723, 17.5191]
-        # GoalEnd = [958.525, 41.670, -158.417, -165.2876, -52.1723, 17.5191]
+        NowEnd = [958.521, -109.209, -158.398, -165.2876, -7.1723, 17.5191]
+        GoalEnd = [958.525, 41.670, -158.417, -165.2876, -7.1723, 17.5191]
 
         # NowEnd = [958.525, 41.670, -158.417, -165.2876, -52.1723, 97.5191]
         # GoalEnd = [808.525, 41.670, -158.417, -165.2876, -52.1723, 97.5191]
@@ -230,33 +381,26 @@ if __name__ == "__main__":
         # NowEnd = [958.521, -109.209, -164.943, -165.2876, -7.1723, 17.5191]
         # GoalEnd = [858.525, 41.670, -164.943, -165.2876, -7.1723, 97.5191]
         
-        Goalspeed = 2
-        angularVelocity = np.deg2rad(100)
+        
+        WeldSpeed = 2
+        angularVelocity = np.deg2rad(10)
         sampleTime = 0.04
         
         b = Time.ReadNowTime()
-
-        # 第一直線段
-        HomogeneousMatData1, PoseMatData1, VelocityData1, TimeData1 = Generator.generateTrajectory(NowEnd1, GoalEnd1, sampleTime, Velocity=Goalspeed)
-        # 第一段>>第二段 姿態規劃
-        HomogeneousMatData2, PoseMatData2, VelocityData2, TimeData2 = Generator.generateTrajectory(NowEnd2, GoalEnd2, sampleTime, angularVelocity=angularVelocity)
-        # HomogeneousMatData2, PoseMatData2, VelocityData2, TimeData2 = Generator.generateTrajectory_totalTime(NowEnd2, GoalEnd2, sampleTime, 1)
-        # 第二直線段
-        HomogeneousMatData3, PoseMatData3, VelocityData3, TimeData3 = Generator.generateTrajectory(NowEnd3, GoalEnd3, sampleTime, Velocity=Goalspeed)
+        """
+        Linear
+        """
+        # 直線段
+        HomogeneousMatData, PoseMatData, VelocityData, TimeData = Generator.generateTrajectory(NowEnd, GoalEnd, sampleTime, Velocity=WeldSpeed)
+        
+        
         
         # Generator.generateTrajectory_Spline(NowEnd, GoalEnd, sampleTime, Goalspeed)
-        
+        # HomogeneousMatData2, PoseMatData2, VelocityData2, TimeData2 = Generator.generateTrajectory_totalTime(NowEnd2, GoalEnd2, sampleTime, 1)
         a = Time.ReadNowTime()
         calerr = Time.TimeError(b, a)
         print("計算新軌跡總共花費: ", calerr["millisecond"], "ms")
 
-        # 軌跡資料整併
-        axis = 0
-        HomogeneousMatData = Generator.mergeTrjs(axis, HomogeneousMatData1, HomogeneousMatData2, HomogeneousMatData3)
-        PoseMatData = Generator.mergeTrjs(axis, PoseMatData1, PoseMatData2, PoseMatData3)
-        VelocityData = Generator.mergeTrjs(axis, VelocityData1, VelocityData2, VelocityData3)
-        TimeData = Generator.mergeTrjs(axis, TimeData1, TimeData2, TimeData3)
-        
         mode = "w"
         filename_header = "database/dynamicllyPlanTEST/"
         # 標號為0表示其為軌跡原檔

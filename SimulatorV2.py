@@ -475,6 +475,9 @@ class Simulator:
         # 世界坐標系原點
         World_coordinate = np.eye(4)
 
+        # 觀察點座標
+        observer = np.eye(4)
+
         # 設定camera
         '''
         forward -> 相機Z軸，看向物體的方向。
@@ -527,7 +530,7 @@ class Simulator:
            
             keys = pygame.key.get_pressed()
 
-            # 觀察者視角移動
+            # 觀察者視角轉動
             if keys[pygame.K_a]:
                 cameraφ -= 0.05
             if keys[pygame.K_d]:
@@ -537,6 +540,23 @@ class Simulator:
                 cameraθ -= 0.05
             if keys[pygame.K_s]:
                 cameraθ += 0.05
+
+            # 觀察者視角移動
+            if keys[pygame.K_5]:
+                observer[0,3] += 20
+            if keys[pygame.K_t]:
+                observer[0,3] -= 20
+            
+            if keys[pygame.K_6]:
+                observer[1,3] += 20
+            if keys[pygame.K_y]:
+                observer[1,3] -= 20
+            
+            if keys[pygame.K_7]:
+                observer[2,3] += 20
+            if keys[pygame.K_u]:
+                observer[2,3] -= 20
+
 
             # 手臂關節移動
             if keys[pygame.K_3]:
@@ -586,9 +606,14 @@ class Simulator:
             cameraY = cameraDir * np.sin(cameraθ) * np.sin(cameraφ)
             cameraZ = cameraDir * np.cos(cameraθ)
 
-            # 設定OpenGL Lookat(觀察者視角)
-            gluLookAt(cameraX, cameraY, cameraZ,
-                      World_coordinate[0,3], World_coordinate[1,3], World_coordinate[2,3]
+            # 設定OpenGL Lookat(觀察者視角)(以世界坐標系為原點觀察)
+            # gluLookAt(cameraX, cameraY, cameraZ,
+            #           World_coordinate[0,3], World_coordinate[1,3], World_coordinate[2,3]
+            #           ,0,0,1)
+
+            # 以觀察點坐標系觀察(觀察點可移動)
+            gluLookAt(cameraX+observer[0,3], cameraY+observer[1,3], cameraZ+observer[2,3],
+                      observer[0,3], observer[1,3], observer[2,3]
                       ,0,0,1)
             
             # 對視景模型操作
@@ -599,6 +624,9 @@ class Simulator:
             
             # 繪製世界坐標系
             self.draw_axis(World_coordinate, 100)
+
+            # 繪製觀察者坐標系
+            self.draw_axis(observer, 100)
             
             # 繪製地板
             self.draw_chessboard(World_coordinate)

@@ -192,12 +192,20 @@ class Generator:
         result = np.concatenate((arrays), axis=axis)
         return result
     
-    def BoxPath():
-        """
+    @staticmethod
+    def GenerBoxPath(ReplanPathNumber:list, Velocity, AngularVelocity):
+        """生成四邊形軌跡
+
+        Arg:
+            ReplanPathNumber: 需要重新規劃軌跡的路徑編號，ex:[1, 2, 3]
+            Velocity: mm/s
+            AngularVelocity: deg/s
         1. 生成軌跡
         2. 計算IK
         3. 模擬
         """
+        
+
         # 歐式距離: 18mm
         # 第一段
         # NowEnd1 = [958.521, -37.126, -164.943, -165.2876, -7.1723, 17.5191]
@@ -269,14 +277,15 @@ class Generator:
 
         PreBack           = [1034.267, -103.681, -45.869, 166.9084, 9.181, 131.1607]
         
-        WeldSpeed = 2
-        angularVelocity = np.deg2rad(10)
+        WeldSpeed = Velocity
+        angularVelocity = np.deg2rad(AngularVelocity)
         sampleTime = 0.04
         
         b = Time.ReadNowTime()
         """
         Box Path
         """
+        # TODO 利用ReplanPathNumber分類需要重新規畫的路徑編號
         # 第一直線段
         HomogeneousMatData1, PoseMatData1, VelocityData1, TimeData1 = Generator.generateTrajectory(line1stStart, line1stFixPosture, sampleTime, Velocity=WeldSpeed)
         # 第一段>>第二段 姿態規劃
@@ -292,9 +301,6 @@ class Generator:
         # 第四直線段
         HomogeneousMatData7, PoseMatData7, VelocityData7, TimeData7 = Generator.generateTrajectory(line4thStart, line4thEnd, sampleTime, Velocity=WeldSpeed)
         
-        
-        # Generator.generateTrajectory_Spline(NowEnd, GoalEnd, sampleTime, Goalspeed)
-        # HomogeneousMatData2, PoseMatData2, VelocityData2, TimeData2 = Generator.generateTrajectory_totalTime(NowEnd2, GoalEnd2, sampleTime, 1)
         a = Time.ReadNowTime()
         calerr = Time.TimeError(b, a)
         print("計算新軌跡總共花費: ", calerr["millisecond"], "ms")
@@ -341,7 +347,7 @@ class Generator:
         print("計算新軌跡IK總共花費: ", calerr["millisecond"], "ms")
         database_JointAngle.Save(JointAngle, filename_header+f"JointAngle_{number}.csv", mode)
 
-        Sim.paitGL(JointAngle, HomogeneousMat)
+        # Sim.paitGL(JointAngle, HomogeneousMat)
 
     
 if __name__ == "__main__":
@@ -372,8 +378,8 @@ if __name__ == "__main__":
 
 
         # 歐式距離: 150mm
-        NowEnd = [958.521, -109.209, -158.398, -165.2876, -7.1723, 17.5191]
-        GoalEnd = [958.525, 41.670, -158.417, -165.2876, -7.1723, 17.5191]
+        NowEnd = [960.216, 41.426, -151.949, 175.7717, 17.9366, 59.3998]
+        GoalEnd = [960.216, -109.209, -151.949, 175.7717, 17.9366, 59.3998]
 
         # NowEnd = [958.525, 41.670, -158.417, -165.2876, -52.1723, 97.5191]
         # GoalEnd = [808.525, 41.670, -158.417, -165.2876, -52.1723, 97.5191]
@@ -384,7 +390,7 @@ if __name__ == "__main__":
         
         WeldSpeed = 2
         angularVelocity = np.deg2rad(10)
-        sampleTime = 0.04
+        sampleTime = 0.1
         
         b = Time.ReadNowTime()
         """
@@ -392,8 +398,6 @@ if __name__ == "__main__":
         """
         # 直線段
         HomogeneousMatData, PoseMatData, VelocityData, TimeData = Generator.generateTrajectory(NowEnd, GoalEnd, sampleTime, Velocity=WeldSpeed)
-        
-        
         
         # Generator.generateTrajectory_Spline(NowEnd, GoalEnd, sampleTime, Goalspeed)
         # HomogeneousMatData2, PoseMatData2, VelocityData2, TimeData2 = Generator.generateTrajectory_totalTime(NowEnd2, GoalEnd2, sampleTime, 1)
@@ -453,9 +457,9 @@ if __name__ == "__main__":
         
         # PoseMat >>> HomogeneousMat
         filename_header = "database/dynamicllyPlanTEST/"
-        PoseMat = database_PoseMat.Load(filename_header+"Remix_PoseMat.csv")
-        HomogeneousMat = database_HomogeneousMat.Load(filename_header+"Remix_HomogeneousMat.csv")
+        PoseMat = database_PoseMat.Load(filename_header+"PoseMat_0.csv")
+        HomogeneousMat = database_HomogeneousMat.Load(filename_header+"HomogeneousMat_0.csv")
         JointAngleData = Generator.generateTrajectoryJointAngle(nowJointAngle, HomogeneousMat)
-        database_JointAngle.Save(JointAngleData, filename_header+"Remix_JointAngle.csv", "w")
+        database_JointAngle.Save(JointAngleData, filename_header+"JointAngle_0.csv", "w")
         
         Sim.paitGL(JointAngleData, HomogeneousMat)

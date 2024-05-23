@@ -137,7 +137,7 @@ class database_time(Database_interface):
     def Save_I0AndPrvUpdataTimeAndSysTime(I0AndPrvUpdataTimeAndSysTime, filePath, mode:str):
         """
         """
-        dataTypeConverter.ndarrayTOdataframe(I0AndPrvUpdataTimeAndSysTime, ["I0", "PrvUpdataTime", "SysTime", "WriteTrjSysTime", "WriteTrjCostTime", "WriteInterval"], filePath, mode)
+        dataTypeConverter.ndarrayTOdataframe(I0AndPrvUpdataTimeAndSysTime, ["I0", "Prv_I0", "Write permission", "PrvUpdataTime", "SysTime", "WriteTrjSysTime", "WriteTrjCostTime", "WriteInterval"], filePath, mode)
     
     @ staticmethod
     def Save_PoseMat_Time(PoseMatAndTime, filePath, mode:str):
@@ -301,19 +301,46 @@ class dataOperating:
 
 
     @ staticmethod
-    def searchSimilar(dataSet, targetData):
+    def searchSimilarTrj(PoseMatDataSet:np.ndarray, targetPoseMatData:np.ndarray):
         """Search for the closest trajectory data.
-        - dataSet: type is ndarray.
-        - targetData: Sample to search for.
+
+        args:
+            - PoseMatDataSet: shape is n*1*6.
+            - targetPoseMatData: shape is 1*6.
+        
+        return:
+            - mostSimilarData(np.ndarray): Profile most similar to target, shape is 1*6.
+            - mostSimilarIndex(int): Index of data most similar to the target data.
+
         """
+        # 將資料拆分成位置與姿態
+        Position = PoseMatDataSet[:, :, :3].reshape(-1, 3)
+        Posture = PoseMatDataSet[:, :, 3:].reshape(-1, 3)
+
+        targetPosition = targetPoseMatData[:, :3].reshape(-1)
+        targetPosture = targetPoseMatData[:, 3:].reshape(-1)
+
         # 計算每一筆資料與目標資料的歐氏距離
-        distances = np.linalg.norm(dataSet - targetData, axis=1)
+        diffPosition = np.linalg.norm(Position-targetPosition, axis=1)
+        diffPosture =  np.linalg.norm(Posture-targetPosture, axis=1)
 
-        # 找出距離最小的資料的索引
-        closestIndex = np.argmin(distances)
+        # 使用 np.all 檢查數組中的所有元素是否為 0
+        is_diffPosition_zero = np.all(diffPosition == 0)
+        is_diffPosture_zero = np.all(diffPosture == 0)
 
-        # 找出距離最小的資料
-        closestData = dataSet.iloc[closestIndex]
+        # 判斷歐式距離array是否為0
+        # 0表示無變動
+        # 從有變動的array中找最小歐式距離
+        # 即可得到最接近目標資料的資料索引
+        if is_diffPosition_zero:
+            mostSimilarIndex = np.argmin(diffPosture)
+        elif is_diffPosture_zero:
+            mostSimilarIndex = np.argmin(diffPosition)
+        else:
+            print("軌跡有問題，變動率為0")
+    
+        # 找出最接近目標資料的資料
+        mostSimilarData = PoseMatDataSet[mostSimilarIndex]
 
-        return closestData, closestIndex
+        return mostSimilarData, mostSimilarIndex
 

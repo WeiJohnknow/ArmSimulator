@@ -1031,6 +1031,7 @@ class PathPlanning:
                 iterAngularVelocity[λ_] = θ*λ
             if FastestSpeed is False:
                 # 計算速度或角速度
+                # TODO 使用角速度規劃時，是否可以兼顧速度?
                 if GoalSpeedType == "Velocity":
                     # 速度
                     NowSpeed = PathPlanning.calculationSpeed(iterData[0], iterData[1], sampleTime)

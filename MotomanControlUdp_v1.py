@@ -2873,6 +2873,11 @@ class Motomancontrol():
         sysflag = True
         # 變軌跡次數
         trjUpdataNBR = 0
+
+        # 測試通訊資料批次數
+        I3count = 0
+        I11count = 0
+        feedback_count = 0
         
         
         # 計算資料分割的組數與批數
@@ -2887,17 +2892,16 @@ class Motomancontrol():
             Istatus = self.Udp.WriteVar("Integer", 3, Velpacket[0])
         # 紀錄通訊所送出的軌跡資料 | 用於驗證
         self.communicationRecords(RPdata, Veldata, alreadySentDataBatch, batch)
+        I3count+=1
         # 已送出之軌跡資料(批次數)+1
         alreadySentDataBatch += 1
+
         
         # 軌跡規劃執行緒
         Thread_started = False
         planThread = GetNewTrj(target=self.PlanNewTrj)
 
-        # 測試通訊資料批次數
-        I3count = 0
-        I11count = 0
-        feedback_count = 0
+        
 
         # 更新位置變數時的時間點
         updataTrjTime = self.Time.ReadNowTime()
@@ -2955,14 +2959,15 @@ class Motomancontrol():
                     # 紀錄feedback數據 | 紀錄初始位置與系統時間
                     self.feedbackRecords(0)
                 else:
-                    I0 = [11]
-
                     # 通訊紀錄
                     self.communicationRecords(RPdata, Veldata, alreadySentDataBatch, batch)
                     # 資料(批次)計數器更新
                     alreadySentDataBatch += 1
-                    
+
+                    # 模擬送出第二批資料
                     I11count+=1
+
+                    I0 = [2]
                 sysflag = False
             
             else:
@@ -3142,43 +3147,44 @@ class Motomancontrol():
                                 can_End = False
                                 
                             if can_End is True:
-                                # feedback的軌跡資料
-                                # 濾除整個row為0的部分
-                                non_zero_rows_Trajectory = np.any(self.feedbackRecords_Trj != 0, axis=(1, 2))
-                                non_zero_rows_Time = np.any(self.feedbackRecords_sysTime != 0, axis=1)
-                                # 系統時間需保留初值0
-                                non_zero_rows_Time[:2] = True
+                                self.finalSaveData("dataBase/dynamicllyPlanTEST/")
+                                # # feedback的軌跡資料
+                                # # 濾除整個row為0的部分
+                                # non_zero_rows_Trajectory = np.any(self.feedbackRecords_Trj != 0, axis=(1, 2))
+                                # non_zero_rows_Time = np.any(self.feedbackRecords_sysTime != 0, axis=1)
+                                # # 系統時間需保留初值0
+                                # non_zero_rows_Time[:2] = True
 
-                                self.feedbackRecords_Trj = self.feedbackRecords_Trj[non_zero_rows_Trajectory]
-                                self.feedbackRecords_sysTime = self.feedbackRecords_sysTime[non_zero_rows_Time]
+                                # self.feedbackRecords_Trj = self.feedbackRecords_Trj[non_zero_rows_Trajectory]
+                                # self.feedbackRecords_sysTime = self.feedbackRecords_sysTime[non_zero_rows_Time]
                                 
-                                database_PoseMat.Save(self.feedbackRecords_Trj, "dataBase/dynamicllyPlanTEST/feedbackRecords_Trj.csv", "w")
-                                database_time.Save(self.feedbackRecords_sysTime, "dataBase/dynamicllyPlanTEST/feedbackRecords_sysTime.csv", "w")
+                                # database_PoseMat.Save(self.feedbackRecords_Trj, "dataBase/dynamicllyPlanTEST/feedbackRecords_Trj.csv", "w")
+                                # database_time.Save(self.feedbackRecords_sysTime, "dataBase/dynamicllyPlanTEST/feedbackRecords_sysTime.csv", "w")
                                 
-                                # 儲存通訊所送出的軌跡資料
-                                self.communicationRecords_Trj = self.communicationRecords_Trj.reshape(-1, 1, 6)
-                                self.communicationRecords_Speed = self.communicationRecords_Speed.reshape(-1, 1)
-                                # 濾除整個row為0的部分
-                                non_zero_rows_Trajectory = np.any(self.communicationRecords_Trj != 0, axis=(1, 2))
-                                non_zero_rows_Speed = np.any(self.communicationRecords_Speed != 0, axis=1)
-                                non_zero_rows_costTime = np.any(self.costTime != 0, axis=1)
+                                # # 儲存通訊所送出的軌跡資料
+                                # self.communicationRecords_Trj = self.communicationRecords_Trj.reshape(-1, 1, 6)
+                                # self.communicationRecords_Speed = self.communicationRecords_Speed.reshape(-1, 1)
+                                # # 濾除整個row為0的部分
+                                # non_zero_rows_Trajectory = np.any(self.communicationRecords_Trj != 0, axis=(1, 2))
+                                # non_zero_rows_Speed = np.any(self.communicationRecords_Speed != 0, axis=1)
+                                # non_zero_rows_costTime = np.any(self.costTime != 0, axis=1)
 
-                                self.communicationRecords_Trj = self.communicationRecords_Trj[non_zero_rows_Trajectory]
-                                self.communicationRecords_Speed = self.communicationRecords_Speed[non_zero_rows_Speed]
-                                self.costTime = self.costTime[non_zero_rows_costTime]
-                                mode = "w"
-                                database_PoseMat.Save(self.communicationRecords_Trj, "dataBase/dynamicllyPlanTEST/communicationRecords_Trj.csv", mode)
-                                database_Velocity.Save(self.communicationRecords_Speed, "dataBase/dynamicllyPlanTEST/communicationRecords_Speed.csv", mode)
-                                database_time.Save_costTime(self.costTime, "dataBase/dynamicllyPlanTEST/costTime.csv", mode)
+                                # self.communicationRecords_Trj = self.communicationRecords_Trj[non_zero_rows_Trajectory]
+                                # self.communicationRecords_Speed = self.communicationRecords_Speed[non_zero_rows_Speed]
+                                # self.costTime = self.costTime[non_zero_rows_costTime]
+                                # mode = "w"
+                                # database_PoseMat.Save(self.communicationRecords_Trj, "dataBase/dynamicllyPlanTEST/communicationRecords_Trj.csv", mode)
+                                # database_Velocity.Save(self.communicationRecords_Speed, "dataBase/dynamicllyPlanTEST/communicationRecords_Speed.csv", mode)
+                                # database_time.Save_costTime(self.costTime, "dataBase/dynamicllyPlanTEST/costTime.csv", mode)
                                 
-                                # 儲存 I0、PrvUdpataTime、SysTime紀錄(Debug)
-                                non_zero_rows_EventRecord = np.any(self.EventRecord != 0, axis=1)
-                                self.EventRecord = self.EventRecord[non_zero_rows_EventRecord]
-                                database_time.Save_EventRecords(self.EventRecord, "dataBase/dynamicllyPlanTEST/EventRecord.csv", mode)
+                                # # 儲存 I0、PrvUdpataTime、SysTime紀錄(Debug)
+                                # non_zero_rows_EventRecord = np.any(self.EventRecord != 0, axis=1)
+                                # self.EventRecord = self.EventRecord[non_zero_rows_EventRecord]
+                                # database_time.Save_EventRecords(self.EventRecord, "dataBase/dynamicllyPlanTEST/EventRecord.csv", mode)
                                 
-                                # 儲存軌跡與速度總資料
-                                database_PoseMat.Save(self.trjData, "dataBase/dynamicllyPlanTEST/mergeTrj.csv", "w")
-                                database_Velocity.Save(self.velData, "dataBase/dynamicllyPlanTEST/mergeSpeed.csv", "w") 
+                                # # 儲存軌跡與速度總資料
+                                # database_PoseMat.Save(self.trjData, "dataBase/dynamicllyPlanTEST/mergeTrj.csv", "w")
+                                # database_Velocity.Save(self.velData, "dataBase/dynamicllyPlanTEST/mergeSpeed.csv", "w") 
                                 break
                     else:
                         self.finalSaveData("dataBase/dynamicllyPlanTEST/")

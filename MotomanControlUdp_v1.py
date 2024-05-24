@@ -2486,12 +2486,12 @@ class Motomancontrol():
 
         # I0驗證系統
         """
+        迴圈事件紀錄
         I0、PrvUpdataTime、SysTime :[I0, PrvUpdataTime, SysTime]
         """
-        self.I0AndPrvUpdataTimeAndSysTime = np.zeros((50000, 8))
-        self.I0AndPrvUpdataTimeAndSysTimeCounter = 0
+        self.EventRecord = np.zeros((50000, 8))
+        self.EventRecordCounter = 0
         
-    
         self.WriteSpeedBypass = 0
 
         # 新軌跡資料合併節點紀錄
@@ -2779,20 +2779,78 @@ class Motomancontrol():
 
         return mergeTrj, mergeSpeed, mostSimilarIndex
     
-    def removeUnnecessaryData(self):
+    def removeUnnecessaryData(self, data:np.ndarray):
         """最後儲存資料前，將資料容器內的冗餘資料去除
+        
+        args: Data(ndarray) comes in three shapes.
+            - 3D array
+            - 2D array
+            - 1D array
+        
+        return: 
+            filterData: After filtering the data, the data shape remains unchanged.
         """
-        pass
+        dataShape = data.shape
+        # 依資料形狀判別運算軸參數
+        if len(dataShape) == 3 :
+            axisType = (1, 2) 
+        elif len(dataShape) == 2:
+            axisType = 1
+        else:
+            axisType = 0
+
+        # 找出非零的 row 的索引
+        nonzero_rows = np.any(data != 0, axis=axisType)
+
+        # 從原始陣列中取出非零的 row 及其之前的部分
+        filtered_data = data[nonzero_rows]
+
+        # 找出第一個非零 row 的索引
+        first_nonzero_row_index = np.argmax(nonzero_rows)
+
+        # 取出第一個非零 row 之前的部分
+        filtered_data_with_previous = data[:first_nonzero_row_index + len(filtered_data)]
+
+        return filtered_data_with_previous
     
-    def finalSaveData(self):
+    def finalSaveData(self, FolderPath:str):
         """
         主迴圈結束時，儲存所有資料，包含以下:
         - 回饋資料: feedbackRecords_Trj、feedbackRecords_sysTime
         - 通訊紀錄: communicationRecords_Trj、communicationRecords_Speed、costTime
-        - 主迴圈事件紀錄: I0AndPrvUpdataTimeAndSysTime
+        - 主迴圈事件紀錄: EventRecord
         - 軌跡總資料(合併後): trjData、velData
+
+        args: 
+            FolderPath: 要儲存的資料夾路徑名稱，ex: dataBase/dynamicllyPlanTEST/，務必要加最後的斜線!!!
         """
-        pass
+        # 檔案寫入模式
+        mode = "w"
+
+        if self.Line:
+            self.feedbackRecords_Trj = self.removeUnnecessaryData(self.feedbackRecords_Trj)
+            self.feedbackRecords_sysTime = self.removeUnnecessaryData(self.feedbackRecords_sysTime)
+            self.EventRecord = self.removeUnnecessaryData(self.EventRecord)
+
+            database_PoseMat.Save(self.feedbackRecords_Trj, FolderPath+"feedbackRecords_Trj.csv", mode)
+            database_time.Save(self.feedbackRecords_sysTime, FolderPath+"feedbackRecords_sysTime.csv", mode)
+            database_time.Save_EventRecords(self.EventRecord, FolderPath+"EventRecords.csv", mode)
+            
+        # 更改數據形狀以便儲存
+        self.communicationRecords_Trj = self.communicationRecords_Trj.reshape(-1, 1, 6)
+        self.communicationRecords_Speed = self.communicationRecords_Speed.reshape(-1, 1)
+        # 濾除多餘部分(0)
+        self.communicationRecords_Trj = self.removeUnnecessaryData(self.communicationRecords_Trj)
+        self.communicationRecords_Speed = self.removeUnnecessaryData(self.communicationRecords_Speed)
+        self.costTime = self.removeUnnecessaryData(self.costTime)
+        
+        # 存入CSV
+        database_PoseMat.Save(self.communicationRecords_Trj, FolderPath+"communicationRecords_Trj.csv", mode)
+        database_Velocity.Save(self.communicationRecords_Speed, FolderPath+"communicationRecords_Speed.csv", mode)
+        database_time.Save_costTime(self.costTime, FolderPath+"costTime.csv", mode)
+        database_PoseMat.Save(self.trjData, FolderPath+"mergeTrj.csv", mode)
+        database_Velocity.Save(self.velData, FolderPath+"mergeSpeed.csv", mode)
+        
 
     def main(self):
         #---------------------------------------------Inital-----------------------------------------------
@@ -2832,15 +2890,10 @@ class Motomancontrol():
         # 已送出之軌跡資料(批次數)+1
         alreadySentDataBatch += 1
         
-        
         # 軌跡規劃執行緒
         Thread_started = False
         planThread = GetNewTrj(target=self.PlanNewTrj)
 
-        # 軌跡資料儲存容器(驗證資料)
-        
-        #-------------------------------------------------------------------------------------------------
-        
         # 測試通訊資料批次數
         I3count = 0
         I11count = 0
@@ -2902,7 +2955,14 @@ class Motomancontrol():
                     # 紀錄feedback數據 | 紀錄初始位置與系統時間
                     self.feedbackRecords(0)
                 else:
-                    I0 = [2]
+                    I0 = [11]
+
+                    # 通訊紀錄
+                    self.communicationRecords(RPdata, Veldata, alreadySentDataBatch, batch)
+                    # 資料(批次)計數器更新
+                    alreadySentDataBatch += 1
+                    
+                    I11count+=1
                 sysflag = False
             
             else:
@@ -2922,10 +2982,10 @@ class Motomancontrol():
                     Prv_I0 = I0
                     I0 = self.Udp.ReadVar("Integer", 0)
                     # 將I0、PrvUpdataTime、SysTimer記錄下來
-                    self.I0AndPrvUpdataTimeAndSysTime[self.I0AndPrvUpdataTimeAndSysTimeCounter, 0] = I0[0]
-                    self.I0AndPrvUpdataTimeAndSysTime[self.I0AndPrvUpdataTimeAndSysTimeCounter, 1] = Prv_I0[0]
-                    self.I0AndPrvUpdataTimeAndSysTime[self.I0AndPrvUpdataTimeAndSysTimeCounter, 3] = timeLeft_ms
-                    self.I0AndPrvUpdataTimeAndSysTime[self.I0AndPrvUpdataTimeAndSysTimeCounter, 4] = sysTime
+                    self.EventRecord[self.EventRecordCounter, 0] = I0[0]
+                    self.EventRecord[self.EventRecordCounter, 1] = Prv_I0[0]
+                    self.EventRecord[self.EventRecordCounter, 3] = timeLeft_ms
+                    self.EventRecord[self.EventRecordCounter, 4] = sysTime
                     
                     print(f"I000 : {I0}")
                     """
@@ -2933,15 +2993,14 @@ class Motomancontrol():
                     """
                     if Prv_I0[0] != I0[0] and I0[0] == 2:
                         I2Lock = True
-                        self.I0AndPrvUpdataTimeAndSysTime[self.I0AndPrvUpdataTimeAndSysTimeCounter, 2] = 1
+                        self.EventRecord[self.EventRecordCounter, 2] = 1
                         # print(f"I0: {I0}，允許寫入I11-I19")
                     elif Prv_I0[0] != I0[0] and I0[0] == 11:
                         I11Lock = True
-                        self.I0AndPrvUpdataTimeAndSysTime[self.I0AndPrvUpdataTimeAndSysTimeCounter, 2] = 1
+                        self.EventRecord[self.EventRecordCounter, 2] = 1
                         # print(f"I0: {I0}，允許寫入I02-I10")
                     else:
-                        self.I0AndPrvUpdataTimeAndSysTime[self.I0AndPrvUpdataTimeAndSysTimeCounter, 2] = 0
-                        pass
+                        self.EventRecord[self.EventRecordCounter, 2] = 0
                         # print(f"上次的I0與本次I0相同，不允許寫入。")
 
                 else:
@@ -2961,7 +3020,7 @@ class Motomancontrol():
                 """
                 
                 if I2Lock is True:
-                    self.I0AndPrvUpdataTimeAndSysTime[self.I0AndPrvUpdataTimeAndSysTimeCounter, 5] = sysTime
+                    self.EventRecord[self.EventRecordCounter, 5] = sysTime
                     
                     I2_b = self.Time.ReadNowTime()
 
@@ -2989,9 +3048,9 @@ class Motomancontrol():
                     # print(f"更新I11-I20的軌跡資料花費時間: {I2err_ms}ms")
 
                     # 紀錄送軌跡所花費的時間與變數區間
-                    self.I0AndPrvUpdataTimeAndSysTime[self.I0AndPrvUpdataTimeAndSysTimeCounter, 6] = I2err_ms
-                    self.I0AndPrvUpdataTimeAndSysTime[self.I0AndPrvUpdataTimeAndSysTimeCounter, 7] = 2
-                    self.I0AndPrvUpdataTimeAndSysTimeCounter += 1
+                    self.EventRecord[self.EventRecordCounter, 6] = I2err_ms
+                    self.EventRecord[self.EventRecordCounter, 7] = 2
+                    self.EventRecordCounter += 1
 
                     # 紀錄軌跡更新時間
                     updataTrjTime = self.Time.ReadNowTime()
@@ -3000,7 +3059,7 @@ class Motomancontrol():
                     I2Lock = False
                     
                 elif I11Lock is True:
-                    self.I0AndPrvUpdataTimeAndSysTime[self.I0AndPrvUpdataTimeAndSysTimeCounter, 5] = sysTime
+                    self.EventRecord[self.EventRecordCounter, 5] = sysTime
                     I11_b = self.Time.ReadNowTime()
 
                     # 起始變數位置
@@ -3027,9 +3086,9 @@ class Motomancontrol():
                     # print(f"更新I02-I10的軌跡資料花費時間: {I11_err_ms}ms")
 
                     # 紀錄送軌跡所花費的時間與變數區間
-                    self.I0AndPrvUpdataTimeAndSysTime[self.I0AndPrvUpdataTimeAndSysTimeCounter, 6] = I11_err_ms
-                    self.I0AndPrvUpdataTimeAndSysTime[self.I0AndPrvUpdataTimeAndSysTimeCounter, 7] = 1
-                    self.I0AndPrvUpdataTimeAndSysTimeCounter += 1
+                    self.EventRecord[self.EventRecordCounter, 6] = I11_err_ms
+                    self.EventRecord[self.EventRecordCounter, 7] = 1
+                    self.EventRecordCounter += 1
 
                     # 紀錄軌跡更新時間
                     updataTrjTime = self.Time.ReadNowTime()
@@ -3038,7 +3097,7 @@ class Motomancontrol():
                     I11Lock = False
 
                 else:
-                    self.I0AndPrvUpdataTimeAndSysTimeCounter += 1
+                    self.EventRecordCounter += 1
                     if self.Line is True:
                         # 更新距離上次更新軌跡時，又經過多久的時間
                         b = self.Time.ReadNowTime()
@@ -3113,33 +3172,34 @@ class Motomancontrol():
                                 database_time.Save_costTime(self.costTime, "dataBase/dynamicllyPlanTEST/costTime.csv", mode)
                                 
                                 # 儲存 I0、PrvUdpataTime、SysTime紀錄(Debug)
-                                non_zero_rows_I0AndPrvUpdataTimeAndSysTime = np.any(self.I0AndPrvUpdataTimeAndSysTime != 0, axis=1)
-                                self.I0AndPrvUpdataTimeAndSysTime = self.I0AndPrvUpdataTimeAndSysTime[non_zero_rows_I0AndPrvUpdataTimeAndSysTime]
-                                database_time.Save_I0AndPrvUpdataTimeAndSysTime(self.I0AndPrvUpdataTimeAndSysTime, "dataBase/dynamicllyPlanTEST/I0AndPrvUpdataTimeAndSysTime.csv", mode)
+                                non_zero_rows_EventRecord = np.any(self.EventRecord != 0, axis=1)
+                                self.EventRecord = self.EventRecord[non_zero_rows_EventRecord]
+                                database_time.Save_EventRecords(self.EventRecord, "dataBase/dynamicllyPlanTEST/EventRecord.csv", mode)
                                 
                                 # 儲存軌跡與速度總資料
                                 database_PoseMat.Save(self.trjData, "dataBase/dynamicllyPlanTEST/mergeTrj.csv", "w")
                                 database_Velocity.Save(self.velData, "dataBase/dynamicllyPlanTEST/mergeSpeed.csv", "w") 
                                 break
                     else:
-                        self.communicationRecords_Trj = self.communicationRecords_Trj.reshape(-1, 1, 6)
-                        self.communicationRecords_Speed = self.communicationRecords_Speed.reshape(-1, 1)
-                        # 濾除整個row為0的部分
-                        non_zero_rows_Trajectory = np.any(self.communicationRecords_Trj != 0, axis=(1, 2))
-                        non_zero_rows_Speed = np.any(self.communicationRecords_Speed != 0, axis=1)
-                        non_zero_rows_costTime = np.any(self.costTime != 0, axis=1)
+                        self.finalSaveData("dataBase/dynamicllyPlanTEST/")
+                        # self.communicationRecords_Trj = self.communicationRecords_Trj.reshape(-1, 1, 6)
+                        # self.communicationRecords_Speed = self.communicationRecords_Speed.reshape(-1, 1)
+                        # # 濾除整個row為0的部分
+                        # non_zero_rows_Trajectory = np.any(self.communicationRecords_Trj != 0, axis=(1, 2))
+                        # non_zero_rows_Speed = np.any(self.communicationRecords_Speed != 0, axis=1)
+                        # non_zero_rows_costTime = np.any(self.costTime != 0, axis=1)
 
-                        self.communicationRecords_Trj = self.communicationRecords_Trj[non_zero_rows_Trajectory]
-                        self.communicationRecords_Speed = self.communicationRecords_Speed[non_zero_rows_Speed]
-                        self.costTime = self.costTime[non_zero_rows_costTime]
-                        mode = "w"
-                        database_PoseMat.Save(self.communicationRecords_Trj, "dataBase/dynamicllyPlanTEST/communicationRecords_Trj.csv", mode)
-                        database_Velocity.Save(self.communicationRecords_Speed, "dataBase/dynamicllyPlanTEST/communicationRecords_Speed.csv", mode)
-                        database_time.Save_costTime(self.costTime, "dataBase/dynamicllyPlanTEST/costTime.csv", mode)
+                        # self.communicationRecords_Trj = self.communicationRecords_Trj[non_zero_rows_Trajectory]
+                        # self.communicationRecords_Speed = self.communicationRecords_Speed[non_zero_rows_Speed]
+                        # self.costTime = self.costTime[non_zero_rows_costTime]
+                        # mode = "w"
+                        # database_PoseMat.Save(self.communicationRecords_Trj, "dataBase/dynamicllyPlanTEST/communicationRecords_Trj.csv", mode)
+                        # database_Velocity.Save(self.communicationRecords_Speed, "dataBase/dynamicllyPlanTEST/communicationRecords_Speed.csv", mode)
+                        # database_time.Save_costTime(self.costTime, "dataBase/dynamicllyPlanTEST/costTime.csv", mode)
 
-                        # 儲存軌跡與速度總資料
-                        database_PoseMat.Save(self.trjData, "dataBase/dynamicllyPlanTEST/mergeTrj.csv", "w")
-                        database_Velocity.Save(self.velData, "dataBase/dynamicllyPlanTEST/mergeSpeed.csv", "w")
+                        # # 儲存軌跡與速度總資料
+                        # database_PoseMat.Save(self.trjData, "dataBase/dynamicllyPlanTEST/mergeTrj.csv", "w")
+                        # database_Velocity.Save(self.velData, "dataBase/dynamicllyPlanTEST/mergeSpeed.csv", "w")
 
 
                     print(f"I2批次有{I3count+1}批，I11批次有{I11count}批")
@@ -3259,8 +3319,8 @@ class Motomancontrol():
                 
                     # 固定流程(資料分割與初步封裝)
                     Remix_PoseMat, Remix_Speed = Motomancontrol.deleteFirstTrajectoryData(self.trjData, self.velData)
-                    NewRemixBatch = self.calculateDataGroupBatch(Remix_PoseMat)
-                    NewRemixRPdata, NewRemixSpeeddata = self.dataSegmentation(Remix_PoseMat, Remix_Speed, NewRemixBatch, alreadySentDataBatch*9-1)
+                    NewRemixBatch = self.calculateDataGroupBatch(self.trjData)
+                    NewRemixRPdata, NewRemixSpeeddata = self.dataSegmentation(self.trjData, self.velData, NewRemixBatch, alreadySentDataBatch*9-1)
                     
                     # 使用合併後的軌跡檔案(已分割與封裝)，覆蓋原始的軌跡資料
                     RPdata = NewRemixRPdata

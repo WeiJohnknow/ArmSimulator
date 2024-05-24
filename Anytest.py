@@ -3146,11 +3146,80 @@ Array 垂直堆疊
 # num = 123.4
 # fractional_part, integer_part = math.modf(num)
 # print(fractional_part)  # 输出: 0.45600000000000307
-"""
-"""
-def greet(**kwargs):
-    for key, value in kwargs.items():
-        
-        print(f"{key} 是 {value} 歲。")
 
-greet(小明=25, 小華=30)
+"""
+多筆關鍵字參數部分
+"""
+# def greet(**kwargs):
+#     for key, value in kwargs.items():
+        
+#         print(f"{key} 是 {value} 歲。")
+
+# greet(小明=25, 小華=30)
+
+"""
+布林變數判斷式
+"""
+# flag = True
+# # 方法1
+# if flag:
+#     print("Is true.")
+# else:
+#     print("Is Flase")
+# # 方法2
+# if flag is True:
+#     print("Is true.")
+# else:
+#     print("Is Flase")
+
+"""
+濾除array中為0的部分
+"""
+# test1D = np.array([0, 0, 1, 2, 3, 0, 0, 0, 0, 0, 0])
+# # 找到第一個不為0的索引
+# first_non_zero_index = np.argmax(test1D != 0)
+# print(first_non_zero_index)
+
+# # 將數組分為兩部分：保留不為0數字前的所有元素，去除不為0數字後的所有0
+# result = np.concatenate((test1D[:first_non_zero_index], test1D[first_non_zero_index:][test1D[first_non_zero_index:] != 0]))
+# print(result)
+
+test2D = np.array([
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 1, 2, 3, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 2, 3, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+])
+# 找到所有不全為 0 的行的索引
+non_zero_rows = np.any(test2D != 0, axis=1)
+
+# 找到第一個不為 0 的行的索引
+first_non_zero_index = np.argmax(non_zero_rows)
+
+# 保留該行之前的所有行和該行後的所有非零行
+filtered_matrix = test2D[:first_non_zero_index + 1]  # 包括前面的所有行
+filtered_matrix = np.vstack((filtered_matrix, test2D[first_non_zero_index + 1:][non_zero_rows[first_non_zero_index + 1:]]))
+
+print("處理後的二維數組:\n", filtered_matrix)
+
+# 定義三維數組
+test3D = np.array(
+    [[[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+             [0, 0, 1, 2, 3, 0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0, 2, 3, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]])
+
+def process_2D_slice(slice_2d):
+    non_zero_rows = np.any(slice_2d != 0, axis=1)
+    first_non_zero_index = np.argmax(non_zero_rows)
+    filtered_slice = slice_2d[:first_non_zero_index + 1]
+    filtered_slice = np.vstack((filtered_slice, slice_2d[first_non_zero_index + 1:][non_zero_rows[first_non_zero_index + 1:]]))
+    return filtered_slice
+
+# 對每個2D切片進行處理
+processed_slices = [process_2D_slice(slice_2d) for slice_2d in test3D]
+
+# 將處理後的2D切片堆疊回3D數組
+filtered_test3D = np.array(processed_slices)
+
+print("處理後的三維數組:\n", filtered_test3D)

@@ -134,10 +134,10 @@ class database_time(Database_interface):
         dataTypeConverter.ndarrayTOdataframe(costTime, ["Trj_Algorithm", "Data_merge", "IK_Iterate"], filePath, mode)
 
     @ staticmethod
-    def Save_I0AndPrvUpdataTimeAndSysTime(I0AndPrvUpdataTimeAndSysTime, filePath, mode:str):
+    def Save_EventRecords(EventRecord, filePath, mode:str):
         """
         """
-        dataTypeConverter.ndarrayTOdataframe(I0AndPrvUpdataTimeAndSysTime, ["I0", "Prv_I0", "Write permission", "PrvUpdataTime", "SysTime", "WriteTrjSysTime", "WriteTrjCostTime", "WriteInterval"], filePath, mode)
+        dataTypeConverter.ndarrayTOdataframe(EventRecord, ["I0", "Prv_I0", "Write permission", "PrvUpdataTime", "SysTime", "WriteTrjSysTime", "WriteTrjCostTime", "WriteInterval"], filePath, mode)
     
     @ staticmethod
     def Save_PoseMat_Time(PoseMatAndTime, filePath, mode:str):

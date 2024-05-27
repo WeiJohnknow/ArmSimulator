@@ -2531,17 +2531,20 @@ pandas資料合併與垂直堆疊
 
 # def main():
 #     Time = TimeTool()
-#     b = Time.ReadNowTime()
+#     # b = Time.ReadNowTime()
+    
+#     Is_runnig = True
 #     t = threading.Thread(target=test)
 #     t1 = threading.Thread(target=test1)
 #     t2 = threading.Thread(target=test2)
-#     t.start()
+#     # t.start()
 #     t1.start()
+
 #     t2.start()
     
-#     a = Time.ReadNowTime()
-#     err = Time.TimeError(b,a)
-#     print(err["millisecond"])
+#     # a = Time.ReadNowTime()
+#     # err = Time.TimeError(b,a)
+#     # print(err["millisecond"])
 
 # if __name__ == "__main__":
 #     main()
@@ -3184,42 +3187,95 @@ Array 垂直堆疊
 # result = np.concatenate((test1D[:first_non_zero_index], test1D[first_non_zero_index:][test1D[first_non_zero_index:] != 0]))
 # print(result)
 
-test2D = np.array([
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 1, 2, 3, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 2, 3, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-])
-# 找到所有不全為 0 的行的索引
-non_zero_rows = np.any(test2D != 0, axis=1)
+# test2D = np.array([
+#     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+#     [0, 0, 1, 2, 3, 0, 0, 0, 0, 0, 0],
+#     [0, 0, 0, 0, 0, 0, 2, 3, 0, 0, 0],
+#     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# ])
+# # 找到所有不全為 0 的行的索引
+# non_zero_rows = np.any(test2D != 0, axis=1)
 
-# 找到第一個不為 0 的行的索引
-first_non_zero_index = np.argmax(non_zero_rows)
+# # 找到第一個不為 0 的行的索引
+# first_non_zero_index = np.argmax(non_zero_rows)
 
-# 保留該行之前的所有行和該行後的所有非零行
-filtered_matrix = test2D[:first_non_zero_index + 1]  # 包括前面的所有行
-filtered_matrix = np.vstack((filtered_matrix, test2D[first_non_zero_index + 1:][non_zero_rows[first_non_zero_index + 1:]]))
+# # 保留該行之前的所有行和該行後的所有非零行
+# filtered_matrix = test2D[:first_non_zero_index + 1]  # 包括前面的所有行
+# filtered_matrix = np.vstack((filtered_matrix, test2D[first_non_zero_index + 1:][non_zero_rows[first_non_zero_index + 1:]]))
 
-print("處理後的二維數組:\n", filtered_matrix)
+# print("處理後的二維數組:\n", filtered_matrix)
 
-# 定義三維數組
-test3D = np.array(
-    [[[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-             [0, 0, 1, 2, 3, 0, 0, 0, 0, 0, 0],
-             [0, 0, 0, 0, 0, 0, 2, 3, 0, 0, 0],
-             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]])
+# # 定義三維數組
+# test3D = np.array(
+#     [[[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+#              [0, 0, 1, 2, 3, 0, 0, 0, 0, 0, 0],
+#              [0, 0, 0, 0, 0, 0, 2, 3, 0, 0, 0],
+#              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]])
 
-def process_2D_slice(slice_2d):
-    non_zero_rows = np.any(slice_2d != 0, axis=1)
-    first_non_zero_index = np.argmax(non_zero_rows)
-    filtered_slice = slice_2d[:first_non_zero_index + 1]
-    filtered_slice = np.vstack((filtered_slice, slice_2d[first_non_zero_index + 1:][non_zero_rows[first_non_zero_index + 1:]]))
-    return filtered_slice
+# def process_2D_slice(slice_2d):
+#     non_zero_rows = np.any(slice_2d != 0, axis=1)
+#     first_non_zero_index = np.argmax(non_zero_rows)
+#     filtered_slice = slice_2d[:first_non_zero_index + 1]
+#     filtered_slice = np.vstack((filtered_slice, slice_2d[first_non_zero_index + 1:][non_zero_rows[first_non_zero_index + 1:]]))
+#     return filtered_slice
 
-# 對每個2D切片進行處理
-processed_slices = [process_2D_slice(slice_2d) for slice_2d in test3D]
+# # 對每個2D切片進行處理
+# processed_slices = [process_2D_slice(slice_2d) for slice_2d in test3D]
 
-# 將處理後的2D切片堆疊回3D數組
-filtered_test3D = np.array(processed_slices)
+# # 將處理後的2D切片堆疊回3D數組
+# filtered_test3D = np.array(processed_slices)
 
-print("處理後的三維數組:\n", filtered_test3D)
+# print("處理後的三維數組:\n", filtered_test3D)
+
+"""
+執行續多開 控制
+"""
+# import threading
+# import time
+
+# # 全域變數，用來控制執行緒的執行狀態
+# thread1_running = True
+# thread2_running = True
+
+# def thread1_function():
+#     global thread1_running
+#     while thread1_running:
+#         print("Thread 1 is running")
+    
+#         time.sleep(0.1)
+
+# def thread2_function():
+#     global thread2_running
+#     while thread2_running:
+#         print("Thread 2 is running")
+#         time.sleep(0.1)
+
+# # 創建執行緒
+# thread1 = threading.Thread(target=thread1_function)
+# thread2 = threading.Thread(target=thread2_function)
+
+# # 啟動執行緒
+# thread1.start()
+# thread2.start()
+
+# time.sleep(3)
+# thread2_running = False
+
+# time.sleep(2)
+# thread1_running = False
+
+"""
+"""
+import numpy as np
+
+# 創建一個範例的 3D 陣列，形狀為 (300, 1, 6)
+array = np.zeros((300,1,6))  # 隨機數乘以2000，使數值範圍在0到2000之間
+array[0,0,3] = -181
+
+# 檢查每個 row 的第 4 個 column 是否大於 1000
+# 注意到 NumPy 使用 0 基索引，所以第 4 個 column 的索引為 3
+r = (array[:, 0, 3] > 180) | (array[:, 0, 3] < -180)
+result = np.any(r)
+
+# 返回結果
+print(result)

@@ -338,6 +338,8 @@ class dataOperating:
             mostSimilarIndex = np.argmin(diffPosition)
         else:
             print("軌跡有問題，變動率為0")
+            # 兩個都不為0，以位置為主
+            mostSimilarIndex = np.argmin(diffPosition)
     
         # 找出最接近目標資料的資料
         mostSimilarData = PoseMatDataSet[mostSimilarIndex]

@@ -7,12 +7,14 @@ from Toolbox import TimeTool
 from SimulatorV2 import Simulator
 import numpy as np
 import matplotlib.pyplot as plt
+from MotomanUdpPacket import MotomanUDP
 
 class Generator:
     # 類別變數
     Kin = Kinematics()
     Mat = Matrix4x4()
     TrjPlan = PathPlanning()
+    Udp = MotomanUDP()
 
 
     @classmethod
@@ -84,15 +86,20 @@ class Generator:
         return HomogeneousMatData, PoseMatData, SpeedData, TimeData
 
     @classmethod
-    def generateTrajectoryJointAngle(cls, nowJointAngle, HomogeneousMatData):
+    def generateTrajectoryJointAngle(cls, nowJointAngle:np.ndarray, HomogeneousMatData:np.ndarray):
+        """
+        """
         θ_Buffer = (np.zeros((6,1)))
         d2r = np.deg2rad
-        # θ_Buffer[0, 0] =  d2r(-0.006)
-        # θ_Buffer[1, 0] =  d2r(-38.8189)
-        # θ_Buffer[2, 0] =  d2r(-41.0857)
-        # θ_Buffer[3, 0] =  d2r(-0.0030)
-        # θ_Buffer[4, 0] =  d2r(-76.4394)
-        # θ_Buffer[5, 0] =  d2r(1.0687)
+        """
+        機器手臂原點 各關節角度:
+        θ_Buffer[0, 0] =  d2r(-0.006)
+        θ_Buffer[1, 0] =  d2r(-38.8189)
+        θ_Buffer[2, 0] =  d2r(-41.0857)
+        θ_Buffer[3, 0] =  d2r(-0.0030)
+        θ_Buffer[4, 0] =  d2r(-76.4394)
+        θ_Buffer[5, 0] =  d2r(1.0687)
+        """
         θ_Buffer[0, 0] =  d2r(nowJointAngle[0, 0])
         θ_Buffer[1, 0] =  d2r(nowJointAngle[1, 0])
         θ_Buffer[2, 0] =  d2r(nowJointAngle[2, 0])
@@ -354,6 +361,7 @@ if __name__ == "__main__":
     d2r = np.deg2rad
     Time = TimeTool()
     Sim = Simulator()
+    Udp = MotomanUDP()
 
     # 功能模式調整區
     userMode = True
@@ -378,8 +386,20 @@ if __name__ == "__main__":
 
 
         # 歐式距離: 150mm
-        NowEnd = [960.216, 41.426, -151.949, 175.7717, 17.9366, 59.3998]
-        GoalEnd = [960.216, -109.209, -151.949, 175.7717, 17.9366, 59.3998]
+        # NowEnd = [960.216, 41.426, -151.949, 175.7717, 17.9366, 59.3998]
+        # GoalEnd = [960.216, -109.209, -151.949, 175.7717, 17.9366, 59.3998]
+
+        
+
+        NowEnd = [958.87, 21.743, -166.213, 175.9901, 17.9097, 58.6804]
+        
+        NowEndData = [17, 4, 5, 0, NowEnd[0], NowEnd[1], NowEnd[2], NowEnd[3]*10, NowEnd[4]*10, NowEnd[5]*10]
+        Udp.WriteRPVar(2, NowEndData)
+        
+        GoalEnd = [960.945, -96.591, -165.405, 175.9874, 17.9044, 58.6846]
+        NowEndData = [17, 4, 5, 0, GoalEnd[0], GoalEnd[1], GoalEnd[2], GoalEnd[3]*10, GoalEnd[4]*10, GoalEnd[5]*10]
+        Udp.WriteRPVar(3, NowEndData)
+
 
         # NowEnd = [958.525, 41.670, -158.417, -165.2876, -52.1723, 97.5191]
         # GoalEnd = [808.525, 41.670, -158.417, -165.2876, -52.1723, 97.5191]
@@ -388,9 +408,9 @@ if __name__ == "__main__":
         # GoalEnd = [858.525, 41.670, -164.943, -165.2876, -7.1723, 97.5191]
         
         
-        WeldSpeed = 2
+        WeldSpeed = 1.5
         angularVelocity = np.deg2rad(10)
-        sampleTime = 0.1
+        sampleTime = 0.04
         
         b = Time.ReadNowTime()
         """

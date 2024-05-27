@@ -1224,8 +1224,8 @@ if __name__ == "__main__" :
     make_TimeErrorFile(Time_path, TimeErr_path)
 
     # 預期資料
-    Expect_PoseMat_file = "dataBase/dynamicllyPlanTEST/PoseMat_0.csv"
-    Expect_Time_file =    "dataBase/dynamicllyPlanTEST/Time_0.csv"
+    Expect_PoseMat_file = "dataBase/dynamicllyPlanTEST/mergeTrj.csv"
+    Expect_Time_file =    "dataBase/dynamicllyPlanTEST/mergeSpeed.csv"
 
     # 實驗結果資料
     Experimental_PoseMat_file =    "dataBase/dynamicllyPlanTEST/feedbackRecords_Trj.csv"

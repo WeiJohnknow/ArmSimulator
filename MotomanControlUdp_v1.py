@@ -2408,7 +2408,7 @@ from PyQt5.QtCore import QTimer, QThread
 from communctionThread import *
 
 
-class GetNewTrj(threading.Thread):
+class GetTreadResult(threading.Thread):
     def __init__(self, target, args=()):
         super().__init__(target=target, args=args)
         self._result = None
@@ -2426,12 +2426,11 @@ class Motomancontrol():
         Offline(純邏輯測試) >> False
         """
         self.Line = False
-        self.Udp = MotomanUDP()
         
         self.Kin = Kinematics()
         self.Time = TimeTool()
         self.Sim = Simulator()
-
+        self.Udp = MotomanUDP()
         
         # INFORM 迴圈變數
         """
@@ -2456,10 +2455,13 @@ class Motomancontrol():
         AC:   I21
         AVP : I22
         """
-        self.AC = 40
+        self.AC = 50
         self.AVP = 50
         if self.Line is True:
             status = self.Udp.multipleWriteVar(21, 2, [self.AC, self.AVP])
+        
+        # 動態變更銲接速度
+        self.GoalSpeed = 1.5
 
         # 載入軌跡檔案
         self.trjData = database_PoseMat.Load(TrjdatafilePath)
@@ -2495,7 +2497,14 @@ class Motomancontrol():
         self.WriteSpeedBypass = 0
 
         # 新軌跡資料合併節點紀錄
-        self.mergeNode = np.zeros(1000)
+        self.mergeNode = np.zeros((1000))
+
+        # 關節角度紀錄
+        self.JointAngleRecords = np.zeros((50000, 1, 6))
+
+        # IK迭代執行續旗標(用於中斷)
+        self.IKisRunning = False
+
 
 
         
@@ -2695,21 +2704,50 @@ class Motomancontrol():
         d2r = np.deg2rad
         b = self.Time.ReadNowTime()
         
-        nowJointAngle = (np.zeros((6,1)))
-        nowJointAngle[0, 0] =  d2r(-0.006)
-        nowJointAngle[1, 0] =  d2r(-38.8189)
-        nowJointAngle[2, 0] =  d2r(-41.0857)
-        nowJointAngle[3, 0] =  d2r(-0.0030)
-        nowJointAngle[4, 0] =  d2r(-76.4394)
-        nowJointAngle[5, 0] =  d2r(1.0687)
-        JointAngleData = Generator.generateTrajectoryJointAngle(nowJointAngle, newHomogeneousMat)
+        # nowJointAngle = (np.zeros((6,1)))
+        # nowJointAngle[0, 0] =  d2r(-0.006)
+        # nowJointAngle[1, 0] =  d2r(-38.8189)
+        # nowJointAngle[2, 0] =  d2r(-41.0857)
+        # nowJointAngle[3, 0] =  d2r(-0.0030)
+        # nowJointAngle[4, 0] =  d2r(-76.4394)
+        # nowJointAngle[5, 0] =  d2r(1.0687)
+        # JointAngleData = Generator.generateTrajectoryJointAngle(nowJointAngle, newHomogeneousMat, IKisRunning)
+        # a = self.Time.ReadNowTime()
+        # err = self.Time.TimeError(b, a)
+        # print("關節角度計算所消耗的總時間: ", err["millisecond"], "ms")
+        # database_JointAngle.Save(JointAngleData, f"dataBase/dynamicllyPlanTEST/JointAngle_{trjUpdataNBR}.csv", "w")
+        # self.Sim.paitGL(JointAngleData, newHomogeneousMat)
+
+        
+        θ_Buffer = (np.zeros((6,1)))
+        θ_Buffer[0, 0] =  d2r(-0.006)
+        θ_Buffer[1, 0] =  d2r(-38.8189)
+        θ_Buffer[2, 0] =  d2r(-41.0857)
+        θ_Buffer[3, 0] =  d2r(-0.0030)
+        θ_Buffer[4, 0] =  d2r(-76.4394)
+        θ_Buffer[5, 0] =  d2r(1.0687)
+
+        counter = 0
+        totalNumner = newHomogeneousMat.shape[0]
+        JointAngleData = np.zeros((len(newHomogeneousMat), 6, 1))
+        while self.IKisRunning:
+            if counter == totalNumner:
+                break
+            # 透過逆向運動學獲得關節角度
+            JointAngleData[counter] = self.Kin.IK_4x4(newHomogeneousMat[counter], θ_Buffer)
+            counter+=1
+        
+        if self.IKisRunning:
+            print("IK運算結束")
+        else:
+            print("IK運算中斷")
+
         a = self.Time.ReadNowTime()
         err = self.Time.TimeError(b, a)
         print("關節角度計算所消耗的總時間: ", err["millisecond"], "ms")
-        database_JointAngle.Save(JointAngleData, f"dataBase/dynamicllyPlanTEST/JointAngle_{trjUpdataNBR}.csv", "w")
-        # self.Sim.paitGL(JointAngleData, newHomogeneousMat)
 
-
+        return JointAngleData
+        
     def feedbackRecords(self, sysTime):
         """由機器手臂反饋回PC的數據紀錄
         """
@@ -2896,13 +2934,13 @@ class Motomancontrol():
         # 已送出之軌跡資料(批次數)+1
         alreadySentDataBatch += 1
 
-        
         # 軌跡規劃執行緒
         Thread_started = False
-        planThread = GetNewTrj(target=self.PlanNewTrj)
+        planThread = GetTreadResult(target=self.PlanNewTrj)
 
+        # IK迭代執行緒
+        IKThread = GetTreadResult(target=self.simulation)
         
-
         # 更新位置變數時的時間點
         updataTrjTime = self.Time.ReadNowTime()
 
@@ -3148,67 +3186,11 @@ class Motomancontrol():
                                 
                             if can_End is True:
                                 self.finalSaveData("dataBase/dynamicllyPlanTEST/")
-                                # # feedback的軌跡資料
-                                # # 濾除整個row為0的部分
-                                # non_zero_rows_Trajectory = np.any(self.feedbackRecords_Trj != 0, axis=(1, 2))
-                                # non_zero_rows_Time = np.any(self.feedbackRecords_sysTime != 0, axis=1)
-                                # # 系統時間需保留初值0
-                                # non_zero_rows_Time[:2] = True
-
-                                # self.feedbackRecords_Trj = self.feedbackRecords_Trj[non_zero_rows_Trajectory]
-                                # self.feedbackRecords_sysTime = self.feedbackRecords_sysTime[non_zero_rows_Time]
-                                
-                                # database_PoseMat.Save(self.feedbackRecords_Trj, "dataBase/dynamicllyPlanTEST/feedbackRecords_Trj.csv", "w")
-                                # database_time.Save(self.feedbackRecords_sysTime, "dataBase/dynamicllyPlanTEST/feedbackRecords_sysTime.csv", "w")
-                                
-                                # # 儲存通訊所送出的軌跡資料
-                                # self.communicationRecords_Trj = self.communicationRecords_Trj.reshape(-1, 1, 6)
-                                # self.communicationRecords_Speed = self.communicationRecords_Speed.reshape(-1, 1)
-                                # # 濾除整個row為0的部分
-                                # non_zero_rows_Trajectory = np.any(self.communicationRecords_Trj != 0, axis=(1, 2))
-                                # non_zero_rows_Speed = np.any(self.communicationRecords_Speed != 0, axis=1)
-                                # non_zero_rows_costTime = np.any(self.costTime != 0, axis=1)
-
-                                # self.communicationRecords_Trj = self.communicationRecords_Trj[non_zero_rows_Trajectory]
-                                # self.communicationRecords_Speed = self.communicationRecords_Speed[non_zero_rows_Speed]
-                                # self.costTime = self.costTime[non_zero_rows_costTime]
-                                # mode = "w"
-                                # database_PoseMat.Save(self.communicationRecords_Trj, "dataBase/dynamicllyPlanTEST/communicationRecords_Trj.csv", mode)
-                                # database_Velocity.Save(self.communicationRecords_Speed, "dataBase/dynamicllyPlanTEST/communicationRecords_Speed.csv", mode)
-                                # database_time.Save_costTime(self.costTime, "dataBase/dynamicllyPlanTEST/costTime.csv", mode)
-                                
-                                # # 儲存 I0、PrvUdpataTime、SysTime紀錄(Debug)
-                                # non_zero_rows_EventRecord = np.any(self.EventRecord != 0, axis=1)
-                                # self.EventRecord = self.EventRecord[non_zero_rows_EventRecord]
-                                # database_time.Save_EventRecords(self.EventRecord, "dataBase/dynamicllyPlanTEST/EventRecord.csv", mode)
-                                
-                                # # 儲存軌跡與速度總資料
-                                # database_PoseMat.Save(self.trjData, "dataBase/dynamicllyPlanTEST/mergeTrj.csv", "w")
-                                # database_Velocity.Save(self.velData, "dataBase/dynamicllyPlanTEST/mergeSpeed.csv", "w") 
                                 break
                     else:
                         self.finalSaveData("dataBase/dynamicllyPlanTEST/")
-                        # self.communicationRecords_Trj = self.communicationRecords_Trj.reshape(-1, 1, 6)
-                        # self.communicationRecords_Speed = self.communicationRecords_Speed.reshape(-1, 1)
-                        # # 濾除整個row為0的部分
-                        # non_zero_rows_Trajectory = np.any(self.communicationRecords_Trj != 0, axis=(1, 2))
-                        # non_zero_rows_Speed = np.any(self.communicationRecords_Speed != 0, axis=1)
-                        # non_zero_rows_costTime = np.any(self.costTime != 0, axis=1)
-
-                        # self.communicationRecords_Trj = self.communicationRecords_Trj[non_zero_rows_Trajectory]
-                        # self.communicationRecords_Speed = self.communicationRecords_Speed[non_zero_rows_Speed]
-                        # self.costTime = self.costTime[non_zero_rows_costTime]
-                        # mode = "w"
-                        # database_PoseMat.Save(self.communicationRecords_Trj, "dataBase/dynamicllyPlanTEST/communicationRecords_Trj.csv", mode)
-                        # database_Velocity.Save(self.communicationRecords_Speed, "dataBase/dynamicllyPlanTEST/communicationRecords_Speed.csv", mode)
-                        # database_time.Save_costTime(self.costTime, "dataBase/dynamicllyPlanTEST/costTime.csv", mode)
-
-                        # # 儲存軌跡與速度總資料
-                        # database_PoseMat.Save(self.trjData, "dataBase/dynamicllyPlanTEST/mergeTrj.csv", "w")
-                        # database_Velocity.Save(self.velData, "dataBase/dynamicllyPlanTEST/mergeSpeed.csv", "w")
-
-
-                    print(f"I2批次有{I3count+1}批，I11批次有{I11count}批")
+                    
+                    print(f"I2批次有{I3count}批，I11批次有{I11count}批")
                     print(f"軌跡實驗結束，共花費 {sysTime} ms")
                     break
                 #----------------------------------------------鍵盤事件區-----------------------------------------
@@ -3227,6 +3209,9 @@ class Motomancontrol():
                             """
                             獲得新速度軌跡
                             """
+                            # 如果IK正在跌代中，須終止
+                            self.IKisRunning = False
+                            
                             # 創建線程
                             # 開始重新規劃新軌跡時，紀錄舊軌跡已經寫入的資料筆數       
                             startPlan_alreadySentDataBatch = alreadySentDataBatch
@@ -3241,6 +3226,13 @@ class Motomancontrol():
                                 coordinate = self.trjData[startPlan_alreadySentDataBatch*9, 0]
                                 # 設定新軌跡起點
                                 NowEnd = [coordinate[0], coordinate[1], coordinate[2], coordinate[3], coordinate[4], coordinate[5]]
+
+
+                            # Debug用(姿態會被乘以10倍)
+                            condition = (self.trjData[:, 0, 3] > 180) | (self.trjData[:, 0, 3] < -180)
+                            result = np.any(condition)
+                            if result is True:
+                                sys.exit("姿態被乘以10倍!!!!")
 
                             # 終點與原軌跡保持一致
                             GoalEnd = [self.trjData[-1, 0, 0], self.trjData[-1, 0, 1], self.trjData[-1, 0, 2], self.trjData[-1, 0, 3], self.trjData[-1, 0, 4], self.trjData[-1, 0, 5]]
@@ -3248,45 +3240,25 @@ class Motomancontrol():
                             # GoalSpeed = float(input("請輸入走速："))
                             # print(f"理想速度: {GoalSpeed} mm/s")
 
-                            GoalSpeed = 5
+                            
+                            print(f"理想速度: {self.GoalSpeed} mm/s")
                             
                             # 執行緒
-                            planThread = GetNewTrj(target=self.PlanNewTrj, args=(NowEnd, GoalEnd, sampleTime, GoalSpeed))
+                            planThread = GetTreadResult(target=self.PlanNewTrj, args=(NowEnd, GoalEnd, sampleTime, self.GoalSpeed))
                             planThread.start()
 
                             # 改變狀態旗標>>> 執行續已被啟動過
                             Thread_started = True
                         
-                        elif event.key == pygame.K_o:
+                        elif event.key == pygame.K_m:
+                            """增加目標走速 | +0.1/次
                             """
-                            獲得新速度軌跡
-                            """
-                            # 創建線程
-                            # 開始重新規劃新軌跡時，紀錄舊軌跡已經寫入的資料筆數       
-                            startPlan_alreadySentDataBatch = alreadySentDataBatch
-                            
-                            if self.Line is True:
-                                # 讀取當下位置
-                                pos_result, coordinate = self.Udp.getcoordinateMH(101)
-                                # 設定新軌跡起點
-                                NowEnd = [coordinate[0], coordinate[1], coordinate[2], coordinate[3], coordinate[4], coordinate[5]]
-                            else:
-                                # 模擬讀取當下位置
-                                coordinate = self.trjData[startPlan_alreadySentDataBatch*9, 0]
-                                # 設定新軌跡起點
-                                NowEnd = [coordinate[0], coordinate[1], coordinate[2], coordinate[3], coordinate[4], coordinate[5]]
-
-                            # 終點與原軌跡保持一致
-                            GoalEnd = [self.trjData[-1, 0, 0], self.trjData[-1, 0, 1], self.trjData[-1, 0, 2], self.trjData[-1, 0, 3], self.trjData[-1, 0, 4], self.trjData[-1, 0, 5]]
-                            print(f"起點:{NowEnd} | 終點:{GoalEnd}")
-                            GoalSpeed = 2
-                            
-                            # 執行緒
-                            planThread = GetNewTrj(target=self.PlanNewTrj, args=(NowEnd, GoalEnd, sampleTime, GoalSpeed))
-                            planThread.start()
-
-                            # 改變狀態旗標>>> 執行續已被啟動過
-                            Thread_started = True
+                            self.GoalSpeed+=0.1
+                            print(f"已增加目標走速至: {self.GoalSpeed}mm/s")
+                        
+                        elif event.key == pygame.K_n:
+                            self.GoalSpeed-=0.1
+                            print(f"已減少目標走速至: {self.GoalSpeed}mm/s")
                             
                 if planThread.is_alive() is False and Thread_started is True:
                     # 軌跡已變化一次，需更新計數器值
@@ -3322,12 +3294,22 @@ class Motomancontrol():
                     # 將物件變數中的軌跡資料替換為新的軌跡資料
                     self.trjData = mergeTrj
                     self.velData = mergeSpeed
+
+                    # Debug用(姿態會被乘以10倍)
+                    condition = (self.trjData[:, 0, 3] > 180) | (self.trjData[:, 0, 3] < -180)
+                    result = np.any(condition)
+                    if result is True:
+                        sys.exit("姿態被乘以10倍!!!!")
                 
                     # 固定流程(資料分割與初步封裝)
                     Remix_PoseMat, Remix_Speed = Motomancontrol.deleteFirstTrajectoryData(self.trjData, self.velData)
                     NewRemixBatch = self.calculateDataGroupBatch(self.trjData)
-                    NewRemixRPdata, NewRemixSpeeddata = self.dataSegmentation(self.trjData, self.velData, NewRemixBatch, alreadySentDataBatch*9-1)
-                    
+                    NewRemixRPdata, NewRemixSpeeddata = self.dataSegmentation(self.trjData, self.velData, NewRemixBatch, alreadySentDataBatch*9+1)
+                    if self.Line:
+                        # 更新速度
+                        Istatus = self.Udp.WriteVar("Integer", 3, NewRemixSpeeddata[0])
+                    else:
+                        print(f"速度已更新: {NewRemixSpeeddata[0]} mm/s")
                     # 使用合併後的軌跡檔案(已分割與封裝)，覆蓋原始的軌跡資料
                     RPdata = NewRemixRPdata
                     Veldata = NewRemixSpeeddata
@@ -3353,8 +3335,13 @@ class Motomancontrol():
                     self.costTimeDataCounter += 1
 
                     # 計算IK
-                    SimThread = threading.Thread(target=self.simulation, args=(trjUpdataNBR, NewHomogeneousMat,))
-                    SimThread.start()
+                    # 讓IK可以跌代
+                    self.IKisRunning = True
+                    IKThread = GetTreadResult(target=self.simulation, args=(trjUpdataNBR, NewHomogeneousMat,))
+                    IKThread.start()
+                
+                
+                    
                 #-----------------------------------------------------------------------------------------------
                 singlelooptime2 = self.Time.ReadNowTime()
                 singleloopCosttime = self.Time.TimeError(singlelooptime1, singlelooptime2)

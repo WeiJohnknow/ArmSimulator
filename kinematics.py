@@ -455,14 +455,14 @@ class Kinematics:
         """使用4x4齊次變換矩陣來迭代Jacobian matrix
         - Args:
             - Goal_4x4: 目標點之齊次變換矩陣
-            - θ_Buffer: 此時此刻之關節角度
+            - θ_Buffer: 此時此刻之關節角度，單位:raduian
         """
         # b = self.Time.ReadNowTime()
         World_Point = np.eye(4)
         
         Jbuffer = 0
 
-        iter = 35
+        iter = 20
         # 學習率
         # test = 0.05
         test = 0.85

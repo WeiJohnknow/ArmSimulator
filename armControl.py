@@ -391,12 +391,12 @@ if __name__ == "__main__":
 
         
 
-        NowEnd = [958.87, 21.743, -166.213, 175.9901, 17.9097, 58.6804]
+        NowEnd = [959.911, 21.293, -164.953, 175.9975, 17.9492, 58.6475]
         
         NowEndData = [17, 4, 5, 0, NowEnd[0], NowEnd[1], NowEnd[2], NowEnd[3]*10, NowEnd[4]*10, NowEnd[5]*10]
         Udp.WriteRPVar(2, NowEndData)
         
-        GoalEnd = [960.945, -96.591, -165.405, 175.9874, 17.9044, 58.6846]
+        GoalEnd = [960.84, -96.446, -164.83, 175.9973, 17.9444, 58.6498]
         NowEndData = [17, 4, 5, 0, GoalEnd[0], GoalEnd[1], GoalEnd[2], GoalEnd[3]*10, GoalEnd[4]*10, GoalEnd[5]*10]
         Udp.WriteRPVar(3, NowEndData)
 

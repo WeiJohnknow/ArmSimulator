@@ -2425,7 +2425,7 @@ class Motomancontrol():
         Online(含通訊之測試) >> True  要記得解開self.Udp的相關註解
         Offline(純邏輯測試) >> False
         """
-        self.Line = False
+        self.Line = True
         
         self.Kin = Kinematics()
         self.Time = TimeTool()
@@ -2460,8 +2460,12 @@ class Motomancontrol():
         if self.Line is True:
             status = self.Udp.multipleWriteVar(21, 2, [self.AC, self.AVP])
         
-        # 動態變更銲接速度
+        # 預設銲接速度
         self.GoalSpeed = 1.5
+
+        # 預設銲道寬度
+        self.weldBeadWidth = 4.5
+
 
         # 載入軌跡檔案
         self.trjData = database_PoseMat.Load(TrjdatafilePath)
@@ -2568,30 +2572,31 @@ class Motomancontrol():
         2.若第一步中發現有不足9筆需要補齊資料，使用最後一筆資料補齊剩下的缺口.
         3.補齊後，將資料切割為(n*9*6).
         """
-
+        # 防止竄改到來源
+        trajectory = np.copy(trajectoryData)
         # 軌跡資料處理與分割
         # 計算是否需要補齊資料與資料分割批次數(9筆為1批)
-        quotient_trj, remainder_trj = divmod(trajectoryData.shape[0], 9)
+        quotient_trj, remainder_trj = divmod(trajectory.shape[0], 9)
         if remainder_trj != 0:
             # 讀取最後一個Row的數據
-            last_row = trajectoryData[-1]
+            last_row = trajectory[-1]
 
             # 產生用於填滿最後一個Row(筆)的數據(當該layer不滿9個row時)
             padding = np.tile(last_row, (9 - remainder_trj, 1, 1))
 
             # 將需要填充的Row與原資料進行(Row堆疊)
-            padded_array = np.vstack((trajectoryData, padding))
+            padded_array = np.vstack((trajectory, padding))
 
             # 將資料分割成以批次(一批次有9筆資料)為單位
-            reshaped_trajectoryData = padded_array.reshape(batch, 9, 6)
+            reshaped_trajectory = padded_array.reshape(batch, 9, 6)
         else:
             # 將資料分割成以批次(一批次有9筆資料)為單位
-            reshaped_trajectoryData = trajectoryData.reshape(batch, 9, 6)
+            reshaped_trajectory = trajectory.reshape(batch, 9, 6)
 
         # 将第4、5、6列的值都乘以10
-        reshaped_trajectoryData[:, :, 3:6]*= 10
+        reshaped_trajectory[:, :, 3:6]*= 10
         # 完成初步分割與封裝後的軌跡資料
-        RPdata = reshaped_trajectoryData
+        RPdata = reshaped_trajectory
 
         # # 軌跡資料處理與分割(速度)
         # # 計算是否需要補齊資料與資料分割批次數(9筆為1批)
@@ -2618,8 +2623,10 @@ class Motomancontrol():
 
         # # 完成初步分割與封裝後的軌跡(速度)資料
         # Veldata = Veldata.astype(int)
-
-        Veldata =  velocityData[SpeedIndex]*10
+       
+        # 防止竄改到來源
+        velocity = np.copy(velocityData)
+        Veldata =  velocity[SpeedIndex]*10
         Veldata = Veldata.astype(int)
     
         return RPdata, Veldata
@@ -3019,7 +3026,7 @@ class Motomancontrol():
                     b = self.Time.ReadNowTime()
                     timeLeft = self.Time.TimeError(updataTrjTime, b)
                     timeLeft_ms = timeLeft["millisecond"]
-                    print(f"距離上次更新軌跡時間經過: {timeLeft_ms} ms | 讀取I0處")
+                    # print(f"距離上次更新軌跡時間經過: {timeLeft_ms} ms | 讀取I0處")
                     
                     # 上一次偵測到的I000值
                     Prv_I0 = I0
@@ -3030,7 +3037,7 @@ class Motomancontrol():
                     self.EventRecord[self.EventRecordCounter, 3] = timeLeft_ms
                     self.EventRecord[self.EventRecordCounter, 4] = sysTime
                     
-                    print(f"I000 : {I0}")
+                    # print(f"I000 : {I0}")
                     """
                     防止重複
                     """
@@ -3159,7 +3166,9 @@ class Motomancontrol():
                     # 讀取最後一刻軌跡資料       
                     if self.Line is True:
                         can_End = False
+                        print("--------------------等待軌跡結束-----------------------")
                         while True:
+                            
                             # 讀取I000變數
                             I0 = self.Udp.ReadVar("Integer", 0)
 
@@ -3172,7 +3181,7 @@ class Motomancontrol():
                             # 紀錄feedback數據
                             self.feedbackRecords(sysTime)
                             feedback_count+=1
-                            print(f"feedback寫入次數: {feedback_count}次")
+                            # print(f"feedback寫入次數: {feedback_count}次")
 
                             # 判斷此筆軌跡資料的I0會停留在I0=11還是I0=2
                             quotient, remainder = divmod(RPdata.shape[0]*RPdata.shape[1], 18)
@@ -3207,7 +3216,7 @@ class Motomancontrol():
 
                         elif event.key == pygame.K_p:
                             """
-                            獲得新速度軌跡
+                            指定焊接速度 重新規劃新速度軌跡
                             """
                             # 如果IK正在跌代中，須終止
                             self.IKisRunning = False
@@ -3240,7 +3249,7 @@ class Motomancontrol():
                             # GoalSpeed = float(input("請輸入走速："))
                             # print(f"理想速度: {GoalSpeed} mm/s")
 
-                            
+                            # 寬度 = -1.183*走速 + 6.358
                             print(f"理想速度: {self.GoalSpeed} mm/s")
                             
                             # 執行緒
@@ -3259,6 +3268,66 @@ class Motomancontrol():
                         elif event.key == pygame.K_n:
                             self.GoalSpeed-=0.1
                             print(f"已減少目標走速至: {self.GoalSpeed}mm/s")
+                        
+                        elif event.key == pygame.K_o:
+                            """
+                            指定銲道寬度 重新規劃新速度軌跡
+                            """
+                            # 如果IK正在跌代中，須終止
+                            self.IKisRunning = False
+                            
+                            # 創建線程
+                            # 開始重新規劃新軌跡時，紀錄舊軌跡已經寫入的資料筆數       
+                            startPlan_alreadySentDataBatch = alreadySentDataBatch
+                            
+                            if self.Line is True:
+                                # 讀取當下位置
+                                pos_result, coordinate = self.Udp.getcoordinateMH(101)
+                                # 設定新軌跡起點
+                                NowEnd = [coordinate[0], coordinate[1], coordinate[2], coordinate[3], coordinate[4], coordinate[5]]
+                            else:
+                                # 模擬讀取當下位置
+                                coordinate = self.trjData[startPlan_alreadySentDataBatch*9, 0]
+                                # 設定新軌跡起點
+                                NowEnd = [coordinate[0], coordinate[1], coordinate[2], coordinate[3], coordinate[4], coordinate[5]]
+
+
+                            # Debug用(姿態會被乘以10倍)
+                            condition = (self.trjData[:, 0, 3] > 180) | (self.trjData[:, 0, 3] < -180)
+                            result = np.any(condition)
+                            if result is True:
+                                sys.exit("姿態被乘以10倍!!!!")
+
+                            # 終點與原軌跡保持一致
+                            GoalEnd = [self.trjData[-1, 0, 0], self.trjData[-1, 0, 1], self.trjData[-1, 0, 2], self.trjData[-1, 0, 3], self.trjData[-1, 0, 4], self.trjData[-1, 0, 5]]
+                            print(f"起點:{NowEnd} | 終點:{GoalEnd}")
+                            # GoalSpeed = float(input("請輸入走速："))
+                            # print(f"理想速度: {GoalSpeed} mm/s")
+
+                            # 寬度 = -1.183*走速 + 6.358
+                            # 走速 = (寬度-6.358)/(-1.183)
+                            GoalSpeed = (self.weldBeadWidth - 6.358)/(-1.183)
+                            GoalSpeed = int(GoalSpeed*10)*0.1
+                            
+                            print(f"理想速度: {GoalSpeed} mm/s")
+
+                            
+                            # 執行緒
+                            planThread = GetTreadResult(target=self.PlanNewTrj, args=(NowEnd, GoalEnd, sampleTime, GoalSpeed))
+                            planThread.start()
+
+                            # 改變狀態旗標>>> 執行續已被啟動過
+                            Thread_started = True
+                        
+                        elif event.key == pygame.K_j:
+                            """增加目標銲道寬度 | +0.1/次
+                            """
+                            self.weldBeadWidth+=0.1
+                            print(f"已增加銲道寬度至: {self.weldBeadWidth}mm")
+                        
+                        elif event.key == pygame.K_h:
+                            self.weldBeadWidth-=0.1
+                            print(f"已減少銲道寬度至: {self.weldBeadWidth}mm")
                             
                 if planThread.is_alive() is False and Thread_started is True:
                     # 軌跡已變化一次，需更新計數器值
@@ -3309,7 +3378,7 @@ class Motomancontrol():
                         # 更新速度
                         Istatus = self.Udp.WriteVar("Integer", 3, NewRemixSpeeddata[0])
                     else:
-                        print(f"速度已更新: {NewRemixSpeeddata[0]} mm/s")
+                        print(f"速度已更新: {NewRemixSpeeddata[0]*0.1} mm/s")
                     # 使用合併後的軌跡檔案(已分割與封裝)，覆蓋原始的軌跡資料
                     RPdata = NewRemixRPdata
                     Veldata = NewRemixSpeeddata

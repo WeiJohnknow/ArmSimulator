@@ -3266,16 +3266,28 @@ Array 垂直堆疊
 
 """
 """
+# import numpy as np
+
+# # 創建一個範例的 3D 陣列，形狀為 (300, 1, 6)
+# array = np.zeros((300,1,6))  # 隨機數乘以2000，使數值範圍在0到2000之間
+# array[0,0,3] = -181
+
+# # 檢查每個 row 的第 4 個 column 是否大於 1000
+# # 注意到 NumPy 使用 0 基索引，所以第 4 個 column 的索引為 3
+# r = (array[:, 0, 3] > 180) | (array[:, 0, 3] < -180)
+# result = np.any(r)
+
+# # 返回結果
+# print(result)
+
 import numpy as np
 
-# 創建一個範例的 3D 陣列，形狀為 (300, 1, 6)
-array = np.zeros((300,1,6))  # 隨機數乘以2000，使數值範圍在0到2000之間
-array[0,0,3] = -181
+# 創建一個示例數組
+array1 = np.array([1, 2, 3, 4, 5])
 
-# 檢查每個 row 的第 4 個 column 是否大於 1000
-# 注意到 NumPy 使用 0 基索引，所以第 4 個 column 的索引為 3
-r = (array[:, 0, 3] > 180) | (array[:, 0, 3] < -180)
-result = np.any(r)
+# 使用 numpy.copy 來複製數組
+array2 = np.copy(array1)*10
 
-# 返回結果
-print(result)
+
+print("Original array:", array1)
+print("Copied array:", array2)

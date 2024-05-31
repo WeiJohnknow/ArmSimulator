@@ -7,7 +7,7 @@ from sklearn.metrics import mean_squared_error, r2_score
 import matplotlib.pyplot as plt
 
 # 讀取用戶上傳的 CSV 文件
-file_path = 'dataBase/weldBeadWidthToSpeed.csv'
+file_path = 'dataBase/weldBeadWidthToSpeed_1.csv'
 data = pd.read_csv(file_path)
 
 # 分離特徵和目標變量
@@ -37,9 +37,9 @@ intercept = model.intercept_
 # 繪製回歸線圖
 plt.scatter(X, Y, color='blue')
 plt.plot(X, model.predict(X), color='red')
-plt.xlabel('走速(mm/s)')
-plt.ylabel('寬度(mm)')
-plt.title('線性回歸')
+plt.xlabel('Speed(mm/s)')
+plt.ylabel('Weld bead width(mm)')
+plt.title('Model of weld bead width and welding speed(linear regression)')
 plt.show()
 
 # 顯示回歸方程式和評估結果

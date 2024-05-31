@@ -341,24 +341,66 @@ def Analysis_ExperimentalAndExpect(Experimental_EucDis, Experimental_Speed, Expe
     # 繪製垂直線
     # plt.axvline(x=Expect_Time[110], color='r', linestyle='--')
 
-    # 期望曲線 
-    plt.plot(Expect_Time, Expect_EucDis, color='red', label='Euclidean distance(Expected)', marker="o")
-    plt.plot(Expect_Time, Expect_Speed, color='green', label='Speed(Expected)', marker="o")
+    """
+    兩條曲線在同一張圖內
+    """
+    # # 期望曲線 
+    # plt.plot(Expect_Time, Expect_EucDis, color='red', label='Euclidean distance(Expected)')
+    # plt.plot(Expect_Time, Expect_Speed, color='green', label='Speed(Expected)')
 
-    # 實驗曲線
-    plt.plot(Experimental_Time, Experimental_EucDis, color='magenta', label='Euclidean distance(Estimate)', marker="o")
-    plt.plot(Experimental_Time, Experimental_Speed,  color='turquoise', label='Speed(Estimate)', marker="o")
+    # # 實驗曲線
+    # plt.plot(Experimental_Time, Experimental_EucDis, color='magenta', label='Euclidean distance(Estimate)')
+    # plt.plot(Experimental_Time, Experimental_Speed,  color='turquoise', label='Speed(Estimate)')
+
+    # # 添加图例和标签
+    # plt.legend()
+    # plt.xlabel("time(ms)")
+    # plt.ylabel("Euclidean distance(mm) and speed(mm/s)")
+    # plt.title("Euclidean distance and speed")
+
+    # # 显示图形
+    # plt.show()
+
+    """
+    歐式距離與速度分張
+    """
+    # 期望歐式距離曲線 
+    plt.plot(Expect_Time, Expect_EucDis, color='red', label='Euclidean distance(Expected)')
+    # 實驗得到的歐式距離曲線
+    plt.plot(Experimental_Time, Experimental_EucDis, color='green', label='Euclidean distance(Estimate)')
+
+
+    # 開啟圖表背景格線
+    plt.grid(True)
 
     # 添加图例和标签
     plt.legend()
     plt.xlabel("time(ms)")
-    plt.ylabel("Euclidean distance(mm) and speed(mm/s)")
-    plt.title("Euclidean distance and speed")
+    plt.ylabel("Euclidean distance(mm)")
+    plt.title("Euclidean distance of robot arm TCP movement")
+
+    # 显示图形
+    plt.show()
+
+
+    # 期望的速度曲線
+    plt.plot(Expect_Time, Expect_Speed, color='red', label='Speed(Expected)')
+    # 實驗得到的速度曲線
+    plt.plot(Experimental_Time, Experimental_Speed,  color='green', label='Speed(Estimate)')
+
+    # 開啟圖表背景格線
+    plt.grid(True)
+
+    # 添加图例和标签
+    plt.legend()
+    plt.xlabel("time(ms)")
+    plt.ylabel("speed(mm/s)")
+    plt.title("Robot arm TCP movement speed")
 
     # 显示图形
     plt.show()
     
-def Expect_distance_speed(PoseMat_file, Time_file, sampleTime):
+def Expect_distance_speed(PoseMat_file, Speed_file, sampleTime):
     """計算軌跡之歐式距離與平均速度
     - Unit:
         - distance :mm
@@ -367,7 +409,7 @@ def Expect_distance_speed(PoseMat_file, Time_file, sampleTime):
     - 注意計算總位移與平均速度時，時間之單位
     """
     PoseMat6x1 = database_PoseMat.Load(PoseMat_file)
-    # Time = database_time.Load(Time_file)
+    Speed = database_Velocity.Load(Speed_file)
 
     # 有時要-0.04 有時不用， 請多加注意
     Time = np.arange(0, (PoseMat6x1.shape[0]*sampleTime), sampleTime)
@@ -399,7 +441,8 @@ def Expect_distance_speed(PoseMat_file, Time_file, sampleTime):
 
     plt.plot(Time, TotalEuclidean_distance, color='blue', label='Euclidean distance')
     # plt.plot(time, average_speed, color='green', label='Speed')
-    plt.plot(Time, PtoPavgSpeed, color='green', label='Speed')
+    # plt.plot(Time, PtoPavgSpeed, color='green', label='Speed')
+    plt.plot(Time, Speed, color='green', label='Speed')
 
 
     # speed_mean = np.mean(average_speed)
@@ -415,7 +458,8 @@ def Expect_distance_speed(PoseMat_file, Time_file, sampleTime):
     # 显示图形
     plt.show()
     
-    return TotalEuclidean_distance, PtoPEuclidean_distance, PtoPavgSpeed, Time
+    # return TotalEuclidean_distance, PtoPEuclidean_distance, PtoPavgSpeed, Time
+    return TotalEuclidean_distance, PtoPEuclidean_distance, Speed, Time
 
 def calculate_distance_speed_2_curve(PoseMat_file, Time_file, ExperimentalData, sampleTime):
     """計算軌跡之歐式距離與平均速度(2曲線)
@@ -1217,20 +1261,20 @@ if __name__ == "__main__" :
     """
     # I000_SysTime_chart()
 
-
-    Time_path = "dataBase/dynamicllyPlanTEST/feedbackRecords_sysTime.csv"
-    TimeErr_path = "dataBase/dynamicllyPlanTEST/feedbackRecords_sysTime_err.csv"
+    
+    Time_path =    "Experimental_data/20240528/g/feedbackRecords_sysTime.csv"
+    TimeErr_path = "Experimental_data/20240528/g/feedbackRecords_sysTime_err.csv"
     # 製作時間差的csv檔
     make_TimeErrorFile(Time_path, TimeErr_path)
 
     # 預期資料
-    Expect_PoseMat_file = "dataBase/dynamicllyPlanTEST/mergeTrj.csv"
-    Expect_Time_file =    "dataBase/dynamicllyPlanTEST/mergeSpeed.csv"
+    Expect_PoseMat_file = "Experimental_data/20240528/g/mergeTrj.csv"
+    Expect_Time_file =    "Experimental_data/20240528/g/mergeSpeed.csv"
 
     # 實驗結果資料
-    Experimental_PoseMat_file =    "dataBase/dynamicllyPlanTEST/feedbackRecords_Trj.csv"
-    Experimental_Time_file =       "dataBase/dynamicllyPlanTEST/feedbackRecords_sysTime.csv"
-    Experimental_Time_error_file = "dataBase/dynamicllyPlanTEST/feedbackRecords_sysTime_err.csv"
+    Experimental_PoseMat_file =    "Experimental_data/20240528/g/feedbackRecords_Trj.csv"
+    Experimental_Time_file =       "Experimental_data/20240528/g/feedbackRecords_sysTime.csv"
+    Experimental_Time_error_file = "Experimental_data/20240528/g/feedbackRecords_sysTime_err.csv"
 
 
     # 計算理想軌跡之歐式距離與速度

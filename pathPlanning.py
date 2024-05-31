@@ -967,13 +967,19 @@ class PathPlanning:
     @staticmethod
     def MatrixPathPlanSpeed(GoalEnd:np.ndarray, NowEnd:np.ndarray, GoalSpeedType:str, GoalSpeed:float, sampleTime = 0.04, startTime=0):
         """Homogeneous matrix interpolation method, it's a Cartesian space trajectory planning method(速度調變版本).
-        - Args:
-            - GoalEnd(Homogeneous matrix), NowEnd(Homogeneous matrix), allTime, filePath
-            - GoalSpeed: (unit: mm/s)
-            - default : sampleTime = 0.04, startTime=0
+
+        Args:
+            - GoalEnd: Homogeneous matrix.
+            - NowEnd: Homogeneous matrix.
+            - GoalSpeedType: "Velocity" or "AngularVelocity".
+            - GoalSpeed: unit is mm/s.
+            - sampleTime(default: 0.04): unit is second .
+            - startTime(default: 0.04)
         
-        - Return:
-            - pathData(Homogeneous matrix), timeData
+        Return:
+            - pathData(ndarray, 3D): Homogeneous matrix.
+            - velData(ndarray, 1D): Velocity or Angular velocity.
+            - timeData(ndarray, 1D): unit is second.
 
         - Ref. 2023hurocup file robot.py fun.GetDmat
         """ 
@@ -1008,6 +1014,8 @@ class PathPlanning:
 
         # 啟用最快速度
         FastestSpeed = False
+        # 收斂精度
+        speedThreshold = 0.01
         while True:
             samplePoint = allTime / sampleTime
             if samplePoint < 1 :
@@ -1036,7 +1044,7 @@ class PathPlanning:
                     # 速度
                     NowSpeed = PathPlanning.calculationSpeed(iterData[0], iterData[1], sampleTime)
                     error = NowSpeed - GoalSpeed 
-                    if error < 0.1 and error > -0.1:
+                    if error < speedThreshold and error > -speedThreshold:
                         print(f"error: {error} | 迭代次數: {iter} | alltime: {allTime} | Speed: {NowSpeed}")
                         break
                     if error > 10:
@@ -1050,7 +1058,7 @@ class PathPlanning:
                     NowSpeed = iterAngularVelocity[1] - iterAngularVelocity[0]
                     error = NowSpeed - GoalSpeed
                     
-                    if error < 0.1 and error > -0.1:
+                    if error < speedThreshold and error > -speedThreshold:
                         print(f"error: {error} | 迭代次數: {iter} | alltime: {allTime} | Speed: {NowSpeed}")
                         break
                     
@@ -1408,7 +1416,8 @@ class PathPlanning:
         NowEnd = NowEnd @ self.Mat.TransXYZ(NowEnd_[0], NowEnd_[1], NowEnd_[2]) @ self.Mat.RotaXYZ(d2r(NowEnd_[3]), d2r(NowEnd_[4]), d2r(NowEnd_[5])) 
         GoalEnd = GoalEnd @ self.Mat.TransXYZ(GoalEnd_[0], GoalEnd_[1], GoalEnd_[2]) @ self.Mat.RotaXYZ(d2r(GoalEnd_[3]), d2r(GoalEnd_[4]), d2r(GoalEnd_[5]))
         sampleTime = 0.04
-        GoalSpeed = 2
+        GoalSpeed = 1
+
         totalTime = 8
         
         # b = Time.ReadNowTime()
@@ -1425,16 +1434,16 @@ class PathPlanning:
 
 
         b = Time.ReadNowTime()
-        homogeneousMat, Speed, TimeData = self.MatrixPathPlanSpeed(GoalEnd, NowEnd, GoalSpeed, sampleTime)
+        homogeneousMat, Speed, TimeData = self.MatrixPathPlanSpeed(GoalEnd, NowEnd, "Velocity", GoalSpeed, sampleTime)
         a = Time.ReadNowTime()
         err = Time.TimeError(b, a)
         print(err["millisecond"])
 
-        b_ = Time.ReadNowTime()
-        homogeneousMat_, Speed_, Time_ = self.PathToHomogeneousMats_Speed(GoalEnd, NowEnd, GoalSpeed, sampleTime)
-        a_ = Time.ReadNowTime()
-        err_ = Time.TimeError(b_, a_)
-        print(err_["millisecond"])
+        # b_ = Time.ReadNowTime()
+        # homogeneousMat_, Speed_, Time_ = self.PathToHomogeneousMats_Speed(GoalEnd, NowEnd, GoalSpeed, sampleTime)
+        # a_ = Time.ReadNowTime()
+        # err_ = Time.TimeError(b_, a_)
+        # print(err_["millisecond"])
         print()
 
         """

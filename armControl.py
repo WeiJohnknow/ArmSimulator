@@ -366,6 +366,13 @@ if __name__ == "__main__":
     # 功能模式調整區
     userMode = True
 
+    """
+    Online or Offline 測試
+    Online: True
+    Offline: False
+    """
+    Line = False
+
     if userMode is True:
         """
         1. 生成軌跡
@@ -392,13 +399,13 @@ if __name__ == "__main__":
         
 
         NowEnd = [959.911, 21.293, -164.953, 175.9975, 17.9492, 58.6475]
-        
-        NowEndData = [17, 4, 5, 0, NowEnd[0], NowEnd[1], NowEnd[2], NowEnd[3]*10, NowEnd[4]*10, NowEnd[5]*10]
-        Udp.WriteRPVar(2, NowEndData)
-        
         GoalEnd = [960.84, -96.446, -164.83, 175.9973, 17.9444, 58.6498]
-        NowEndData = [17, 4, 5, 0, GoalEnd[0], GoalEnd[1], GoalEnd[2], GoalEnd[3]*10, GoalEnd[4]*10, GoalEnd[5]*10]
-        Udp.WriteRPVar(3, NowEndData)
+
+        if Line is True:
+            NowEndData = [17, 4, 5, 0, NowEnd[0], NowEnd[1], NowEnd[2], NowEnd[3]*10, NowEnd[4]*10, NowEnd[5]*10]
+            Udp.WriteRPVar(2, NowEndData)
+            NowEndData = [17, 4, 5, 0, GoalEnd[0], GoalEnd[1], GoalEnd[2], GoalEnd[3]*10, GoalEnd[4]*10, GoalEnd[5]*10]
+            Udp.WriteRPVar(3, NowEndData)
 
 
         # NowEnd = [958.525, 41.670, -158.417, -165.2876, -52.1723, 97.5191]
@@ -476,7 +483,7 @@ if __name__ == "__main__":
         nowJointAngle[5, 0] =  d2r(1.0687)
         
         # PoseMat >>> HomogeneousMat
-        filename_header = "database/dynamicllyPlanTEST/"
+        filename_header = "Experimental_data/20240527/a/"
         PoseMat = database_PoseMat.Load(filename_header+"PoseMat_0.csv")
         HomogeneousMat = database_HomogeneousMat.Load(filename_header+"HomogeneousMat_0.csv")
         JointAngleData = Generator.generateTrajectoryJointAngle(nowJointAngle, HomogeneousMat)

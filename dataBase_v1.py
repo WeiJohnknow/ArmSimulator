@@ -144,6 +144,14 @@ class database_time(Database_interface):
         dataTypeConverter.ndarrayTOdataframe(PoseMatAndTime, ['X', 'Y', 'Z', 'Rx', 'Ry', 'Rz', "Time"], filePath, mode)
 
     @ staticmethod
+    def Save_arcCurrent(arcCurrentRecords, filePath, mode:str):
+        dataTypeConverter.ndarrayTOdataframe(arcCurrentRecords, ['ArcCurrent'], filePath, mode)
+    
+    @ staticmethod
+    def Save_weldBeadWidth(weldBeadWidthRecords, filePath, mode:str):
+        dataTypeConverter.ndarrayTOdataframe(weldBeadWidthRecords, ['weldBeadWidth', 'Speed'], filePath, mode)
+
+    @ staticmethod
     def Load(filePath):
         df = validator.Is_existence(filePath)
         Time_ndarry = dataTypeConverter.TimedataframeToNdarray(df)

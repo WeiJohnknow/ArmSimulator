@@ -471,6 +471,7 @@ class Simulator:
 
         
     def main(self):
+        r2d = np.rad2deg
         self.Pygameinit()
         
         # 世界坐標系原點
@@ -497,12 +498,31 @@ class Simulator:
         # θ_Buffer[4, 0] =  d2r(-76.44358294225668)
         # θ_Buffer[5, 0] =  d2r(1.071035847811744)
 
-        θ_Buffer[0, 0] =  d2r(-0.006)
-        θ_Buffer[1, 0] =  d2r(-38.8189)
-        θ_Buffer[2, 0] =  d2r(-41.0857)
-        θ_Buffer[3, 0] =  d2r(-0.0030)
-        θ_Buffer[4, 0] =  d2r(-76.4394)
-        θ_Buffer[5, 0] =  d2r(1.0687)
+        # θ_Buffer[0, 0] =  d2r(-0.006)
+        # θ_Buffer[1, 0] =  d2r(-38.8189)
+        # θ_Buffer[2, 0] =  d2r(-41.0857)
+        # θ_Buffer[3, 0] =  d2r(-0.0030)
+        # θ_Buffer[4, 0] =  d2r(-76.4394)
+        # θ_Buffer[5, 0] =  d2r(1.0687)
+
+        θ_Buffer[0, 0] =  0.01803053
+        θ_Buffer[1, 0] =  -1.16429938
+        θ_Buffer[2, 0] =  -0.98799934
+        θ_Buffer[3, 0] =  -2.33118644
+        θ_Buffer[4, 0] =  -2.68562472
+        θ_Buffer[5, 0] =  1.42863827
+        
+
+        # θ_Buffer[0, 0] =  d2r(0.99309509)
+        # θ_Buffer[1, 0] =  d2r(60.45463043)
+        # θ_Buffer[2, 0] =  d2r(22.45836069)
+        # θ_Buffer[3, 0] =  d2r(20.16043291)
+        # θ_Buffer[4, 0] =  d2r(-111.94624456)
+        # θ_Buffer[5, 0] =  d2r(-133.6684706)
+
+
+
+        
 
         # 示教模式 Jointθ Buffer
         teachθ = [θ_Buffer[0, 0], θ_Buffer[1, 0], θ_Buffer[2, 0], θ_Buffer[3, 0], θ_Buffer[4, 0], θ_Buffer[5, 0]]
@@ -549,8 +569,8 @@ class Simulator:
 
 
         # 取出資料後放入IK，將coordinate data ➔ Joint Angle data
-        for i in range(len(path_np_4X4)):
-            θ[i] = self.Kin.IK_4x4(path_np_4X4[i], θ_Buffer)
+        # for i in range(len(path_np_4X4)):
+        #     θ[i] = self.Kin.IK_4x4(path_np_4X4[i], θ_Buffer)
 
         """
         存取JointAngle data
@@ -617,28 +637,88 @@ class Simulator:
             # 手臂關節移動
             if keys[pygame.K_3]:
                 teachθ[0] += d2r(1)
+                if teachθ[0] > d2r(170):
+                    teachθ[0] = d2r(170)
+                    print("S軸已達170度極限")
+                else:
+                    print(f"S軸角度{r2d(teachθ[0])}度")
             elif keys[pygame.K_e]:
                 teachθ[0] -= d2r(1)
+                if teachθ[0] < d2r(-170):
+                    teachθ[0] = d2r(-170)
+                    print("S軸已達-170度極限")
+                else:
+                    print(f"S軸角度{r2d(teachθ[0])}度")
             elif keys[pygame.K_4]:
                 teachθ[1] += d2r(1)
+                if teachθ[1] > d2r(155):
+                    teachθ[1] = d2r(155)
+                    print("L軸已達155度極限")
+                else:
+                    print(f"L軸角度{r2d(teachθ[1])}度")
             elif keys[pygame.K_r]:
                 teachθ[1] -= d2r(1)
+                if teachθ[1] < d2r(-90):
+                    teachθ[1] = d2r(-90)
+                    print("L軸已達-90度極限")
+                else:
+                    print(f"L軸角度{r2d(teachθ[1])}度")
             elif keys[pygame.K_5]:
                 teachθ[2] += d2r(1)
+                if teachθ[2] > d2r(240):
+                    teachθ[2] = d2r(240)
+                    print("U軸已達240度極限")
+                else:
+                    print(f"U軸角度{r2d(teachθ[2])}度")
             elif keys[pygame.K_t]:
                 teachθ[2] -= d2r(1)
+                if teachθ[2] < d2r(-175):
+                    teachθ[2] = d2r(-175)
+                    print("U軸已達-175度極限")
+                else:
+                    print(f"U軸角度{r2d(teachθ[2])}度")
             elif keys[pygame.K_6]:
                 teachθ[3] += d2r(1)
+                if teachθ[3] > d2r(150):
+                    teachθ[3] = d2r(150)
+                    print("R軸已達150度極限")
+                else:
+                    print(f"R軸角度{r2d(teachθ[3])}度")
             elif keys[pygame.K_y]:
                 teachθ[3] -= d2r(1)
+                if teachθ[3] < d2r(-150):
+                    teachθ[3] = d2r(-150)
+                    print("R軸已達-150度極限")
+                else:
+                    print(f"R軸角度{r2d(teachθ[3])}度")
             elif keys[pygame.K_7]:
                 teachθ[4] += d2r(1)
+                if teachθ[4] > d2r(90):
+                    teachθ[4] = d2r(90)
+                    print("B軸已達90度極限")
+                else:
+                    print(f"B軸角度{r2d(teachθ[4])}度")
             elif keys[pygame.K_u]:
                 teachθ[4] -= d2r(1)
+                if teachθ[4] < d2r(-135):
+                    teachθ[4] = d2r(-135)
+                    print("B軸已達-135度極限")
+                else:
+                    print(f"B軸角度{r2d(teachθ[4])}度")
             elif keys[pygame.K_8]:
                 teachθ[5] += d2r(1)
+                if teachθ[5] > d2r(210):
+                    teachθ[5] = d2r(210)
+                    print("T軸已達210度極限")
+                else:
+                    print(f"B軸角度{r2d(teachθ[5])}度")
             elif keys[pygame.K_i]:
                 teachθ[5] -= d2r(1)
+                if teachθ[5] < d2r(-210):
+                    teachθ[5] = d2r(-210)
+                    print("T軸已達-210度極限")
+                else:
+                    print(f"T軸角度{r2d(teachθ[5])}度")
 
 
             '''

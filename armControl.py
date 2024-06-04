@@ -371,7 +371,7 @@ if __name__ == "__main__":
     Online: True
     Offline: False
     """
-    Line = False
+    Line = True
 
     if userMode is True:
         """
@@ -396,11 +396,24 @@ if __name__ == "__main__":
         # NowEnd = [960.216, 41.426, -151.949, 175.7717, 17.9366, 59.3998]
         # GoalEnd = [960.216, -109.209, -151.949, 175.7717, 17.9366, 59.3998]
 
-        
-
+        """
+        對接
         NowEnd = [959.911, 21.293, -164.953, 175.9975, 17.9492, 58.6475]
         GoalEnd = [960.84, -96.446, -164.83, 175.9973, 17.9444, 58.6498]
+        """
+        
 
+        """
+        角接
+        NowEnd = [966.726, -108.062, -138.663, 151.5946, -25.0176, -130.4836]
+        GoalEnd = [965.324, 39.827, -138.689, 151.5878, -25.0162, -130.4795]
+        """
+        # NowEnd     = [1028.892, -100.126, -133.43, 153.7838, -12.9644, -137.0478]
+        # GoalEnd = [1028.898, 39.173, -133.479, 153.7858, -12.965, -137.0483]
+
+        NowEnd = [967.951, -108.768, -138.651, 151.6394, -24.9856, -130.5344]
+        GoalEnd = [966.118, 39.601, -138.868, 151.6392, -24.9861, -130.5342]
+        
         if Line is True:
             NowEndData = [17, 4, 5, 0, NowEnd[0], NowEnd[1], NowEnd[2], NowEnd[3]*10, NowEnd[4]*10, NowEnd[5]*10]
             Udp.WriteRPVar(2, NowEndData)
@@ -459,6 +472,7 @@ if __name__ == "__main__":
         nowJointAngle[3, 0] =  d2r(-0.0030)
         nowJointAngle[4, 0] =  d2r(-76.4394)
         nowJointAngle[5, 0] =  d2r(1.0687)
+        
         HomogeneousMat = database_HomogeneousMat.Load(filename_header+f"HomogeneousMat_{number}.csv")
         b = Time.ReadNowTime()
         JointAngle = Generator.generateTrajectoryJointAngle(nowJointAngle, HomogeneousMat)

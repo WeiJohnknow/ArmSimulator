@@ -2425,7 +2425,7 @@ class Motomancontrol():
         Online(含通訊之測試) >> True  要記得解開self.Udp的相關註解
         Offline(純邏輯測試) >> False
         """
-        self.Line = False
+        self.Line = True
         
         self.Kin = Kinematics()
         self.Time = TimeTool()
@@ -2469,7 +2469,7 @@ class Motomancontrol():
         self.GoalSpeed = 1.5
 
         # 預設銲道寬度
-        self.weldBeadWidth = 4.5
+        self.weldBeadWidth = 6.3
 
         # 銲道寬度變更紀錄
         self.weldBeadWidthRecards = np.zeros((1000, 2))
@@ -3239,12 +3239,9 @@ class Motomancontrol():
                             AC:   I21
                             AVP : I22
                             """
-                            # self.AC = 50
-                            # self.AVP = 50
-                            # status = self.changeWeldingPartmeter(self.AC, self.AVP)
-                            # 寫入新的銲接參數
                             if self.Line:
                                 Istatus = self.Udp.WriteVar("Integer", 21, self.AC)
+
                                 if Istatus == []:
                                     print(f"已將銲接電流更改至 {self.AC}A")
                                     self.recordArcCurrent()
@@ -3268,6 +3265,28 @@ class Motomancontrol():
                             """
                             self.AC += 5
                             print(f"已增加銲接電流至: {self.AC}A")
+                        
+                        if event.key == pygame.K_k:
+                            """指定銲道寬度 調變焊接電流
+                            """
+                            if self.Line:
+                                # 銲接速度與銲接電流之轉換關係
+                                estimatedWeldingCurrent = (self.weldBeadWidth + 2.789) /  0.173
+                                self.AC = int(round(estimatedWeldingCurrent, 0))
+                                print(f"經數學模型換算後的理想銲接電流: {self.AC} A")
+                                # 更新銲接電流
+                                Istatus = self.Udp.WriteVar("Integer", 21, self.AC)
+                                # 紀錄更新的數值
+                                self.recordArcCurrent()
+
+                                # 紀錄新寫入的銲道寬度
+                                self.recordWeldBeadWidth(self.AC)
+                                
+                            else:
+                                print(f"已將銲接電流更改至 {self.AC}A")
+                                self.recordArcCurrent()
+                                # 紀錄新寫入的銲道寬度
+                                self.recordWeldBeadWidth(estimatedWeldingCurrent)
 
                         elif event.key == pygame.K_p:
                             """
@@ -3343,6 +3362,7 @@ class Motomancontrol():
                                 pos_result, coordinate = self.Udp.getcoordinateMH(101)
                                 # 設定新軌跡起點
                                 NowEnd = [coordinate[0], coordinate[1], coordinate[2], coordinate[3], coordinate[4], coordinate[5]]
+
                             else:
                                 # 模擬讀取當下位置
                                 coordinate = self.trjData[startPlan_alreadySentDataBatch*9, 0]
@@ -3363,13 +3383,12 @@ class Motomancontrol():
                             # print(f"理想速度: {GoalSpeed} mm/s")
 
                             """Model
-                            寬度 = -1.183*走速 + 6.358
-                            走速 = (寬度-6.358)/(-1.183)
+                            WeldBeadWidth = -2.317 * Speed + 9.758
+                            速度 = (寬度 - 9.758)/(-2.317)
                             """
                             
-                            estimatedGoalSpeed = (self.weldBeadWidth - 6.358)/(-1.183)
+                            estimatedGoalSpeed = (self.weldBeadWidth - 9.758)/(-2.317)
                             estimatedGoalSpeed = int(estimatedGoalSpeed*10)*0.1
-                            
                             print(f"經數學模型換算後的理想銲接速度: {estimatedGoalSpeed} mm/s")
 
                             # 紀錄新寫入的銲道寬度

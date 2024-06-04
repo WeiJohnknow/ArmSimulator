@@ -462,7 +462,7 @@ class Kinematics:
         
         Jbuffer = 0
 
-        iter = 20
+        iter = 30
         # 學習率
         # test = 0.05
         test = 0.85
@@ -514,6 +514,7 @@ class Kinematics:
         
         if rankJ < 6 or determinant == 0:
             print("SVD =  0, 是奇異點")
+           
 
 
         # print("iter :", 10-iter)

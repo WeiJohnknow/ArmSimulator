@@ -1256,6 +1256,9 @@ if __name__ == "__main__" :
 
     # PoseMat_file = "Experimental_data/20240429/Remix_1/testRemix_PoseMat.csv"
 
+    JointAngle = database_JointAngle.Load("dataBase/dynamicllyPlanTEST/JointAngle_0.csv")
+    JointAngle = np.rad2deg(JointAngle)
+    print(JointAngle)
     """
     製作通訊時序表
     """

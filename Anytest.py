@@ -3280,14 +3280,41 @@ Array 垂直堆疊
 # # 返回結果
 # print(result)
 
-import numpy as np
+# import numpy as np
 
-# 創建一個示例數組
-array1 = np.array([1, 2, 3, 4, 5])
+# # 創建一個示例數組
+# array1 = np.array([1, 2, 3, 4, 5])
 
-# 使用 numpy.copy 來複製數組
-array2 = np.copy(array1)*10
+# # 使用 numpy.copy 來複製數組
+# array2 = np.copy(array1)*10
 
 
-print("Original array:", array1)
-print("Copied array:", array2)
+# print("Original array:", array1)
+# print("Copied array:", array2)
+
+
+"""
+模型測試
+"""
+# 速度模型
+Speed = 2
+WeldBeadWidth = -2.317 * Speed + 9.758
+print(f"銲道寬度: {WeldBeadWidth}mm")
+
+# # 速度>>寬度 | 1.5>>6.3 | 1>>7.4 | 2>>5.1
+# WeldBeadWidth = 5.1
+Speed = (WeldBeadWidth - 9.758)/(-2.317)
+Speed = round(Speed, 1)
+Speed = int(Speed*10)*0.1
+print(f"指定銲道寬度為{WeldBeadWidth}mm時，銲接速度應為{Speed}mm/s")
+
+# 電流模型
+# Current = 50
+# WeldBeadWidth = 0.173 * Current - 2.789
+# print(f"銲道寬度: {WeldBeadWidth}mm")
+      
+# 電流>>寬度 | 50>>5.9 | 45>>5 | 55>>6.7
+# WeldBeadWidth = 5
+# Current = (WeldBeadWidth + 2.789) /  0.173
+# Current = int(round(Current, 0))
+# print(f"指定銲道寬度為{WeldBeadWidth}mm時，銲接電流應為{Current}A")

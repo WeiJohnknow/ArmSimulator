@@ -698,4 +698,6 @@ class Simulator:
     
 if __name__ == "__main__":
     Sim = Simulator()
-    Sim.main()
+    hMat = np.eye(4)
+    JointAngle = np.zeros((10000, 6, 1))
+    Sim.paitGL(JointAngle, hMat)

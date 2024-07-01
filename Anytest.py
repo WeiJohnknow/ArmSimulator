@@ -3296,17 +3296,17 @@ Array 垂直堆疊
 """
 模型測試
 """
-# 速度模型
-Speed = 2
-WeldBeadWidth = -2.317 * Speed + 9.758
-print(f"銲道寬度: {WeldBeadWidth}mm")
+# # 速度模型
+# Speed = 2
+# WeldBeadWidth = -2.317 * Speed + 9.758
+# print(f"銲道寬度: {WeldBeadWidth}mm")
 
-# # 速度>>寬度 | 1.5>>6.3 | 1>>7.4 | 2>>5.1
-# WeldBeadWidth = 5.1
-Speed = (WeldBeadWidth - 9.758)/(-2.317)
-Speed = round(Speed, 1)
-Speed = int(Speed*10)*0.1
-print(f"指定銲道寬度為{WeldBeadWidth}mm時，銲接速度應為{Speed}mm/s")
+# # # 速度>>寬度 | 1.5>>6.3 | 1>>7.4 | 2>>5.1
+# # WeldBeadWidth = 5.1
+# Speed = (WeldBeadWidth - 9.758)/(-2.317)
+# Speed = round(Speed, 1)
+# Speed = int(Speed*10)*0.1
+# print(f"指定銲道寬度為{WeldBeadWidth}mm時，銲接速度應為{Speed}mm/s")
 
 # 電流模型
 # Current = 50
@@ -3318,3 +3318,48 @@ print(f"指定銲道寬度為{WeldBeadWidth}mm時，銲接速度應為{Speed}mm/
 # Current = (WeldBeadWidth + 2.789) /  0.173
 # Current = int(round(Current, 0))
 # print(f"指定銲道寬度為{WeldBeadWidth}mm時，銲接電流應為{Current}A")
+
+
+"""
+RANSAC 回歸模型
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.linear_model import RANSACRegressor, LinearRegression
+
+# Generate synthetic data
+np.random.seed(0)
+n_samples = 1000
+n_outliers = 50
+
+X = np.random.randn(n_samples, 1)
+y = 2 * X.squeeze() + 1 + np.random.normal(size=n_samples)
+
+# Add some outliers
+X[:n_outliers] = 20 * np.random.random((n_outliers, 1))
+y[:n_outliers] = 20 * (0.5 - np.random.random(n_outliers))
+
+# Fit line using all data
+lr = LinearRegression()
+lr.fit(X, y)
+
+# Fit line using RANSAC
+ransac = RANSACRegressor()
+ransac.fit(X, y)
+inlier_mask = ransac.inlier_mask_
+outlier_mask = np.logical_not(inlier_mask)
+
+# Predict data of estimated models
+line_X = np.arange(X.min(), X.max())[:, np.newaxis]
+line_y = lr.predict(line_X)
+line_y_ransac = ransac.predict(line_X)
+
+# Plot results
+plt.scatter(X[inlier_mask], y[inlier_mask], color='yellowgreen', marker='.', label='Inliers')
+plt.scatter(X[outlier_mask], y[outlier_mask], color='gold', marker='.', label='Outliers')
+plt.plot(line_X, line_y, color='navy', linewidth=2, label='Linear regressor')
+plt.plot(line_X, line_y_ransac, color='cornflowerblue', linewidth=2, label='RANSAC regressor')
+plt.legend(loc='lower right')
+plt.xlabel("Input")
+plt.ylabel("Response")
+plt.show()

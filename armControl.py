@@ -267,20 +267,20 @@ class Generator:
         """
         PreGo             = [1028.838, -100.512, -60.384, 153.7943, -12.9858, -137.0558]
 
-        line1stStart      = [1028.892, -100.126, -133.43, 153.7838, -12.9644, -137.0478]
-        line1stFixPosture = [1028.898, 39.173, -133.479, 153.7858, -12.965, -137.0483]
-        line1stEnd        = [1031.113, 46.448, -133.548, 153.794, -12.9626, -67.5844]
+        line1stStart      = [1015.663, -97.245, -136.568, 156.9335, -25.4738, -153.5185]
+        line1stFixPosture = [1014.641, 37.281, -136.031, 157.2382, -24.6544, -151.3165]
+        line1stEnd        = [1015.64, 50.987, -136.698, 156.9356, -25.4816, -63.1536]
 
-        line2ndStart      = [1031.113, 46.448, -133.548, 153.794, -12.9626, -67.5844]
-        line2ndFixPosture = [889.137, 46.416, -133.527, 153.7951, -12.9672, -67.5838]
-        line2ndEnd        = [883.23, 46.267, -136.13, 152.7504, 9.8314, 46.9511]
+        line2ndStart      = [1015.64, 50.987, -136.698, 156.9356, -25.4816, -63.1536]
+        line2ndFixPosture = [876.832, 50.348, -137.807, 156.9315, -25.4789, -63.1439]
+        line2ndEnd        = [865.751, 48.678, -136.009, 156.8277, -25.0825, 32.9625]
         
-        line3rdStart      = [883.23, 46.267, -136.13, 152.7504, 9.8314, 46.9511]
-        line3rdFixPosture = [883.227, -94.75, -133.892, 152.7565, 9.824, 46.9406]
-        line3rdEnd        = [883.285, -103.725, -135.859, 166.9137, 9.1798, 131.1553]
+        line3rdStart      = [865.751, 48.678, -136.009, 156.8277, -25.0825, 32.9625]
+        line3rdFixPosture = [866.842, -87.175, -136.515, 156.8276, -25.0821, 32.9619]
+        line3rdEnd        = [867.546, -99.766, -136.385, 164.302, 2.6641, 107.3331]
         
-        line4thStart      = [883.285, -103.725, -135.859, 166.9137, 9.1798, 131.1553]
-        line4thEnd        = [1034.248, -103.696, -135.859, 166.9115, 9.179, 131.1576]
+        line4thStart      = [867.546, -99.766, -136.385, 164.302, 2.6641, 107.3331]
+        line4thEnd        = [1014.06, -98.571, -134.457, 164.2953, 2.668, 107.3375]
 
         PreBack           = [1034.267, -103.681, -45.869, 166.9084, 9.181, 131.1607]
         
@@ -296,15 +296,15 @@ class Generator:
         # 第一直線段
         HomogeneousMatData1, PoseMatData1, VelocityData1, TimeData1 = Generator.generateTrajectory(line1stStart, line1stFixPosture, sampleTime, Velocity=WeldSpeed)
         # 第一段>>第二段 姿態規劃
-        HomogeneousMatData2, PoseMatData2, VelocityData2, TimeData2 = Generator.generateTrajectory(line1stFixPosture, line1stEnd, sampleTime, angularVelocity=angularVelocity)
+        HomogeneousMatData2, PoseMatData2, VelocityData2, TimeData2 = Generator.generateTrajectory(line1stFixPosture, line1stEnd, sampleTime, Velocity=WeldSpeed)
         # 第二直線段
         HomogeneousMatData3, PoseMatData3, VelocityData3, TimeData3 = Generator.generateTrajectory(line2ndStart, line2ndFixPosture, sampleTime, Velocity=WeldSpeed)
         # 第二段>>第三段 姿態規劃
-        HomogeneousMatData4, PoseMatData4, VelocityData4, TimeData4 = Generator.generateTrajectory(line2ndFixPosture, line2ndEnd, sampleTime, angularVelocity=angularVelocity)
+        HomogeneousMatData4, PoseMatData4, VelocityData4, TimeData4 = Generator.generateTrajectory(line2ndFixPosture, line2ndEnd, sampleTime, Velocity=WeldSpeed)
         # 第三直線段
         HomogeneousMatData5, PoseMatData5, VelocityData5, TimeData5 = Generator.generateTrajectory(line3rdStart, line3rdFixPosture, sampleTime, Velocity=WeldSpeed)
         # 第三段>>第四段 姿態規劃
-        HomogeneousMatData6, PoseMatData6, VelocityData6, TimeData6 = Generator.generateTrajectory(line3rdFixPosture, line3rdEnd, sampleTime, angularVelocity=angularVelocity)
+        HomogeneousMatData6, PoseMatData6, VelocityData6, TimeData6 = Generator.generateTrajectory(line3rdFixPosture, line3rdEnd, sampleTime, Velocity=WeldSpeed)
         # 第四直線段
         HomogeneousMatData7, PoseMatData7, VelocityData7, TimeData7 = Generator.generateTrajectory(line4thStart, line4thEnd, sampleTime, Velocity=WeldSpeed)
         
@@ -354,7 +354,7 @@ class Generator:
         print("計算新軌跡IK總共花費: ", calerr["millisecond"], "ms")
         database_JointAngle.Save(JointAngle, filename_header+f"JointAngle_{number}.csv", mode)
 
-        # Sim.paitGL(JointAngle, HomogeneousMat)
+        Sim.paitGL(JointAngle, HomogeneousMat)
 
     
 if __name__ == "__main__":
@@ -364,14 +364,16 @@ if __name__ == "__main__":
     Udp = MotomanUDP()
 
     # 功能模式調整區
-    userMode = True
+    userMode = False
 
     """
     Online or Offline 測試
     Online: True
     Offline: False
     """
-    Line = True
+    Line = False
+
+    # Generator.GenerBoxPath(0, 1.5, 10)
 
     if userMode is True:
         """

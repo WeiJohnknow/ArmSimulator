@@ -143,7 +143,7 @@ class Kinematics:
         return Base, Saxis, Laxis, Uaxis, Raxis, Baxis, NewTaxis, CorrEndEffector
     
     def Mh12_FK(self, WorldCoordinate, Saxisθ, Laxisθ, Uaxisθ, Raxisθ, Baxisθ, Taxisθ, Unit):
-        """Motoman MH12 Forward kinematics
+        """Motoman MH12 Forward kinematics(使用此版)
         - Ref. Yaskawa_mh12.xacro
         - Arg: 
             - Unit: 
@@ -462,10 +462,10 @@ class Kinematics:
         
         Jbuffer = 0
 
-        iter = 30
+        iter = 150
         # 學習率
         # test = 0.05
-        test = 0.85
+        test = 0.1
         while iter > 0:
             iter -= 1
 
@@ -524,18 +524,18 @@ class Kinematics:
 
         if error > 0.001:
             sys.exit("IK迭代誤差過大")
-        if normθ[0,0] > d2r(170) or normθ[0,0] < d2r(-170):
-            sys.exit("S軸超過角度限制")
-        elif normθ[1,0] >= d2r(155) or normθ[1,0] < d2r(-90):
-            sys.exit("L軸超過角度限制")
-        elif normθ[2,0] > d2r(240) or normθ[2,0] < d2r(-84.995):
-            sys.exit("U軸超過角度限制")
-        elif normθ[3,0] > d2r(150) or normθ[3,0] < d2r(-150):
-            sys.exit("R軸超過角度限制")
-        elif normθ[4,0] > d2r(90) or normθ[4,0] < d2r(-135):
-            sys.exit("B軸超過角度限制")
-        elif normθ[5,0] > d2r(210) or normθ[5,0] < d2r(-210):
-            sys.exit("T軸超過角度限制")
+        # if normθ[0,0] > d2r(170) or normθ[0,0] < d2r(-170):
+        #     sys.exit("S軸超過角度限制")
+        # elif normθ[1,0] >= d2r(155) or normθ[1,0] < d2r(-90):
+        #     sys.exit("L軸超過角度限制")
+        # elif normθ[2,0] > d2r(240) or normθ[2,0] < d2r(-84.995):
+        #     sys.exit("U軸超過角度限制")
+        # elif normθ[3,0] > d2r(150) or normθ[3,0] < d2r(-150):
+        #     sys.exit("R軸超過角度限制")
+        # elif normθ[4,0] > d2r(90) or normθ[4,0] < d2r(-135):
+        #     sys.exit("B軸超過角度限制")
+        # elif normθ[5,0] > d2r(210) or normθ[5,0] < d2r(-210):
+        #     sys.exit("T軸超過角度限制")
 
         # a = self.Time.ReadNowTime()
         # err = self.Time.TimeError(b, a)

@@ -364,6 +364,8 @@ def Analysis_ExperimentalAndExpect(Experimental_EucDis, Experimental_Speed, Expe
     """
     歐式距離與速度分張
     """
+
+
     # 期望歐式距離曲線 
     plt.plot(Expect_Time, Expect_EucDis, color='red', label='Euclidean distance(Expected)')
     # 實驗得到的歐式距離曲線
@@ -387,6 +389,7 @@ def Analysis_ExperimentalAndExpect(Experimental_EucDis, Experimental_Speed, Expe
     plt.plot(Expect_Time, Expect_Speed, color='red', label='Speed(Expected)')
     # 實驗得到的速度曲線
     plt.plot(Experimental_Time, Experimental_Speed,  color='green', label='Speed(Estimate)')
+
 
     # 開啟圖表背景格線
     plt.grid(True)
@@ -440,7 +443,6 @@ def Expect_distance_speed(PoseMat_file, Speed_file, sampleTime):
     # plt.axvline(x=median_time_, color='orange', linestyle='--', label='Median')
 
     plt.plot(Time, TotalEuclidean_distance, color='blue', label='Euclidean distance')
-    # plt.plot(time, average_speed, color='green', label='Speed')
     # plt.plot(Time, PtoPavgSpeed, color='green', label='Speed')
     plt.plot(Time, Speed, color='green', label='Speed')
 
@@ -1256,28 +1258,30 @@ if __name__ == "__main__" :
 
     # PoseMat_file = "Experimental_data/20240429/Remix_1/testRemix_PoseMat.csv"
 
-    JointAngle = database_JointAngle.Load("dataBase/dynamicllyPlanTEST/JointAngle_0.csv")
-    JointAngle = np.rad2deg(JointAngle)
-    print(JointAngle)
+    # JointAngle = database_JointAngle.Load("dataBase/dynamicllyPlanTEST/JointAngle_0.csv")
+    # JointAngle = np.rad2deg(JointAngle)
+    # print(JointAngle)
     """
     製作通訊時序表
     """
     # I000_SysTime_chart()
 
-    
-    Time_path =    "Experimental_data/20240528/g/feedbackRecords_sysTime.csv"
-    TimeErr_path = "Experimental_data/20240528/g/feedbackRecords_sysTime_err.csv"
+    headname = "dataBase/Experimental_data/20240604/SecondStage/VariableSpeed/b/"
+    Time_path =    headname+"feedbackRecords_sysTime.csv"
+    TimeErr_path = headname+"feedbackRecords_sysTime_err.csv"
     # 製作時間差的csv檔
     make_TimeErrorFile(Time_path, TimeErr_path)
 
     # 預期資料
-    Expect_PoseMat_file = "Experimental_data/20240528/g/mergeTrj.csv"
-    Expect_Time_file =    "Experimental_data/20240528/g/mergeSpeed.csv"
+    Expect_PoseMat_file = headname+"mergeTrj.csv"
+    Expect_Time_file =    headname+"mergeSpeed.csv"
+    # Expect_PoseMat_file = headname+"PoseMat_0.csv"
+    # Expect_Time_file =    headname+"mergeSpeed.csv"
 
     # 實驗結果資料
-    Experimental_PoseMat_file =    "Experimental_data/20240528/g/feedbackRecords_Trj.csv"
-    Experimental_Time_file =       "Experimental_data/20240528/g/feedbackRecords_sysTime.csv"
-    Experimental_Time_error_file = "Experimental_data/20240528/g/feedbackRecords_sysTime_err.csv"
+    Experimental_PoseMat_file =    headname+"feedbackRecords_Trj.csv"
+    Experimental_Time_file =       headname+"feedbackRecords_sysTime.csv"
+    Experimental_Time_error_file = headname+"feedbackRecords_sysTime_err.csv"
 
 
     # 計算理想軌跡之歐式距離與速度

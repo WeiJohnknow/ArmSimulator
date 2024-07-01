@@ -1421,7 +1421,7 @@ class PathPlanning:
         totalTime = 8
         
         # b = Time.ReadNowTime()
-        # pathData, SpeedData, timeData = self.MatrixPathPlanning(GoalEnd, NowEnd, totalTime, sampleTime)
+        pathData, SpeedData, timeData = self.MatrixPathPlanning(GoalEnd, NowEnd, totalTime, sampleTime)
         # a = Time.ReadNowTime()
         # err = Time.TimeError(b, a)
         # print(err["millisecond"])
@@ -1434,7 +1434,7 @@ class PathPlanning:
 
 
         b = Time.ReadNowTime()
-        homogeneousMat, Speed, TimeData = self.MatrixPathPlanSpeed(GoalEnd, NowEnd, "Velocity", GoalSpeed, sampleTime)
+        # homogeneousMat, Speed, TimeData = self.MatrixPathPlanSpeed(GoalEnd, NowEnd, "Velocity", GoalSpeed, sampleTime)
         a = Time.ReadNowTime()
         err = Time.TimeError(b, a)
         print(err["millisecond"])

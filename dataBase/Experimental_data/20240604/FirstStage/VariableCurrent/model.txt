@@ -1,0 +1,9 @@
+銲接電流與銲道寬度之模型
+線性回歸模型						
+WeldBeadWidth = 0.17315999999999998 * Current - 2.7893999999999988						
+						
+四捨五入至小數點後三位						
+WeldBeadWidth = 0.173 * Current - 2.789						
+						
+移項後						
+ Current = (WeldBeadWidth + 2.789) /  0.173						

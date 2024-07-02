@@ -283,60 +283,61 @@ from mpl_toolkits.mplot3d import Axes3D
 
 """
 對接 有填料 變電流 線性回歸
-WeldBeadWidth = 0.09750000000000002 * Current + -0.23333333333333428
+舊(採用AC;70_AVP;90_V:1.5):WeldBeadWidth = 0.09900000000000003 * Current + -0.31333333333333524
+新(採用AC;70_AVP;100_V:1.5):WeldBeadWidth = 0.09900000000000003 * Current + -0.31333333333333524
 """
-# import pandas as pd
-# import numpy as np
-# import matplotlib.pyplot as plt
-# from sklearn.linear_model import LinearRegression
-# from sklearn.metrics import mean_squared_error, r2_score
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
 
-# # 數據輸入
-# data = {
-#     'Current': [50, 50, 50, 60, 60, 60, 70, 70, 70],
-#     'Speed': [1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5],
-#     'FeedSpeed': [90, 90, 90, 95, 95, 95, 90, 90, 90],
-#     'WeldBeadWidth': [4.54, 4.49, 4.59, 5.82, 5.7, 5.94, 6.49, 6.28, 6.7]
-# }
+# 數據輸入()
+data = {
+    'Current': [50, 50, 50, 60, 60, 60, 70, 70, 70],
+    'Speed': [1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5],
+    'FeedSpeed': [90, 90, 90, 95, 95, 95, 90, 90, 90],
+    'WeldBeadWidth': [4.54, 4.49, 4.59, 5.82, 5.7, 5.94, 6.14, 6.06, 6.22]
+}
 
-# df = pd.DataFrame(data)
+df = pd.DataFrame(data)
 
-# # 提取自變數和應變數
-# X = df[['Current']].values
-# y = df['WeldBeadWidth'].values
+# 提取自變數和應變數
+X = df[['Current']].values
+y = df['WeldBeadWidth'].values
 
-# # 創建線性回歸模型
-# model = LinearRegression()
+# 創建線性回歸模型
+model = LinearRegression()
 
-# # 訓練模型
-# model.fit(X, y)
+# 訓練模型
+model.fit(X, y)
 
-# # 預測
-# y_pred = model.predict(X)
+# 預測
+y_pred = model.predict(X)
 
-# # 評估模型
-# mse = mean_squared_error(y, y_pred)
-# r2 = r2_score(y, y_pred)
-# coef = model.coef_[0]
-# intercept = model.intercept_
+# 評估模型
+mse = mean_squared_error(y, y_pred)
+r2 = r2_score(y, y_pred)
+coef = model.coef_[0]
+intercept = model.intercept_
 
-# # 繪製回歸線
-# plt.scatter(X, y, color='blue', label='Data Points')
-# plt.plot(X, y_pred, color='red', label='Regression Line')
-# plt.xlabel('Current')
-# plt.ylabel('Weld Bead Width')
-# plt.title('Linear Regression: Current vs Weld Bead Width')
-# plt.legend()
-# plt.show()
+# 繪製回歸線
+plt.scatter(X, y, color='blue', label='Data Points')
+plt.plot(X, y_pred, color='red', label='Regression Line')
+plt.xlabel('Current')
+plt.ylabel('Weld Bead Width')
+plt.title('Linear Regression: Current vs Weld Bead Width')
+plt.legend()
+plt.show()
 
-# # 顯示結果
-# print(f"Mean Squared Error: {mse}")
-# print(f"R^2 Score: {r2}")
-# print(f"Coefficient: {coef}")
-# print(f"Intercept: {intercept}")
+# 顯示結果
+print(f"Mean Squared Error: {mse}")
+print(f"R^2 Score: {r2}")
+print(f"Coefficient: {coef}")
+print(f"Intercept: {intercept}")
 
-# # 顯示回歸方程式
-# print(f"回歸方程式: y = {coef} * Current + {intercept}")
+# 顯示回歸方程式
+print(f"回歸方程式: y = {coef} * Current + {intercept}")
 
 """
 對接 有填料 變速度 線性回歸
@@ -397,66 +398,72 @@ WeldBeadWidth = -1.9600000000000004 * Speed + 8.610000000000001
 
 """
 對接 有填料 二元一次線性回歸 
+y = 0.09750000000000003 * Current + -1.9600000000000004 * Speed + 2.7333333333333325
 """
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error, r2_score
-from mpl_toolkits.mplot3d import Axes3D
+# import pandas as pd
+# import numpy as np
+# import matplotlib.pyplot as plt
+# from sklearn.linear_model import LinearRegression
+# from sklearn.metrics import mean_squared_error, r2_score
+# from mpl_toolkits.mplot3d import Axes3D
 
-# 數據輸入
-data = {
-    'Current': [50, 50, 50, 60, 60, 60, 70, 70, 70, 60, 60, 60, 60, 60, 60, 60, 60, 60],
-    'Speed': [1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1, 1, 1, 1.5, 1.5, 1.5, 2, 2, 2],
-    'FeedSpeed': [90, 90, 90, 95, 95, 95, 90, 90, 90, 90, 90, 90, 95, 95, 95, 90, 90, 90],
-    'WeldBeadWidth': [4.54, 4.49, 4.59, 5.82, 5.7, 5.94, 6.49, 6.28, 6.7, 6.48, 6.575, 6.67, 5.7, 5.82, 5.94, 4.48, 4.75, 4.615]
-}
+# # 數據輸入
+# data = {
+#     'Current': [50, 50, 50, 60, 60, 60, 70, 70, 70, 60, 60, 60, 60, 60, 60, 60, 60, 60],
+#     'Speed': [1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1, 1, 1, 1.5, 1.5, 1.5, 2, 2, 2],
+#     'FeedSpeed': [90, 90, 90, 95, 95, 95, 90, 90, 90, 90, 90, 90, 95, 95, 95, 90, 90, 90],
+#     'WeldBeadWidth': [4.54, 4.49, 4.59, 5.82, 5.7, 5.94, 6.49, 6.28, 6.7, 6.48, 6.575, 6.67, 5.7, 5.82, 5.94, 4.48, 4.75, 4.615]
+# }
 
-df = pd.DataFrame(data)
+# df = pd.DataFrame(data)
 
-# 提取自變數和應變數
-X = df[['Current', 'Speed']].values
-y = df['WeldBeadWidth'].values
+# # 提取自變數和應變數
+# X = df[['Current', 'Speed']].values
+# y = df['WeldBeadWidth'].values
 
-# 創建線性回歸模型
-model = LinearRegression()
+# # 創建線性回歸模型
+# model = LinearRegression()
 
-# 訓練模型
-model.fit(X, y)
+# # 訓練模型
+# model.fit(X, y)
 
-# 預測
-y_pred = model.predict(X)
+# # 預測
+# y_pred = model.predict(X)
 
-# 評估模型
-mse = mean_squared_error(y, y_pred)
-r2 = r2_score(y, y_pred)
-coefficients = model.coef_
-intercept = model.intercept_
+# # 評估模型
+# mse = mean_squared_error(y, y_pred)
+# r2 = r2_score(y, y_pred)
+# coefficients = model.coef_
+# intercept = model.intercept_
 
-# 顯示結果
-print(f"Mean Squared Error: {mse}")
-print(f"R^2 Score: {r2}")
-print(f"Coefficients: {coefficients}")
-print(f"Intercept: {intercept}")
+# # 顯示結果
+# print(f"Mean Squared Error: {mse}")
+# print(f"R^2 Score: {r2}")
+# print(f"Coefficients: {coefficients}")
+# print(f"Intercept: {intercept}")
 
-# 顯示回歸方程式
-print(f"回歸方程式: y = {coefficients[0]} * Current + {coefficients[1]} * Speed + {intercept}")
+# # 顯示回歸方程式
+# print(f"回歸方程式: y = {coefficients[0]} * Current + {coefficients[1]} * Speed + {intercept}")
 
-# 繪製回歸平面圖
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-ax.scatter(df['Current'], df['Speed'], df['WeldBeadWidth'], color='blue', label='Data Points')
+# # 繪製回歸平面圖
+# fig = plt.figure()
+# ax = fig.add_subplot(111, projection='3d')
+# ax.scatter(df['Current'], df['Speed'], df['WeldBeadWidth'], color='blue', label='Data Points')
 
-# 創建網格以繪製平面
-current_surf, speed_surf = np.meshgrid(np.linspace(df['Current'].min(), df['Current'].max(), 10), 
-                                       np.linspace(df['Speed'].min(), df['Speed'].max(), 10))
-weldbeadwidth_surf = model.predict(np.c_[current_surf.ravel(), speed_surf.ravel()]).reshape(current_surf.shape)
+# # 創建網格以繪製平面
+# current_surf, speed_surf = np.meshgrid(np.linspace(df['Current'].min(), df['Current'].max(), 10), 
+#                                        np.linspace(df['Speed'].min(), df['Speed'].max(), 10))
+# weldbeadwidth_surf = model.predict(np.c_[current_surf.ravel(), speed_surf.ravel()]).reshape(current_surf.shape)
 
-# 繪製回歸平面
-ax.plot_surface(current_surf, speed_surf, weldbeadwidth_surf, color='red', alpha=0.5)
-ax.set_xlabel('Current')
-ax.set_ylabel('Speed')
-ax.set_zlabel('Weld Bead Width')
-ax.set_title('Linear Regression: Current and Speed vs Weld Bead Width')
-plt.show()
+# # 繪製回歸平面
+# ax.plot_surface(current_surf, speed_surf, weldbeadwidth_surf, color='red', alpha=0.5)
+# ax.set_xlabel('Current')
+# ax.set_ylabel('Speed')
+# ax.set_zlabel('Weld Bead Width')
+# ax.set_title('Linear Regression: Current and Speed vs Weld Bead Width')
+# plt.show()
+
+
+"""
+
+"""

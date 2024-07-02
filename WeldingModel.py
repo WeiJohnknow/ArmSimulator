@@ -44,17 +44,17 @@ class Feed_buttWeld:
         WeldBeadWidth = -1.9600000000000004 * Speed + 8.610000000000001
         Speed∈[1, 2]
         """
-        Speed = WeldBeadWidth/(-1.96) - 8.61
+        Speed = (WeldBeadWidth- 8.61)/(-1.96) 
 
         return Speed
 
     @ staticmethod
     def weldCurrentTOweldBeadWidth(WeldBeadWidth):
         """Original equation
-        WeldBeadWidth = 0.09750000000000002 * Current - 0.23333333333333428
+        WeldBeadWidth = 0.09900000000000003 * Current + -0.31333333333333524
         Current∈[50, 70]
         """
-        Current = (WeldBeadWidth/0.0975) + 0.2333
+        Current = (WeldBeadWidth+ 0.313)/0.099
         
         return Current
 

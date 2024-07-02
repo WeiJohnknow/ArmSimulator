@@ -462,10 +462,14 @@ class Kinematics:
         
         Jbuffer = 0
 
-        iter = 150
+        iter = 30
         # 學習率
         # test = 0.05
-        test = 0.1
+        test = 0.7
+
+        # 誤差分析
+        errorRcords = []
+
         while iter > 0:
             iter -= 1
 
@@ -477,7 +481,9 @@ class Kinematics:
             # print("error " , error) 
 
             # 收斂條件
+            errorRcords.append(error)
             if error  < 0.001:
+                errorRcords = []
                 J = self.Jacobian4x4(θ_Buffer)
                 Jbuffer = J
                 break

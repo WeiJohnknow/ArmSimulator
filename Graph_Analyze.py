@@ -1266,7 +1266,8 @@ if __name__ == "__main__" :
     """
     # I000_SysTime_chart()
 
-    headname = "dataBase/Experimental_data/20240604/SecondStage/VariableSpeed/b/"
+    # headname = "dataBase/Experimental_data/20240604/SecondStage/VariableSpeed/b/"
+    headname = "dataBase/dynamicllyPlanTEST/"
     Time_path =    headname+"feedbackRecords_sysTime.csv"
     TimeErr_path = headname+"feedbackRecords_sysTime_err.csv"
     # 製作時間差的csv檔

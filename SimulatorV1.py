@@ -401,8 +401,8 @@ class Simulator:
         '''
 
         text = "Endeffector : "
-        self.drawText(x, y+40, "Gun to Obj(mm) :")
-        self.draw_Var(dis, x, y+20)
+        # self.drawText(x, y+40, "Gun to Obj(mm) :")
+        # self.draw_Var(dis, x, y+20)
         self.drawText(x, y, text)
         self.drawMatrixText(x,y-20,coord,20)
 
@@ -775,6 +775,8 @@ class Simulator:
                      teachθ[4],
                      teachθ[5],
                     1)
+            print("機械手臂末端執行器位姿矩陣: ")
+            print(Mat.MatToAngle(EndEffector))
             self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector, 100)
             self.draw_Matrix4X4(EndEffector, 550)
 

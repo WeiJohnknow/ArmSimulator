@@ -149,7 +149,7 @@ class database_time(Database_interface):
     
     @ staticmethod
     def Save_weldBeadWidth(weldBeadWidthRecords, filePath, mode:str):
-        dataTypeConverter.ndarrayTOdataframe(weldBeadWidthRecords, ['weldBeadWidth', 'Speed', 'ArcCurrent', 'FeedSpeed'], filePath, mode)
+        dataTypeConverter.ndarrayTOdataframe(weldBeadWidthRecords, ['weldBeadWidth', 'Speed', 'ArcCurrent', 'FeedSpeed', 'SystemTime'], filePath, mode)
 
     @ staticmethod
     def Load(filePath):

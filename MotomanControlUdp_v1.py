@@ -2390,7 +2390,7 @@
 - 版本: 2.0
 - 名稱: 動態軌跡規劃與通訊架構(模擬實驗架構)
 - 更新日期: 20240523
-- 搭配的INFORM檔名: RUN_TRJ_0421
+- 搭配的INFORM檔名: RUN_TRJ_MAINCODE
 
 """
 import pygame
@@ -2426,7 +2426,7 @@ class Motomancontrol():
         Online(含通訊之測試) >> True  要記得解開self.Udp的相關註解
         Offline(純邏輯測試) >> False
         """
-        self.Line = True
+        self.Line = False
         
         self.Kin = Kinematics()
         self.Time = TimeTool()
@@ -2455,28 +2455,31 @@ class Motomancontrol():
         """
         AC:   I21
         AVP : I22
+        機器人程式迴圈控制旗標:I29
         """
-        self.AC = 68
-        self.AVP = 90
+        self.AC = 60
+        self.AVP = 100
         if self.Line is True:
             status = self.Udp.multipleWriteVar(21, 2, [self.AC, self.AVP])
+            Istatus = self.Udp.WriteVar("Integer", 29, 0)
         # 銲接電流紀錄
         self.arcCurrentRecards = np.zeros((1000, 1))
         self.arcCurrentRecards[0, 0] = self.AC
         self.arcCurrentRecards_counter = 1
 
         # 預設銲接速度
-        self.GoalSpeed = 1.5
+        self.GoalSpeed = 1
 
         # 預設銲道寬度
-        self.weldBeadWidth = 6.4
+        self.weldBeadWidth = 6.7
 
         # 銲道寬度變更紀錄
-        self.weldBeadWidthRecards = np.zeros((1000, 4))
+        self.weldBeadWidthRecards = np.zeros((1000, 5))
         self.weldBeadWidthRecards[0, 0] = self.weldBeadWidth
         self.weldBeadWidthRecards[0, 1] = self.GoalSpeed
         self.weldBeadWidthRecards[0, 2] = self.AC
         self.weldBeadWidthRecards[0, 3] = self.AVP
+        self.weldBeadWidthRecards[0, 4] = 0
         self.weldBeadWidthRecards_counter = 1
 
 
@@ -2495,6 +2498,9 @@ class Motomancontrol():
         self.feedbackRecords_Trj = np.zeros((50000, 1, 6)) 
         self.feedbackRecords_sysTime = np.zeros((50000, 1))
         self.feedbackRecords_Counter = 0
+
+        self.EndEffector = np.zeros(6)
+        self.Goal = np.array([self.trjData[-1, 0, 0], self.trjData[-1, 0, 1], self.trjData[-1, 0, 2]])
 
         # 規劃新軌跡 各工作階段所花費的時間
         """
@@ -2768,6 +2774,7 @@ class Motomancontrol():
         # 讀取實際手臂位置
         pos_result, coordinate = self.Udp.getcoordinateMH(101)
         # 儲存實際軌跡資料
+        self.EndEffector = np.array([coordinate])
         self.feedbackRecords_Trj[self.feedbackRecords_Counter] = np.array([coordinate])
         self.feedbackRecords_sysTime[self.feedbackRecords_Counter] = sysTime
         self.feedbackRecords_Counter += 1
@@ -2793,7 +2800,7 @@ class Motomancontrol():
         self.arcCurrentRecards[self.arcCurrentRecards_counter, 0] = self.AC
         self.arcCurrentRecards_counter += 1
 
-    def recordWeldBeadWidth(self):
+    def recordWeldBeadWidth(self, sysTime):
         """紀錄指定的銲道寬度與經模型估測後的銲接製成參數(電流、速度)
         
         arg:
@@ -2803,6 +2810,7 @@ class Motomancontrol():
         self.weldBeadWidthRecards[self.weldBeadWidthRecards_counter, 1] = self.GoalSpeed
         self.weldBeadWidthRecards[self.weldBeadWidthRecards_counter, 2] = self.AC
         self.weldBeadWidthRecards[self.weldBeadWidthRecards_counter, 3] = self.AVP
+        self.weldBeadWidthRecards[self.weldBeadWidthRecards_counter, 4] = sysTime
         self.weldBeadWidthRecards_counter += 1
 
 
@@ -3187,11 +3195,12 @@ class Motomancontrol():
                         # 紀錄feedback數據
                         self.feedbackRecords(sysTime)
                         feedback_count+=1
-
-                if alreadySentDataBatch == batch:
+                
+                if alreadySentDataBatch == batch or np.linalg.norm(self.EndEffector[0][0:3]-self.Goal)< 0.1:
                     """結束條件
-                    外迴圈數 = 批次數
+                    外迴圈數 = 批次數 or 手臂末段點到終點
                     """
+                    
                     # -------------------------------------通訊資紀錄與feedback紀錄 | 處理與存檔-----------------------------------
                     # 讀取最後一刻軌跡資料       
                     if self.Line is True:
@@ -3209,21 +3218,25 @@ class Motomancontrol():
                             sysTime = round(sysTime/1000, 1)
 
                             # 紀錄feedback數據
-                            self.feedbackRecords(sysTime)
-                            feedback_count+=1
+                            for i in range(5):
+                                self.feedbackRecords(sysTime)
+                                feedback_count+=1
                             # print(f"feedback寫入次數: {feedback_count}次")
 
                             # 判斷此筆軌跡資料的I0會停留在I0=11還是I0=2
                             quotient, remainder = divmod(RPdata.shape[0]*RPdata.shape[1], 18)
                             
                             if remainder == 9 and I0 == [11]:
-                                can_End = True
+                                can_End = True              
                             elif remainder == 0 and I0 == [2]:
                                 can_End = True
                             else: 
                                 can_End = False
                                 
                             if can_End is True:
+                                #讓機器人程式的迴圈結束
+                                Istatus = self.Udp.WriteVar("Integer", 29, batch+100)
+
                                 self.finalSaveData("dataBase/dynamicllyPlanTEST/")
                                 break
                     else:
@@ -3361,7 +3374,7 @@ class Motomancontrol():
                                 self.recordArcCurrent()
 
                                 # 紀錄新寫入的銲道寬度
-                                self.recordWeldBeadWidth()
+                                self.recordWeldBeadWidth(sysTime)
                                 
                             else:
                                 if self.AC >= 45 and self.AC <= 55:
@@ -3374,7 +3387,7 @@ class Motomancontrol():
                                 # 紀錄更新的銲接電流
                                 self.recordArcCurrent()
                                 # 紀錄新寫入的銲道寬度與經模型估測後的銲接製成參數(電流、速度)
-                                self.recordWeldBeadWidth()
+                                self.recordWeldBeadWidth(sysTime)
 
                         elif event.key == pygame.K_o:
                             """
@@ -3417,10 +3430,19 @@ class Motomancontrol():
                             
                             estimatedGoalSpeed = int(estimatedGoalSpeed*10)*0.1
                             self.GoalSpeed = estimatedGoalSpeed
+
+                            if self.GoalSpeed >= 0.8 and self.GoalSpeed <= 1.2:
+                                self.AVP = 100
+                            elif self.GoalSpeed > 1.2 and self.GoalSpeed <= 1.7:
+                                self.AVP = 95
+                            elif self.GoalSpeed > 1.7 and self.GoalSpeed <= 2.2:
+                                self.AVP = 95
+
+                            Istatus = self.Udp.WriteVar("Integer", 22, self.AVP)
                             print(f"經數學模型換算後的理想銲接速度: {estimatedGoalSpeed} mm/s")
 
                             # 紀錄新寫入的銲道寬度與經模型估測後的銲接製成參數(電流、速度)
-                            self.recordWeldBeadWidth()
+                            self.recordWeldBeadWidth(sysTime)
 
                             # 執行緒
                             planThread = GetTreadResult(target=self.PlanNewTrj, args=(NowEnd, GoalEnd, sampleTime, estimatedGoalSpeed))

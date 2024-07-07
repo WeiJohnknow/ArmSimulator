@@ -283,65 +283,64 @@ from mpl_toolkits.mplot3d import Axes3D
 
 """
 對接 有填料 變電流 線性回歸
-舊(採用AC;70_AVP;90_V:1.5):WeldBeadWidth = 0.09900000000000003 * Current + -0.31333333333333524
-新(採用AC;70_AVP;100_V:1.5):WeldBeadWidth = 0.09900000000000003 * Current + -0.31333333333333524
+WeldBeadWidth = 0.08000000000000002 * Current + 0.6999999999999993
 """
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error, r2_score
+# import pandas as pd
+# import numpy as np
+# import matplotlib.pyplot as plt
+# from sklearn.linear_model import LinearRegression
+# from sklearn.metrics import mean_squared_error, r2_score
 
-# 數據輸入()
-data = {
-    'Current': [50, 50, 50, 60, 60, 60, 70, 70, 70],
-    'Speed': [1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5],
-    'FeedSpeed': [90, 90, 90, 95, 95, 95, 90, 90, 90],
-    'WeldBeadWidth': [4.54, 4.49, 4.59, 5.82, 5.7, 5.94, 6.14, 6.06, 6.22]
-}
+# # 數據輸入()
+# data = {
+#     'Current': [50, 50, 50, 60, 60, 60, 70, 70, 70],
+#     'Speed': [1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5],
+#     'FeedSpeed': [90, 90, 90, 95, 95, 95, 100, 100, 100],
+#     'WeldBeadWidth': [4.54, 4.49, 4.59, 5.82, 5.7, 5.94, 6.14, 6.06, 6.22]
+# }
 
-df = pd.DataFrame(data)
+# df = pd.DataFrame(data)
 
-# 提取自變數和應變數
-X = df[['Current']].values
-y = df['WeldBeadWidth'].values
+# # 提取自變數和應變數
+# X = df[['Current']].values
+# y = df['WeldBeadWidth'].values
 
-# 創建線性回歸模型
-model = LinearRegression()
+# # 創建線性回歸模型
+# model = LinearRegression()
 
-# 訓練模型
-model.fit(X, y)
+# # 訓練模型
+# model.fit(X, y)
 
-# 預測
-y_pred = model.predict(X)
+# # 預測
+# y_pred = model.predict(X)
 
-# 評估模型
-mse = mean_squared_error(y, y_pred)
-r2 = r2_score(y, y_pred)
-coef = model.coef_[0]
-intercept = model.intercept_
+# # 評估模型
+# mse = mean_squared_error(y, y_pred)
+# r2 = r2_score(y, y_pred)
+# coef = model.coef_[0]
+# intercept = model.intercept_
 
-# 繪製回歸線
-plt.scatter(X, y, color='blue', label='Data Points')
-plt.plot(X, y_pred, color='red', label='Regression Line')
-plt.xlabel('Current')
-plt.ylabel('Weld Bead Width')
-plt.title('Linear Regression: Current vs Weld Bead Width')
-plt.legend()
-plt.show()
+# # 繪製回歸線
+# plt.scatter(X, y, color='blue', label='Data Points')
+# plt.plot(X, y_pred, color='red', label='Regression Line')
+# plt.xlabel('Welding Current')
+# plt.ylabel('Weld Bead Width')
+# plt.title('Linear Regression: Welding Current vs Weld Bead Width')
+# plt.legend()
+# plt.show()
 
-# 顯示結果
-print(f"Mean Squared Error: {mse}")
-print(f"R^2 Score: {r2}")
-print(f"Coefficient: {coef}")
-print(f"Intercept: {intercept}")
+# # 顯示結果
+# print(f"Mean Squared Error: {mse}")
+# print(f"R^2 Score: {r2}")
+# print(f"Coefficient: {coef}")
+# print(f"Intercept: {intercept}")
 
-# 顯示回歸方程式
-print(f"回歸方程式: y = {coef} * Current + {intercept}")
+# # 顯示回歸方程式
+# print(f"回歸方程式: y = {coef} * Current + {intercept}")
 
 """
 對接 有填料 變速度 線性回歸
-WeldBeadWidth = -1.9600000000000004 * Speed + 8.610000000000001
+WeldBeadWidth = -2.205000000000001 * Speed + 8.982500000000002
 """
 # import pandas as pd
 # import numpy as np
@@ -353,8 +352,8 @@ WeldBeadWidth = -1.9600000000000004 * Speed + 8.610000000000001
 # data = {
 #     'Current': [60, 60, 60, 60, 60, 60, 60, 60, 60],
 #     'Speed': [1, 1, 1, 1.5, 1.5, 1.5, 2, 2, 2],
-#     'FeedSpeed': [90, 90, 90, 95, 95, 95, 90, 90, 90],
-#     'WeldBeadWidth': [6.48, 6.575, 6.67, 5.7, 5.82, 5.94, 4.48, 4.75, 4.615]
+#     'FeedSpeed': [100, 100, 100, 95, 95, 95, 95, 95, 95],
+#     'WeldBeadWidth': [6.705, 6.61, 6.8, 5.7, 5.82, 5.94, 4.5, 4.47, 4.53]
 # }
 
 # df = pd.DataFrame(data)
@@ -381,9 +380,9 @@ WeldBeadWidth = -1.9600000000000004 * Speed + 8.610000000000001
 # # 繪製回歸線
 # plt.scatter(X, y, color='blue', label='Data Points')
 # plt.plot(X, y_pred, color='red', label='Regression Line')
-# plt.xlabel('Speed')
-# plt.ylabel('Weld Bead Width')
-# plt.title('Linear Regression: Speed vs Weld Bead Width')
+# plt.xlabel('Welding Speed(mm/s)')
+# plt.ylabel('Weld Bead Width(mm)')
+# plt.title('Linear Regression: Welding Speed vs Weld Bead Width')
 # plt.legend()
 # plt.show()
 
@@ -465,5 +464,105 @@ y = 0.09750000000000003 * Current + -1.9600000000000004 * Speed + 2.733333333333
 
 
 """
+角接 有填料 變電流 模型
+銲道寬度 = 0.10750000000000001 * 銲接電流 + -0.5833333333333339
+"""
+# # 數據輸入
+# data = {
+#     '銲接電流': [40, 40, 40, 50, 50, 50, 60, 60, 60],
+#     '填料速度': [90, 90, 90, 85, 85, 85, 90, 90, 90],
+#     '銲接速度': [1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5],
+#     '銲道寬度': [3.69, 3.8, 3.745, 4.71, 4.76, 4.735, 5.8, 5.99, 5.895]
+# }
+
+# df = pd.DataFrame(data)
+
+# # 提取自變數和應變數
+# X = df[['銲接電流']].values
+# y = df['銲道寬度'].values
+
+# # 創建線性回歸模型
+# model = LinearRegression()
+
+# # 訓練模型
+# model.fit(X, y)
+
+# # 預測
+# y_pred = model.predict(X)
+
+# # 評估模型
+# mse = mean_squared_error(y, y_pred)
+# r2 = r2_score(y, y_pred)
+# coef = model.coef_[0]
+# intercept = model.intercept_
+
+# # 繪製回歸線
+# plt.scatter(X, y, color='blue', label='Data Points')
+# plt.plot(X, y_pred, color='red', label='Regression Line')
+# plt.xlabel('Welding Current(A)')
+# plt.ylabel('Weld Bead Width(mm)')
+# plt.title('Linear Regression: Welding Current vs Weld Bead Width')
+# plt.legend()
+# plt.show()
+
+# # 顯示結果
+# print(f"Mean Squared Error: {mse}")
+# print(f"R^2 Score: {r2}")
+# print(f"Coefficient: {coef}")
+# print(f"Intercept: {intercept}")
+
+# # 顯示回歸方程式
+# print(f"回歸方程式: 銲道寬度 = {coef} * 銲接電流 + {intercept}")
+
 
 """
+角接 有填料 變速度 模型
+銲道寬度 = -1.6950000000000007 * 銲接速度 + 7.445833333333335
+"""
+# 數據輸入
+data = {
+    '銲接電流': [50, 50, 50, 50, 50, 50, 50, 50, 50],
+    '填料速度': [83, 83, 83, 85, 85, 85, 87, 87, 87],
+    '銲接速度': [1, 1, 1, 1.5, 1.5, 1.5, 2, 2, 2],
+    '銲道寬度': [5.75, 5.92, 5.835, 4.71, 4.76, 4.735, 4.09, 4.19, 4.14]
+}
+
+df = pd.DataFrame(data)
+
+# 提取自變數和應變數
+X = df[['銲接速度']].values
+y = df['銲道寬度'].values
+
+# 創建線性回歸模型
+model = LinearRegression()
+
+# 訓練模型
+model.fit(X, y)
+
+# 預測
+y_pred = model.predict(X)
+
+# 評估模型
+mse = mean_squared_error(y, y_pred)
+r2 = r2_score(y, y_pred)
+coef = model.coef_[0]
+intercept = model.intercept_
+
+# 繪製回歸線
+plt.scatter(X, y, color='blue', label='Data Points')
+plt.plot(X, y_pred, color='red', label='Regression Line')
+plt.xlabel('Welding Speed')
+plt.ylabel('Weld Bead Width(mm)')
+plt.title('Linear Regression: Welding Speed vs Weld Bead Width')
+plt.legend()
+plt.show()
+
+# 顯示結果
+print(f"Mean Squared Error: {mse}")
+print(f"R^2 Score: {r2}")
+print(f"Coefficient: {coef}")
+print(f"Intercept: {intercept}")
+
+# 顯示回歸方程式
+print(f"回歸方程式: 銲道寬度 = {coef} * 銲接速度 + {intercept}")
+

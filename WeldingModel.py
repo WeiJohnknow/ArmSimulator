@@ -41,20 +41,30 @@ class Feed_buttWeld:
     @ staticmethod
     def weldingSpeedTOweldBeadWidth(WeldBeadWidth):
         """Original equation
-        WeldBeadWidth = -1.9600000000000004 * Speed + 8.610000000000001
+        WeldBeadWidth = -2.205000000000001 * Speed + 8.982500000000002
+        WeldBeadWidth = -2.205 * Speed + 8.983
         Speed∈[1, 2]
+
+        arg: WeldBeadWidth(mm)
+
+        return: Weldiing Speed(mm/s)
         """
-        Speed = (WeldBeadWidth- 8.61)/(-1.96) 
+        Speed = (WeldBeadWidth-8.983)/(-2.205) 
 
         return Speed
 
     @ staticmethod
     def weldCurrentTOweldBeadWidth(WeldBeadWidth):
         """Original equation
-        WeldBeadWidth = 0.09900000000000003 * Current + -0.31333333333333524
+        WeldBeadWidth = 0.08000000000000002 * Current + 0.6999999999999993
+        WeldBeadWidth = 0.08 * Current + 0.7
         Current∈[50, 70]
+
+        arg: WeldBeadWidth(mm)
+
+        return: Weldiing Current(A)
         """
-        Current = (WeldBeadWidth+ 0.313)/0.099
+        Current = (WeldBeadWidth-0.7)/0.08
         
         return Current
 
@@ -71,11 +81,33 @@ class Feed_buttWeld:
 class Feed_filletWeld:
     @ staticmethod
     def weldingSpeedTOweldBeadWidth(WeldBeadWidth):
-        pass
+        """
+        WeldBeadWidth = -1.6950000000000007 * Speed + 7.445833333333335
+        WeldBeadWidth = -1.695 * Speed + 7.446
+        Current∈[40, 60]
+
+        arg: WeldBeadWidth(mm)
+
+        return: Weldiing Speed(mm/s)
+        """
+        Speed = (WeldBeadWidth-7.446)/(-1.695)
+
+        return Speed
 
     @ staticmethod
     def weldCurrentTOweldBeadWidth(WeldBeadWidth):
-        pass
+        """
+        WeldBeadWidth = 0.10750000000000001 * Current + -0.5833333333333339
+        WeldBeadWidth = 0.108 * Current + -0.583
+        Speed∈[1, 2]
+
+        arg: WeldBeadWidth(mm)
+
+        return: Weldiing Current(A)
+        """
+        Current = (WeldBeadWidth+0.583)/0.108
+
+        return Current
 
     @ staticmethod
     def weldSpeedCurrentTOweldBeadWidth(WeldBeadWidth):

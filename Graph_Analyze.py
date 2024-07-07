@@ -367,9 +367,9 @@ def Analysis_ExperimentalAndExpect(Experimental_EucDis, Experimental_Speed, Expe
 
 
     # 期望歐式距離曲線 
-    plt.plot(Expect_Time, Expect_EucDis, color='red', label='Euclidean distance(Expected)')
+    plt.plot(Expect_Time, Expect_EucDis, color='red', label='Expected')
     # 實驗得到的歐式距離曲線
-    plt.plot(Experimental_Time, Experimental_EucDis, color='green', label='Euclidean distance(Estimate)')
+    plt.plot(Experimental_Time, Experimental_EucDis, color='green', label='Estimate')
 
 
     # 開啟圖表背景格線
@@ -386,9 +386,9 @@ def Analysis_ExperimentalAndExpect(Experimental_EucDis, Experimental_Speed, Expe
 
 
     # 期望的速度曲線
-    plt.plot(Expect_Time, Expect_Speed, color='red', label='Speed(Expected)')
+    plt.plot(Expect_Time, Expect_Speed, color='red', label='Expected')
     # 實驗得到的速度曲線
-    plt.plot(Experimental_Time, Experimental_Speed,  color='green', label='Speed(Estimate)')
+    plt.plot(Experimental_Time, Experimental_Speed,  color='green', label='Estimate')
 
 
     # 開啟圖表背景格線
@@ -1266,8 +1266,8 @@ if __name__ == "__main__" :
     """
     # I000_SysTime_chart()
 
-    # headname = "dataBase/Experimental_data/20240604/SecondStage/VariableSpeed/b/"
-    headname = "dataBase/dynamicllyPlanTEST/"
+    headname = "dataBase/Experimental_data/20240702/VariableSpeed/d/"
+    # headname = "dataBase/dynamicllyPlanTEST/"
     Time_path =    headname+"feedbackRecords_sysTime.csv"
     TimeErr_path = headname+"feedbackRecords_sysTime_err.csv"
     # 製作時間差的csv檔

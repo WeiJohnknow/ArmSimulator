@@ -462,10 +462,17 @@ class Kinematics:
         
         Jbuffer = 0
 
+        """
+        對接有填料姿態:
+        #迭代次數
         iter = 35
         # 學習率
-        # test = 0.05
         test = 0.6
+        """
+        #迭代次數
+        iter = 35
+        # 學習率
+        test = 0.9
 
         # 誤差分析
         errorRcords = []
@@ -548,4 +555,3 @@ class Kinematics:
 
         return normθ
 
-    

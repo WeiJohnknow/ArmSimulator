@@ -307,6 +307,8 @@ def Experimental_data_analysis(PoseMat_file, Time_file, Time_error_file):
     nan_index = np.isnan(PtoPavgSpeed)
     if nan_index[0] == True:
         PtoPavgSpeed[0] = 0
+
+    print(f"實際速度: {np.mean(PtoPavgSpeed[np.isfinite(PtoPavgSpeed)])}")
     
     # 设置全局字体大小
     plt.rcParams.update({'font.size': 20})
@@ -413,6 +415,8 @@ def Expect_distance_speed(PoseMat_file, Speed_file, sampleTime):
     """
     PoseMat6x1 = database_PoseMat.Load(PoseMat_file)
     Speed = database_Velocity.Load(Speed_file)
+
+    
 
     # 有時要-0.04 有時不用， 請多加注意
     Time = np.arange(0, (PoseMat6x1.shape[0]*sampleTime), sampleTime)
@@ -1266,8 +1270,8 @@ if __name__ == "__main__" :
     """
     # I000_SysTime_chart()
 
-    headname = "dataBase/Experimental_data/20240702/VariableSpeed/d/"
-    # headname = "dataBase/dynamicllyPlanTEST/"
+    # headname = "dataBase/Experimental_data/20240702/VariableSpeed/d/"
+    headname = "dataBase/dynamicllyPlanTEST/"
     Time_path =    headname+"feedbackRecords_sysTime.csv"
     TimeErr_path = headname+"feedbackRecords_sysTime_err.csv"
     # 製作時間差的csv檔

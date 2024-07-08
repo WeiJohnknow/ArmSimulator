@@ -3323,43 +3323,118 @@ Array 垂直堆疊
 """
 RANSAC 回歸模型
 """
-import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.linear_model import RANSACRegressor, LinearRegression
+# import numpy as np
+# import matplotlib.pyplot as plt
+# from sklearn.linear_model import RANSACRegressor, LinearRegression
 
-# Generate synthetic data
-np.random.seed(0)
-n_samples = 1000
-n_outliers = 50
+# # Generate synthetic data
+# np.random.seed(0)
+# n_samples = 1000
+# n_outliers = 50
 
-X = np.random.randn(n_samples, 1)
-y = 2 * X.squeeze() + 1 + np.random.normal(size=n_samples)
+# X = np.random.randn(n_samples, 1)
+# y = 2 * X.squeeze() + 1 + np.random.normal(size=n_samples)
 
-# Add some outliers
-X[:n_outliers] = 20 * np.random.random((n_outliers, 1))
-y[:n_outliers] = 20 * (0.5 - np.random.random(n_outliers))
+# # Add some outliers
+# X[:n_outliers] = 20 * np.random.random((n_outliers, 1))
+# y[:n_outliers] = 20 * (0.5 - np.random.random(n_outliers))
 
-# Fit line using all data
-lr = LinearRegression()
-lr.fit(X, y)
+# # Fit line using all data
+# lr = LinearRegression()
+# lr.fit(X, y)
 
-# Fit line using RANSAC
-ransac = RANSACRegressor()
-ransac.fit(X, y)
-inlier_mask = ransac.inlier_mask_
-outlier_mask = np.logical_not(inlier_mask)
+# # Fit line using RANSAC
+# ransac = RANSACRegressor()
+# ransac.fit(X, y)
+# inlier_mask = ransac.inlier_mask_
+# outlier_mask = np.logical_not(inlier_mask)
 
-# Predict data of estimated models
-line_X = np.arange(X.min(), X.max())[:, np.newaxis]
-line_y = lr.predict(line_X)
-line_y_ransac = ransac.predict(line_X)
+# # Predict data of estimated models
+# line_X = np.arange(X.min(), X.max())[:, np.newaxis]
+# line_y = lr.predict(line_X)
+# line_y_ransac = ransac.predict(line_X)
 
-# Plot results
-plt.scatter(X[inlier_mask], y[inlier_mask], color='yellowgreen', marker='.', label='Inliers')
-plt.scatter(X[outlier_mask], y[outlier_mask], color='gold', marker='.', label='Outliers')
-plt.plot(line_X, line_y, color='navy', linewidth=2, label='Linear regressor')
-plt.plot(line_X, line_y_ransac, color='cornflowerblue', linewidth=2, label='RANSAC regressor')
-plt.legend(loc='lower right')
-plt.xlabel("Input")
-plt.ylabel("Response")
-plt.show()
+# # Plot results
+# plt.scatter(X[inlier_mask], y[inlier_mask], color='yellowgreen', marker='.', label='Inliers')
+# plt.scatter(X[outlier_mask], y[outlier_mask], color='gold', marker='.', label='Outliers')
+# plt.plot(line_X, line_y, color='navy', linewidth=2, label='Linear regressor')
+# plt.plot(line_X, line_y_ransac, color='cornflowerblue', linewidth=2, label='RANSAC regressor')
+# plt.legend(loc='lower right')
+# plt.xlabel("Input")
+# plt.ylabel("Response")
+# plt.show()
+
+
+"""
+軌跡資料分18等分
+"""
+# from dataBase_v1 import *
+# TrjdatafilePath = "dataBase/dynamicllyPlanTEST/PoseMat_0.csv"
+# VeldatafilePath = "dataBase/dynamicllyPlanTEST/Speed_0.csv"
+
+# trjData = database_PoseMat.Load(TrjdatafilePath)
+# velData = database_Velocity.Load(VeldatafilePath)
+# data = trjData.reshape(-1,6)
+# data = data[1:]
+# data = data[:-1]
+
+# nbr = 36
+# # 取樣間隔
+# interval = len(data) / (nbr-1)
+
+# # 使用間隔來選取資料
+# sampled_indices = [int(i * interval) for i in range(nbr-1)]
+# sampled_data = [data[idx] for idx in sampled_indices]
+# # 將結果儲存為形狀為16x1的數組
+# sampled_array = np.array(sampled_data)
+
+# allData = np.zeros((nbr+1, 6))
+
+# for i in range(1, nbr):
+#    allData[i, 0] = sampled_array[i-1, 0]
+#    allData[i, 1] = sampled_array[i-1, 1]
+#    allData[i, 2] = sampled_array[i-1, 2]
+#    allData[i, 3] = sampled_array[i-1, 3]
+#    allData[i, 4] = sampled_array[i-1, 4]
+#    allData[i, 5] = sampled_array[i-1, 5]
+
+# allData[0, 0] = trjData.reshape(-1,6)[0, 0]
+# allData[0, 1] = trjData.reshape(-1,6)[0, 1]
+# allData[0, 2] = trjData.reshape(-1,6)[0, 2]
+# allData[0, 3] = trjData.reshape(-1,6)[0, 3]
+# allData[0, 4] = trjData.reshape(-1,6)[0, 4]
+# allData[0, 5] = trjData.reshape(-1,6)[0, 5]   
+
+# allData[-1, 0] = trjData.reshape(-1,6)[-1, 0]
+# allData[-1, 1] = trjData.reshape(-1,6)[-1, 1]
+# allData[-1, 2] = trjData.reshape(-1,6)[-1, 2]
+# allData[-1, 3] = trjData.reshape(-1,6)[-1, 3]
+# allData[-1, 4] = trjData.reshape(-1,6)[-1, 4]
+# allData[-1, 5] = trjData.reshape(-1,6)[-1, 5]
+# print(allData)
+
+# dis = []
+# for i in range(nbr+1):
+#    if i == 0:
+#       dis.append(0)
+#    else:
+#       dis.append(np.linalg.norm(allData[i, :3]-allData[i-1, :3]))
+# database_PoseMat.Save(allData, "database/dynamicllyPlanTEST/PoseMat_test.csv", "w")
+# print(dis)
+
+# print("等分取出的17筆資料 (shape: 16x1):")
+# print(sampled_array)
+
+"""
+缺失值測試
+"""
+a = np.array([np.inf, 0, -np.inf])
+b = np.array([1, 0])
+result = np.isinf(a)
+if result.any():
+    print("有問題")
+else:
+    print("沒問題")
+
+c = np.inf
+print(np.isinf(c))

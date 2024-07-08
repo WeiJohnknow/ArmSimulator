@@ -2426,7 +2426,7 @@ class Motomancontrol():
         Online(含通訊之測試) >> True  要記得解開self.Udp的相關註解
         Offline(純邏輯測試) >> False
         """
-        self.Line = False
+        self.Line = True
         
         self.Kin = Kinematics()
         self.Time = TimeTool()
@@ -2524,6 +2524,17 @@ class Motomancontrol():
 
         # IK迭代執行續旗標(用於中斷)
         self.IKisRunning = False
+
+
+        # 速度監測
+        # 期望速度
+        self.exceptSpeed = 0
+        # 需補償的速度 = 期望速度-實際速度
+        self.speedCompensate = 0
+        # 紀錄上次補償的速度
+        self.PrvSpeed = 0
+        self.speedBuffer = np.zeros((100))
+        self.SpeedDatacounter = 0
 
     @staticmethod
     def deleteFirstTrajectoryData(TrajectoryData, VelocityData):
@@ -2771,13 +2782,67 @@ class Motomancontrol():
     def feedbackRecords(self, sysTime):
         """由機器手臂反饋回PC的數據紀錄
         """
+        b = self.Time.ReadNowTime()
         # 讀取實際手臂位置
         pos_result, coordinate = self.Udp.getcoordinateMH(101)
         # 儲存實際軌跡資料
+        
+        if self.feedbackRecords_Counter >= 3:
+            if self.SpeedDatacounter>=99 and np.isinf(self.speedBuffer).any() == False:
+                speedMean = np.mean(self.speedBuffer)
+                
+                self.speedCompensate = self.exceptSpeed - speedMean
+                needUpdataSpeed = int(((self.exceptSpeed+self.speedCompensate)*10))
+                print(f"軌跡平均速度: {speedMean}ms, 需補償: {self.speedCompensate}ms, 需更新的速度: {needUpdataSpeed}")
+
+                if needUpdataSpeed > 25:
+                    print("要更新的速度值有問題，值過大!!!")
+                    needUpdataSpeed = 22
+                elif needUpdataSpeed < 7:
+                    print("要更新的速度值有問題，值過小!!!")
+                    needUpdataSpeed = 9
+
+                
+                # 更新速度
+                if needUpdataSpeed < self.PrvSpeed-3 or needUpdataSpeed > self.PrvSpeed+3:
+                    print(f"速度命令更新: {needUpdataSpeed}")
+                    Istatus = self.Udp.WriteVar("Integer", 3, needUpdataSpeed)
+                    if Istatus == []:
+                        print("成功更新速度值")
+                        self.PrvSpeed = needUpdataSpeed
+                    else:
+                        print("速度更新封包有問題!!!更新失敗")
+                    
+                else:
+                    print("不用更新速度")
+
+                # 清空緩存區
+                self.speedBuffer.fill(0)
+                # 計數器重製
+                self.SpeedDatacounter = 0
+
+            elif self.SpeedDatacounter >= 100:
+                print(self.feedbackRecords_Counter)
+                # 清空緩存區
+                self.speedBuffer.fill(0)
+                # 計數器重製
+                self.SpeedDatacounter = 0
+                
+            dis = np.linalg.norm(self.feedbackRecords_Trj[self.feedbackRecords_Counter-1][0][:3]-self.feedbackRecords_Trj[self.feedbackRecords_Counter-2][0][:3])
+            time = (self.feedbackRecords_sysTime[self.feedbackRecords_Counter-1]-self.feedbackRecords_sysTime[self.feedbackRecords_Counter-2])/1000
+            Speed = dis/time
+            self.speedBuffer[self.SpeedDatacounter] = Speed
+            self.SpeedDatacounter+=1
+            
+            
         self.EndEffector = np.array([coordinate])
         self.feedbackRecords_Trj[self.feedbackRecords_Counter] = np.array([coordinate])
         self.feedbackRecords_sysTime[self.feedbackRecords_Counter] = sysTime
         self.feedbackRecords_Counter += 1
+        a = self.Time.ReadNowTime()
+        err = self.Time.TimeError(b, a)
+        # print("回饋、計算速度、補償速度花費: ", {err["millisecond"]}, "ms")
+
         
     
     def communicationRecords(self, RPdata, Veldata, alreadySentDataBatch, batch):
@@ -2967,8 +3032,11 @@ class Motomancontrol():
         batch = self.calculateDataGroupBatch(self.trjData)
         # 資料分割
         RPdata, Veldata = self.dataSegmentation(self.trjData, self.velData, batch)
+        
         # 包裝並寫入首9筆資料   
         RPpacket, Velpacket = self.packetRPdataVeldata(RPdata, Veldata, alreadySentDataBatch)
+        # 期望速度(速度補償用)
+        self.exceptSpeed = int(Velpacket[0]*0.1)
         # Is_success = self.writeRPvarINTvar(2, RPpacket, Velpacket)
         if self.Line is True:
             RPstatus = self.Udp.multipleWriteRPVar(2, 9, RPpacket)
@@ -3044,6 +3112,7 @@ class Motomancontrol():
                 else:
                     # 通訊紀錄
                     self.communicationRecords(RPdata, Veldata, alreadySentDataBatch, batch)
+
                     # 資料(批次)計數器更新
                     alreadySentDataBatch += 1
 
@@ -3196,7 +3265,8 @@ class Motomancontrol():
                         self.feedbackRecords(sysTime)
                         feedback_count+=1
                 
-                if alreadySentDataBatch == batch or np.linalg.norm(self.EndEffector[0][0:3]-self.Goal)< 0.1:
+                # if alreadySentDataBatch == batch or np.linalg.norm(self.EndEffector[0][0:3]-self.Goal)< 0.1:
+                if alreadySentDataBatch == batch :
                     """結束條件
                     外迴圈數 = 批次數 or 手臂末段點到終點
                     """

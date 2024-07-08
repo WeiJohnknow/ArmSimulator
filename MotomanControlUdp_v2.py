@@ -36,7 +36,7 @@ class Motomancontrol():
         Online(含通訊之測試) >> True  要記得解開self.Udp的相關註解
         Offline(純邏輯測試) >> False
         """
-        self.Line = False
+        self.Line = True
         
         self.Kin = Kinematics()
         self.Time = TimeTool()
@@ -136,7 +136,10 @@ class Motomancontrol():
         self.IKisRunning = False
 
         # 發送軌跡資料通訊執行續接收資料
-        self.costTime_queue= queue.Queue()
+        self.costTime_queue = queue.Queue()
+
+        # 已發送的軌跡資料計數器(批次)
+        self.alreadySentDataBatch_queue = queue.Queue()
 
     @staticmethod
     def deleteFirstTrajectoryData(TrajectoryData, VelocityData):
@@ -381,20 +384,27 @@ class Motomancontrol():
 
         return JointAngleData
     
-    def SendTrj(self, firstAddress, RPpacket):
+    def SendTrj(self, firstAddress, RPpacket, RPdata, Veldata, batch, alreadySentDataBatch):
         """發送軌跡參數給DX200(執行續)
         
         """
         b = self.Time.ReadNowTime()
         if self.Line:
+            print("發送軌跡")
             RPstatus = self.Udp.multipleWriteRPVar(firstAddress, 9, RPpacket)
         else:
             self.Time.time_sleep(0.18)
+
         a = self.Time.ReadNowTime()
         err = self.Time.TimeError(b, a)
-        # print("發送一批次軌跡花費: ", err["millisecond"], "ms")
+        print("發送一批次軌跡花費: ", err["millisecond"], "ms")
 
         self.costTime_queue.put(err["millisecond"])
+        # # 通訊紀錄
+        # self.communicationRecords(RPdata, Veldata, alreadySentDataBatch, batch)
+        # # 資料(批次)計數器更新
+        # alreadySentDataBatch += 1
+        # self.alreadySentDataBatch_queue.put(alreadySentDataBatch)
         # if firstAddress == 11:
         #     self.costTime_queue.put("11的通訊時間")
         # else:
@@ -660,20 +670,20 @@ class Motomancontrol():
                     # 取得I0初值
                     # I0 = self.Udp.ReadVar("Integer", 0)
                     I0 = [2]
-                    # 起始變數位置
-                    firstAddress = 11
-                    # 打包需要傳送的變數資料
-                    RPpacket, Velpacket = self.packetRPdataVeldata(RPdata, Veldata, alreadySentDataBatch)
-                    # 將打包完的資料寫入DX200
-                    # Is_success = self.writeRPvarINTvar(firstAddress, RPpacket, Velpacket)
-                    RPstatus = self.Udp.multipleWriteRPVar(firstAddress, 9, RPpacket)
+                    # # 起始變數位置
+                    # firstAddress = 11
+                    # # 打包需要傳送的變數資料
+                    # RPpacket, Velpacket = self.packetRPdataVeldata(RPdata, Veldata, alreadySentDataBatch)
+                    # # 將打包完的資料寫入DX200
+                    # # Is_success = self.writeRPvarINTvar(firstAddress, RPpacket, Velpacket)
+                    # RPstatus = self.Udp.multipleWriteRPVar(firstAddress, 9, RPpacket)
 
-                    # 通訊紀錄
-                    self.communicationRecords(RPdata, Veldata, alreadySentDataBatch, batch)
-                    # 資料(批次)計數器更新
-                    alreadySentDataBatch += 1
+                    # # 通訊紀錄
+                    # self.communicationRecords(RPdata, Veldata, alreadySentDataBatch, batch)
+                    # # 資料(批次)計數器更新
+                    # alreadySentDataBatch += 1
 
-                    I11count+=1
+                    # I11count+=1
                     
                     # 紀錄feedback數據 | 紀錄初始位置與系統時間
                     self.feedbackRecords(0)
@@ -715,7 +725,7 @@ class Motomancontrol():
                     """
                     防止重複
                     """
-                    if Prv_I0[0] != I0[0] and I0[0] == 2:
+                    if Prv_I0[0] != I0[0] and I0[0] == 3:
                         I2Lock = True
                         self.EventRecord[self.EventRecordCounter, 2] = 1
                         # print(f"I0: {I0}，允許寫入I11-I19")
@@ -742,86 +752,112 @@ class Motomancontrol():
                 1. I02 - I10
                 2. I11 - I19
                 """
-                
+                tesrPass = False
                 if I2Lock is True:
-                    self.EventRecord[self.EventRecordCounter, 5] = sysTime
-                    
-                    I2_b = self.Time.ReadNowTime()
+                    if tesrPass == False:
+                        self.EventRecord[self.EventRecordCounter, 5] = sysTime
+                        I2_b = self.Time.ReadNowTime()
 
-                    # 起始變數位置
-                    firstAddress = 11
-                    # 打包需要傳送的變數資料
-                    RPpacket, Velpacket = self.packetRPdataVeldata(RPdata, Veldata, alreadySentDataBatch)
-                    # 發送軌跡
-                    communicationThread = threading.Thread(target=self.SendTrj, args=(firstAddress, RPpacket))
-                    communicationThread.start()
+                        # 起始變數位置
+                        firstAddress = 11
+                        # 打包需要傳送的變數資料
+                        RPpacket, Velpacket = self.packetRPdataVeldata(RPdata, Veldata, alreadySentDataBatch)
+                        # 發送軌跡
+                        # communicationThread = threading.Thread(target=self.SendTrj, args=(firstAddress, RPpacket, RPdata, Veldata, batch, alreadySentDataBatch))
+                        # communicationThread.start()
+                        if self.Line is True:
+                            RPstatus = self.Udp.multipleWriteRPVar(firstAddress, 9, RPpacket)
+                            
+                        # 通訊紀錄
+                        self.communicationRecords(RPdata, Veldata, alreadySentDataBatch, batch)
+                        # 資料(批次)計數器更新
+                        alreadySentDataBatch += 1
+
+                        I2_a = self.Time.ReadNowTime()
+                        I2err = self.Time.TimeError(I2_b, I2_a)
+                        I2err_ms = I2err["millisecond"]
                         
-                    # 通訊紀錄
-                    self.communicationRecords(RPdata, Veldata, alreadySentDataBatch, batch)
-                    # 資料(批次)計數器更新
-                    alreadySentDataBatch += 1
 
-                    I2_a = self.Time.ReadNowTime()
-                    I2err = self.Time.TimeError(I2_b, I2_a)
-                    I2err_ms = I2err["millisecond"]
                     
+                        # 由佇列取出執行續送軌跡所花的時間
+                        # result = self.costTime_queue.get()
+                        # 紀錄送軌跡所花費的時間與變數區間
+                        # self.EventRecord[self.EventRecordCounter, 6] = I2err_ms+result
+                        self.EventRecord[self.EventRecordCounter, 6] = I2err_ms
+                        self.EventRecord[self.EventRecordCounter, 7] = 2
+                        self.EventRecordCounter += 1
 
-                   
-                    # 由佇列取出執行續送軌跡所花的時間
-                    result = self.costTime_queue.get()
-                    # 紀錄送軌跡所花費的時間與變數區間
-                    self.EventRecord[self.EventRecordCounter, 6] = I2err_ms+result
-                    self.EventRecord[self.EventRecordCounter, 7] = 2
-                    self.EventRecordCounter += 1
+                        # 紀錄軌跡更新時間
+                        updataTrjTime = self.Time.ReadNowTime()
 
-                    # 紀錄軌跡更新時間
-                    updataTrjTime = self.Time.ReadNowTime()
-
-                    I11count+=1
-                    I2Lock = False
-                    
-                    # print(f"發送軌跡參數花費時間: {result} ms")
-                    print(f"發送軌跡參數總花費時間: {I2err_ms+result} ms")
+                        I11count+=1
+                        I2Lock = False
+                        
+                        # print(f"發送軌跡參數花費時間: {result} ms")
+                        # print(f"發送軌跡參數總花費時間: {I2err_ms+result} ms")
+                        # 由佇列取出已發送的資料批數
+                        # alreadySentDataBatch = self.alreadySentDataBatch_queue.get()
+                        print("I0 = 3")
+                    else:
+                        I11count+=1
+                        I2Lock = False
+                        print("I0 = 2")
                     
                 elif I11Lock is True:
-                    self.EventRecord[self.EventRecordCounter, 5] = sysTime
-                    I11_b = self.Time.ReadNowTime()
-
-                    # 起始變數位置
-                    firstAddress = 2
-                    # 打包需要傳送的變數資料
-                    RPpacket, Velpacket = self.packetRPdataVeldata(RPdata, Veldata, alreadySentDataBatch)
-                    # 發送軌跡
-                    communicationThread = threading.Thread(target=self.SendTrj, args=(firstAddress, RPpacket))
-                    communicationThread.start()
-
-                    # 通訊紀錄
-                    self.communicationRecords(RPdata, Veldata, alreadySentDataBatch, batch)
-                    # 資料(批次)計數器更新
-                    alreadySentDataBatch += 1
+                    if tesrPass == False:
+                        self.EventRecord[self.EventRecordCounter, 5] = sysTime
                         
-                    I11_a = self.Time.ReadNowTime()
-                    I11_err = self.Time.TimeError(I11_b, I11_a)
-                    I11_err_ms = I11_err["millisecond"]
 
-                    
-                    # 由佇列取出執行續送軌跡所花的時間
-                    result = self.costTime_queue.get()
-                    # 紀錄送軌跡所花費的時間與變數區間
-                    self.EventRecord[self.EventRecordCounter, 6] = result+I11_err_ms
-                    self.EventRecord[self.EventRecordCounter, 7] = 1
-                    self.EventRecordCounter += 1
+                        I11_b = self.Time.ReadNowTime()
 
-                    # 紀錄軌跡更新時間
-                    updataTrjTime = self.Time.ReadNowTime()
+                        # 起始變數位置
+                        firstAddress = 2
+                        # 打包需要傳送的變數資料
+                        RPpacket, Velpacket = self.packetRPdataVeldata(RPdata, Veldata, alreadySentDataBatch)
+                        # 發送軌跡
+                        # communicationThread = threading.Thread(target=self.SendTrj, args=(firstAddress, RPpacket, RPdata, Veldata, batch, alreadySentDataBatch))
+                        # communicationThread.start()
+                        if self.Line is True:
+                            RPstatus = self.Udp.multipleWriteRPVar(firstAddress, 9, RPpacket)
+                        # 通訊紀錄
+                        self.communicationRecords(RPdata, Veldata, alreadySentDataBatch, batch)
 
-                    I3count+=1
-                    I11Lock = False
-                    
-                    # print(f"軌跡參數通訊花費時間: {result} ms")
-                    print(f"發送軌跡參數總花費時間: {I11_err_ms+result} ms")
+                        # 通訊紀錄
+                        self.communicationRecords(RPdata, Veldata, alreadySentDataBatch, batch)
+                        # 資料(批次)計數器更新
+                        alreadySentDataBatch += 1
+                            
+                        I11_a = self.Time.ReadNowTime()
+                        I11_err = self.Time.TimeError(I11_b, I11_a)
+                        I11_err_ms = I11_err["millisecond"]
 
+                        
+                        # 由佇列取出執行續送軌跡所花的時間
+                        # result = self.costTime_queue.get()
+                        # 紀錄送軌跡所花費的時間與變數區間
+                        # self.EventRecord[self.EventRecordCounter, 6] = result+I11_err_ms
+                        self.EventRecord[self.EventRecordCounter, 6] = I11_err_ms
+                        self.EventRecord[self.EventRecordCounter, 7] = 1
+                        self.EventRecordCounter += 1
+
+                        # 紀錄軌跡更新時間
+                        updataTrjTime = self.Time.ReadNowTime()
+
+                        I3count+=1
+                        I11Lock = False
+                        
+                        # print(f"軌跡參數通訊花費時間: {result} ms")
+                        # print(f"發送軌跡參數總花費時間: {I11_err_ms+result} ms")
+                        # 由佇列取出已發送的資料批數
+                        # alreadySentDataBatch = self.alreadySentDataBatch_queue.get()
+                        print("I0 = 11")
+                    else:
+                        I3count+=1
+                        I11Lock = False
+                        print("I0 = 11")
                 else:
+                    # 由佇列取出已發送的資料批數
+                    # alreadySentDataBatch = self.alreadySentDataBatch_queue.get()
                     self.EventRecordCounter += 1
                     if self.Line is True:
                         # 更新距離上次更新軌跡時，又經過多久的時間
@@ -835,6 +871,7 @@ class Motomancontrol():
                 
                 # if alreadySentDataBatch == batch or np.linalg.norm(self.EndEffector[0][0:3]-self.Goal)< 0.1:
                 if alreadySentDataBatch == batch:
+                
                     """結束條件
                     外迴圈數 = 批次數 or 手臂末段點到終點
                     """
@@ -845,38 +882,38 @@ class Motomancontrol():
                         can_End = False
                         print("--------------------等待軌跡結束-----------------------")
                         while True:
-                            
-                            # 讀取I000變數
-                            I0 = self.Udp.ReadVar("Integer", 0)
+                            if np.linalg.norm(self.EndEffector[0][0:3]-self.Goal)< 0.1:
+                                # 讀取I000變數
+                                I0 = self.Udp.ReadVar("Integer", 0)
 
-                            # 更新系統時間
-                            nowTime = self.Time.ReadNowTime()
-                            # 取得系統時間
-                            sysTime, Node = self.Time.sysTime(startTime, startNode, nowTime, sampleTime)
-                            sysTime = round(sysTime/1000, 1)
+                                # 更新系統時間
+                                nowTime = self.Time.ReadNowTime()
+                                # 取得系統時間
+                                sysTime, Node = self.Time.sysTime(startTime, startNode, nowTime, sampleTime)
+                                sysTime = round(sysTime/1000, 1)
 
-                            # 紀錄feedback數據
-                            for i in range(5):
-                                self.feedbackRecords(sysTime)
-                                feedback_count+=1
-                            # print(f"feedback寫入次數: {feedback_count}次")
+                                # 紀錄feedback數據
+                                for i in range(5):
+                                    self.feedbackRecords(sysTime)
+                                    feedback_count+=1
+                                # print(f"feedback寫入次數: {feedback_count}次")
 
-                            # 判斷此筆軌跡資料的I0會停留在I0=11還是I0=2
-                            quotient, remainder = divmod(RPdata.shape[0]*RPdata.shape[1], 18)
-                            
-                            if remainder == 9 and I0 == [11]:
-                                can_End = True              
-                            elif remainder == 0 and I0 == [2]:
-                                can_End = True
-                            else: 
-                                can_End = False
+                                # 判斷此筆軌跡資料的I0會停留在I0=11還是I0=2
+                                quotient, remainder = divmod(RPdata.shape[0]*RPdata.shape[1], 18)
                                 
-                            if can_End is True:
-                                #讓機器人程式的迴圈結束
-                                Istatus = self.Udp.WriteVar("Integer", 29, batch+100)
+                                if remainder == 9 and I0 == [11]:
+                                    can_End = True              
+                                elif remainder == 0 and I0 == [2]:
+                                    can_End = True
+                                else: 
+                                    can_End = False
+                                    
+                                if can_End is True:
+                                    #讓機器人程式的迴圈結束
+                                    Istatus = self.Udp.WriteVar("Integer", 29, batch+100)
 
-                                self.finalSaveData("dataBase/dynamicllyPlanTEST/")
-                                break
+                                    self.finalSaveData("dataBase/dynamicllyPlanTEST/")
+                                    break
                     else:
                         self.finalSaveData("dataBase/dynamicllyPlanTEST/")
                     
@@ -1193,6 +1230,6 @@ class Motomancontrol():
 if __name__ == "__main__":
 
 
-    trjdataPath = "dataBase/dynamicllyPlanTEST/PoseMat_0.csv"
+    trjdataPath = "dataBase/dynamicllyPlanTEST/PoseMat_test36.csv"
     speeddataPath = "dataBase/dynamicllyPlanTEST/Speed_0.csv"
     Motomancontrol(trjdataPath, speeddataPath).main()

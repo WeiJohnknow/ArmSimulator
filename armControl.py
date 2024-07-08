@@ -450,7 +450,7 @@ if __name__ == "__main__":
         # GoalEnd = [858.525, 41.670, -164.943, -165.2876, -7.1723, 97.5191]
         
         
-        WeldSpeed = 1
+        WeldSpeed = 2
         angularVelocity = np.deg2rad(10)
         sampleTime = 0.04
         

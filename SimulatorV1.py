@@ -471,11 +471,19 @@ class Simulator:
 
         
     def main(self):
+
+        """
+        Teach Mode: True of False
+        """
+        teachMode = False
         r2d = np.rad2deg
         self.Pygameinit()
         
         # 世界坐標系原點
         World_coordinate = np.eye(4)
+
+        # 觀察點座標
+        observer = np.eye(4)
 
         # 設定camera
         '''
@@ -634,6 +642,22 @@ class Simulator:
             if keys[pygame.K_s]:
                 cameraθ += 0.05
 
+            # 觀察者視角移動
+            if keys[pygame.K_5]:
+                observer[0,3] += 20
+            if keys[pygame.K_t]:
+                observer[0,3] -= 20
+            
+            if keys[pygame.K_6]:
+                observer[1,3] += 20
+            if keys[pygame.K_y]:
+                observer[1,3] -= 20
+            
+            if keys[pygame.K_7]:
+                observer[2,3] += 20
+            if keys[pygame.K_u]:
+                observer[2,3] -= 20
+
             # 手臂關節移動
             if keys[pygame.K_3]:
                 teachθ[0] += d2r(1)
@@ -742,9 +766,14 @@ class Simulator:
             cameraY = cameraDir * np.sin(cameraθ) * np.sin(cameraφ)
             cameraZ = cameraDir * np.cos(cameraθ)
 
-            # 設定OpenGL Lookat(觀察者視角)
-            gluLookAt(cameraX, cameraY, cameraZ,
-                      World_coordinate[0,3], World_coordinate[1,3], World_coordinate[2,3]
+            # # 設定OpenGL Lookat(觀察者視角)
+            # gluLookAt(cameraX, cameraY, cameraZ,
+            #           World_coordinate[0,3], World_coordinate[1,3], World_coordinate[2,3]
+            #           ,0,0,1)
+            
+            # 以觀察點坐標系觀察(觀察點可移動)
+            gluLookAt(cameraX+observer[0,3], cameraY+observer[1,3], cameraZ+observer[2,3],
+                      observer[0,3], observer[1,3], observer[2,3]
                       ,0,0,1)
             
             # 對視景模型操作
@@ -766,20 +795,68 @@ class Simulator:
             """
             teach mode
             """
-            Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.Mh12_FK\
-                    (World_coordinate,
-                     teachθ[0],
-                     teachθ[1],
-                     teachθ[2],
-                     teachθ[3],
-                     teachθ[4],
-                     teachθ[5],
-                    1)
-            print("機械手臂末端執行器位姿矩陣: ")
-            print(Mat.MatToAngle(EndEffector))
-            self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector, 100)
-            self.draw_Matrix4X4(EndEffector, 550)
+            if teachMode:
+                Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.Mh12_FK\
+                        (World_coordinate,
+                        teachθ[0],
+                        teachθ[1],
+                        teachθ[2],
+                        teachθ[3],
+                        teachθ[4],
+                        teachθ[5],
+                        1)
+                print("機械手臂末端執行器位姿矩陣: ")
+                print(Mat.MatToAngle(EndEffector))
+                self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector, 100)
+                self.draw_Matrix4X4(EndEffector, 550)
+            else:
+                """
+                機械手臂順、逆運動學精度驗證>>>以工作原點為例
+                關節角度:
+                    [[ -0.00213742]
+                    [-38.81899785]
+                    [-41.08643352]
+                    [  0.00410723]
+                    [-76.45174334]
+                    [  1.05776709]]
 
+                末端位姿(齊次變換矩陣):
+                    [[  0.93794674   0.02933934  -0.34553598 485.27098054]
+                    [  0.02744903  -0.99956948  -0.01036355  -1.22914039]
+                    [ -0.34569128   0.00023583  -0.93834827 234.31399975]
+                    [  0.           0.           0.           1.        ]]
+
+                末端位姿(位姿矩陣):
+                    [485.2709805384255, -1.2291403892741235, 234.3139997507609, 3.1413413266934915, 0.3529753870567177, 0.029256665697495705]
+                    姿態轉換為角度單位:
+                    [485.2709805384255, -1.2291403892741235, 234.3139997507609, 179.98560003  20.22399995   1.67628347]
+
+                """
+                GoalEnd6x1 = np.array([485.271, -1.229, 234.314, 179.9856, 20.224, 1.6763])
+                GoalEnd4x4 = np.eye(4)
+                GoalEnd4x4 = GoalEnd4x4 @ Mat.TransXYZ(GoalEnd6x1[0], GoalEnd6x1[1], GoalEnd6x1[2]) @ Mat.RotaXYZ(d2r(GoalEnd6x1[3]), d2r(GoalEnd6x1[4]), d2r(GoalEnd6x1[5]))
+                θ = self.Kin.IK_4x4(GoalEnd4x4, θ_Buffer)
+                print(f"機械手臂各關節馬達角度: ")
+                print(np.rad2deg(θ))
+                Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.Mh12_FK\
+                        (World_coordinate,
+                        θ[0],
+                        θ[1],
+                        θ[2],
+                        θ[3],
+                        θ[4],
+                        θ[5],
+                        1)
+                print("機械手臂末端執行器-齊次轉換矩陣: ")
+                print(EndEffector)
+                Estimate_EndEffector = Mat.MatToAngle(EndEffector)
+                Estimate_EndEffector_deg = np.rad2deg(Estimate_EndEffector[3:])
+                # print(Estimate_EndEffector)
+                Estimate_Posture = np.array([Estimate_EndEffector[0], Estimate_EndEffector[1], Estimate_EndEffector[2], Estimate_EndEffector_deg[0], Estimate_EndEffector_deg[1], Estimate_EndEffector_deg[2]])
+                print("機械手臂末端執行器-位姿矩陣:")
+                print(Estimate_Posture)
+                self.draw_Arm(World_coordinate, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis,EndEffector, 100)
+                self.draw_Matrix4X4(EndEffector, 550)
             """
             矩陣軌跡法
             """

@@ -468,12 +468,18 @@ class Kinematics:
         iter = 35
         # 學習率
         test = 0.6
+
+        普通姿態:
+        迭代次數
+        iter = 35
+        學習率
+        test = 0.9
         """
-        #迭代次數
+        # 迭代次數
         iter = 35
         # 學習率
-        test = 0.9
-
+        test = 0.6
+        
         # 誤差分析
         errorRcords = []
 

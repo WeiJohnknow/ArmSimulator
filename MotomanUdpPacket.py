@@ -1510,9 +1510,9 @@ if __name__ == "__main__":
     # 最大值: 24.0
     # 最小值: 11.0
     # 平均值: 15.61
-    result, coordinate = udp.getcoordinateMH(101)
-    print(result)
-    print(coordinate)
+    # result, coordinate = udp.getcoordinateMH(101)
+    # print(result)
+    # print(coordinate)
     """
     矩形軌跡:
     Org = [485.126, -1.295, 234.296, 179.9772, 20.2428, 1.6694]
@@ -1573,10 +1573,18 @@ if __name__ == "__main__":
     # 最大值: 30.0
     # 最小值: 15.0
     # 平均值: 21.65
+    """
+    連續兩次單筆寫入整數變數
+    花費時間: 最慢50ms;最快42ms
+    """
+    # b = Time.ReadNowTime()
     # varType = "Integer"
     # address = 2
-    # data = 160
+    # data = 1
     # status = udp.WriteVar(varType, address, data)
+    # a = Time.ReadNowTime()
+    # err = Time.TimeError(b, a)
+    # print(err["millisecond"])
     # print(status)
 
     # 多筆變數讀取(Integer)
@@ -1590,10 +1598,18 @@ if __name__ == "__main__":
     # 最大值: 149.0
     # 最小值: 126.0
     # 平均值: 134.39
+    """
+    同時寫入兩個整數變數
+    花費時間: 最慢41ms ; 最快31ms
+    """
+    # b = Time.ReadNowTime()
     # firstAddress  = 0
     # Number = 9
     # data = [0, 1, 2, 3, 4, 5, 6, 7, 8]
     # status = udp.multipleWriteVar(firstAddress, Number, data)
+    # a = Time.ReadNowTime()
+    # err = Time.TimeError(b, a)
+    # print(err["millisecond"])
     # print(status)
 
     # 多筆位置變數讀取(Robot Position)

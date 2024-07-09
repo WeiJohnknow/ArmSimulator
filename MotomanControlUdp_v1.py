@@ -2422,56 +2422,91 @@ class GetTreadResult(threading.Thread):
 
 class Motomancontrol():
     def __init__(self, TrjdatafilePath, VeldatafilePath):
+        self.Kin = Kinematics()
+        self.Time = TimeTool()
+        self.Sim = Simulator()
+        self.Udp = MotomanUDP()
+
+        # 載入軌跡檔案
+        self.trjData = database_PoseMat.Load(TrjdatafilePath)
+        self.velData = database_Velocity.Load(VeldatafilePath)
+        # 刪除軌跡資料第一筆資料
+        self.trjData, self.velData = Motomancontrol.deleteFirstTrajectoryData(self.trjData, self.velData)
+
+        # ----------------------------------------------------------------狀態與初始參數設定區----------------------------------------------------------------
+        # --------------------狀態預設區--------------------
         """
         Online(含通訊之測試) >> True  要記得解開self.Udp的相關註解
         Offline(純邏輯測試) >> False
         """
         self.Line = True
-        
-        self.Kin = Kinematics()
-        self.Time = TimeTool()
-        self.Sim = Simulator()
-        self.Udp = MotomanUDP()
-        
-        # INFORM 迴圈變數
         """
-        資料單位:
+        軌跡速度補償系統:
+        開啟 >> True  
+        關閉 >> False
+        """
+        # 速度補償值(要X10，需要補償0.3mm/s，要輸入0.3X10 = 3)
+        self.compensationSpeed = 3
+        # 動態速度補償功能
+        self.compensationSpeedFUN = False
+     
+        """
+        軌跡資料單位:
         9筆=1批, 2批=1組
 
-        I0:  資料筆數index
+        # 軌跡資料發送(機器人程式相關)
+        I0:  資料筆數index(機器人程式迴圈index)
         I1:  資料總批數(資料總筆數/9)(batch)
-        I28: 迴圈跌代次數計數器
+        I28: 已執行或正在執行的軌跡資料批次數
+        I29: 機器人程式迴圈控制旗標(控制結束)
+
+        # 變速度
+        I3: 運動速度1
+        I4: 控制位元
+        I5: 運動速度2
+
+        # 變電流、填料速度
+        I21 : 銲接電流 AC
+        I22 : 填料速度 AVP
         """
+        # --------------------預設參數區--------------------
+        # 機器人程式運行相關變數
         self.I0 = 2
         self.I1 = 0
         self.I28 = 0
 
-        if self.Line is True:
-            status = self.Udp.multipleWriteVar(0, 2, [self.I0, self.I1])
-            status = self.Udp.WriteVar("Integer", 28, 0)
-
-
-        # 動態變更銲接參數預設值
-        """
-        AC:   I21
-        AVP : I22
-        機器人程式迴圈控制旗標:I29
-        """
+        # 變電流參數
         self.AC = 60
         self.AVP = 100
+
+        # 預設銲接速度
+        self.GoalSpeed = 1
+        # 軌跡速度切換旗標
+        self.variableSpeedFlag = 0
+
+        # 預設銲道寬度
+        self.weldBeadWidth = 6.7
+
+
         if self.Line is True:
-            status = self.Udp.multipleWriteVar(21, 2, [self.AC, self.AVP])
-            Istatus = self.Udp.WriteVar("Integer", 29, 0)
+            mWTrjData_Status = self.Udp.multipleWriteVar(0, 2, [self.I0, self.I1])
+            wI28_Status = self.Udp.WriteVar("Integer", 28, 0)
+            mWParam_Status = self.Udp.multipleWriteVar(21, 2, [self.AC, self.AVP])
+            wI29_Status = self.Udp.WriteVar("Integer", 29, 0)
+            wI4_Statu = self.Udp.WriteVar("Integer", 4, 0)
+            if mWTrjData_Status==[] and wI28_Status==[] and mWParam_Status==[] and wI29_Status==[] and wI4_Statu==[]:
+                print("初始參數已成功寫入DX200")
+            else:
+                print("初始參數位寫入失敗!!!")
+        else:
+            print("初始參數已寫入DX200")
+
+        # ----------------------------------------------------------------各種紀錄變數初始化區----------------------------------------------------------------
+
         # 銲接電流紀錄
         self.arcCurrentRecards = np.zeros((1000, 1))
         self.arcCurrentRecards[0, 0] = self.AC
         self.arcCurrentRecards_counter = 1
-
-        # 預設銲接速度
-        self.GoalSpeed = 1
-
-        # 預設銲道寬度
-        self.weldBeadWidth = 6.7
 
         # 銲道寬度變更紀錄
         self.weldBeadWidthRecards = np.zeros((1000, 5))
@@ -2481,13 +2516,6 @@ class Motomancontrol():
         self.weldBeadWidthRecards[0, 3] = self.AVP
         self.weldBeadWidthRecards[0, 4] = 0
         self.weldBeadWidthRecards_counter = 1
-
-
-        # 載入軌跡檔案
-        self.trjData = database_PoseMat.Load(TrjdatafilePath)
-        self.velData = database_Velocity.Load(VeldatafilePath)
-        # 刪除軌跡資料第一筆資料
-        self.trjData, self.velData = Motomancontrol.deleteFirstTrajectoryData(self.trjData, self.velData)
 
         # PC >> DX200 通訊紀錄
         self.communicationRecords_Trj = np.zeros((50000, 9, 6))
@@ -2499,6 +2527,7 @@ class Motomancontrol():
         self.feedbackRecords_sysTime = np.zeros((50000, 1))
         self.feedbackRecords_Counter = 0
 
+        # 紀錄軌跡終點、feedback最後一筆位姿做為程式結束條件
         self.EndEffector = np.zeros(6)
         self.Goal = np.array([self.trjData[-1, 0, 0], self.trjData[-1, 0, 1], self.trjData[-1, 0, 2]])
 
@@ -2519,6 +2548,13 @@ class Motomancontrol():
         
         self.WriteSpeedBypass = 0
 
+        # 封包發送問題紀錄
+        """
+        紀錄格式:[發送軌跡的區間編號(2 or 11), 發送狀態(成功(0) or 失敗(1), 系統時間(ms))]
+        """
+        self.packetSent_isSuccessRecord = np.zeros((5000, 3))
+        self.packetSent_isSuccessRecord_counter = 0
+
         # 關節角度紀錄
         self.JointAngleRecords = np.zeros((50000, 1, 6))
 
@@ -2535,6 +2571,7 @@ class Motomancontrol():
         self.PrvSpeed = 0
         self.speedBuffer = np.zeros((100))
         self.SpeedDatacounter = 0
+
 
     @staticmethod
     def deleteFirstTrajectoryData(TrajectoryData, VelocityData):
@@ -2650,7 +2687,8 @@ class Motomancontrol():
        
         # 防止竄改到來源
         velocity = np.copy(velocityData)
-        Veldata =  velocity[SpeedIndex]*10
+        # 最後一項是速度補償值
+        Veldata =  velocity[SpeedIndex]*10+self.compensationSpeed
         Veldata = Veldata.astype(int)
     
         return RPdata, Veldata
@@ -2713,6 +2751,44 @@ class Motomancontrol():
             Is_success = False
         
         return Is_success
+    
+    def updataTrjSpeed(self, needUpdataSpeed):
+        """軌跡速度變更
+
+        """
+        if self.variableSpeedFlag == 0:
+            """
+            目前機器人程式的速度取自I3:
+            - 須將速度旗標I4切換至1
+            - 把新速度軌跡送至I5
+            """
+            if self.Line:
+                self.variableSpeedFlag = 1
+                firstAddress  = 4
+                Number = 2
+                data = [self.variableSpeedFlag, needUpdataSpeed]
+                status = self.Udp.multipleWriteVar(firstAddress, Number, data)
+            else:
+                self.variableSpeedFlag = 1
+                status = []
+        else:
+            """
+            目前機器人程式的速度取自I5:
+            - 須將速度旗標I4切換至0
+            - 把新速度軌跡送至I3
+            """
+            self.variableSpeedFlag = 0
+            if self.Line:
+                firstAddress  = 3
+                Number = 2
+                data = [needUpdataSpeed, self.variableSpeedFlag]
+                status = self.Udp.multipleWriteVar(firstAddress, Number, data)
+            else:
+                self.variableSpeedFlag = 0
+                status = []
+                
+
+        return status
     
     
     def PlanNewTrj(self, NowEnd, GoalEnd, sampleTime, GoalSpeed):
@@ -2787,47 +2863,52 @@ class Motomancontrol():
         pos_result, coordinate = self.Udp.getcoordinateMH(101)
         # 儲存實際軌跡資料
         
-        if self.feedbackRecords_Counter >= 3:
-            if self.SpeedDatacounter>=99 and np.isinf(self.speedBuffer).any() == False:
-                speedMean = np.mean(self.speedBuffer)
-                
-                self.speedCompensate = self.exceptSpeed - speedMean
-                needUpdataSpeed = int(((self.exceptSpeed+self.speedCompensate)*10))
-                print(f"軌跡平均速度: {speedMean}ms, 需補償: {self.speedCompensate}ms, 需更新的速度: {needUpdataSpeed}")
-
-                if needUpdataSpeed > 25:
-                    print("要更新的速度值有問題，值過大!!!")
-                    needUpdataSpeed = 22
-                elif needUpdataSpeed < 7:
-                    print("要更新的速度值有問題，值過小!!!")
-                    needUpdataSpeed = 9
-
-                
-                # 更新速度
-                if needUpdataSpeed < self.PrvSpeed-3 or needUpdataSpeed > self.PrvSpeed+3:
-                    print(f"速度命令更新: {needUpdataSpeed}")
-                    Istatus = self.Udp.WriteVar("Integer", 3, needUpdataSpeed)
-                    if Istatus == []:
-                        print("成功更新速度值")
-                        self.PrvSpeed = needUpdataSpeed
-                    else:
-                        print("速度更新封包有問題!!!更新失敗")
+        # 軌跡速度補償
+        if self.compensationSpeedFUN:
+            if self.feedbackRecords_Counter >= 3:
+                if self.SpeedDatacounter>=99 and np.isinf(self.speedBuffer).any() == False:
+                    speedMean = np.mean(self.speedBuffer)
                     
-                else:
-                    print("不用更新速度")
+                    self.speedCompensate = self.exceptSpeed - speedMean
+                    needUpdataSpeed = int(((self.exceptSpeed+self.speedCompensate)*10))
+                    print(f"軌跡平均速度: {speedMean}ms, 需補償: {self.speedCompensate}ms, 需更新的速度: {needUpdataSpeed}")
 
-                # 清空緩存區
-                self.speedBuffer.fill(0)
-                # 計數器重製
-                self.SpeedDatacounter = 0
+                    if needUpdataSpeed > 25:
+                        print("要更新的速度值有問題，值過大!!!")
+                        needUpdataSpeed = 22
+                    elif needUpdataSpeed < 7:
+                        print("要更新的速度值有問題，值過小!!!")
+                        needUpdataSpeed = 9
 
-            elif self.SpeedDatacounter >= 100:
-                print(self.feedbackRecords_Counter)
-                # 清空緩存區
-                self.speedBuffer.fill(0)
-                # 計數器重製
-                self.SpeedDatacounter = 0
-                
+                    
+                    # 更新速度
+                    if needUpdataSpeed < self.PrvSpeed-1 or needUpdataSpeed > self.PrvSpeed+1:
+                        print(f"速度命令更新: {needUpdataSpeed}")
+                        # Istatus = self.Udp.WriteVar("Integer", 3, needUpdataSpeed)
+                        Istatus = self.updataTrjSpeed(needUpdataSpeed)
+                        if Istatus == []:
+                            print("成功更新速度值")
+                            self.PrvSpeed = needUpdataSpeed
+                        else:
+                            print("速度更新封包有問題!!!更新失敗")
+                        
+                    else:
+                        print("不用更新速度")
+
+                    # 清空緩存區
+                    self.speedBuffer.fill(0)
+                    # 計數器重製
+                    self.SpeedDatacounter = 0
+
+                elif self.SpeedDatacounter >= 100:
+                    print(self.feedbackRecords_Counter)
+                    # 清空緩存區
+                    self.speedBuffer.fill(0)
+                    # 計數器重製
+                    self.SpeedDatacounter = 0
+            
+
+            # 取一百筆
             dis = np.linalg.norm(self.feedbackRecords_Trj[self.feedbackRecords_Counter-1][0][:3]-self.feedbackRecords_Trj[self.feedbackRecords_Counter-2][0][:3])
             time = (self.feedbackRecords_sysTime[self.feedbackRecords_Counter-1]-self.feedbackRecords_sysTime[self.feedbackRecords_Counter-2])/1000
             Speed = dis/time
@@ -2843,7 +2924,21 @@ class Motomancontrol():
         err = self.Time.TimeError(b, a)
         # print("回饋、計算速度、補償速度花費: ", {err["millisecond"]}, "ms")
 
-        
+    def SentSuccessRecords(self, interval, status, sysTime):
+        """紀錄軌跡封包發送狀況
+        - arg:
+            interval:
+                I2~I10: 2
+                I11~I19: 11
+            status:
+                Sent success: 0
+                Sent No success: 1
+
+        """
+        self.packetSent_isSuccessRecord[self.packetSent_isSuccessRecord_counter, 0] = interval
+        self.packetSent_isSuccessRecord[self.packetSent_isSuccessRecord_counter, 1] = status
+        self.packetSent_isSuccessRecord[self.packetSent_isSuccessRecord_counter, 2] = sysTime
+        self.packetSent_isSuccessRecord_counter+=1
     
     def communicationRecords(self, RPdata, Veldata, alreadySentDataBatch, batch):
         """通訊時用於紀錄通訊內容
@@ -2975,10 +3070,12 @@ class Motomancontrol():
             self.feedbackRecords_Trj = self.removeUnnecessaryData(self.feedbackRecords_Trj)
             self.feedbackRecords_sysTime = self.removeUnnecessaryData(self.feedbackRecords_sysTime)
             self.EventRecord = self.removeUnnecessaryData(self.EventRecord)
+            self.packetSent_isSuccessRecord = self.removeUnnecessaryData(self.packetSent_isSuccessRecord)
 
             database_PoseMat.Save(self.feedbackRecords_Trj, FolderPath+"feedbackRecords_Trj.csv", mode)
             database_time.Save(self.feedbackRecords_sysTime, FolderPath+"feedbackRecords_sysTime.csv", mode)
             database_time.Save_EventRecords(self.EventRecord, FolderPath+"EventRecords.csv", mode)
+            database_time.Save_packetSent_isSuccessRecord(self.packetSent_isSuccessRecord, FolderPath+"packetSent_isSuccessRecord.csv", mode)
             
         # 更改數據形狀以便儲存
         self.communicationRecords_Trj = self.communicationRecords_Trj.reshape(-1, 1, 6)
@@ -3041,6 +3138,12 @@ class Motomancontrol():
         if self.Line is True:
             RPstatus = self.Udp.multipleWriteRPVar(2, 9, RPpacket)
             Istatus = self.Udp.WriteVar("Integer", 3, Velpacket[0])
+            if RPstatus==[]:
+                status = 0
+                self.SentSuccessRecords( 2, status, sysTime)
+            else:
+                status = 1
+                self.SentSuccessRecords( 2, status, sysTime)
         # 紀錄通訊所送出的軌跡資料 | 用於驗證
         self.communicationRecords(RPdata, Veldata, alreadySentDataBatch, batch)
         I3count+=1
@@ -3099,6 +3202,12 @@ class Motomancontrol():
                     # 將打包完的資料寫入DX200
                     # Is_success = self.writeRPvarINTvar(firstAddress, RPpacket, Velpacket)
                     RPstatus = self.Udp.multipleWriteRPVar(firstAddress, 9, RPpacket)
+                    if RPstatus==[]:
+                            status = 0
+                            self.SentSuccessRecords( 11, status, sysTime)
+                    else:
+                        status = 1
+                        self.SentSuccessRecords( 11, status, sysTime)
 
                     # 通訊紀錄
                     self.communicationRecords(RPdata, Veldata, alreadySentDataBatch, batch)
@@ -3189,6 +3298,12 @@ class Motomancontrol():
                     # Is_success = self.writeRPvarINTvar(firstAddress, RPpacket, Velpacket)
                     if self.Line is True:
                         RPstatus = self.Udp.multipleWriteRPVar(firstAddress, 9, RPpacket)
+                        if RPstatus==[]:
+                            status = 0
+                            self.SentSuccessRecords( 11, status, sysTime)
+                        else:
+                            status = 1
+                            self.SentSuccessRecords( 11, status, sysTime)
                     
                     # 通訊紀錄
                     self.communicationRecords(RPdata, Veldata, alreadySentDataBatch, batch)
@@ -3227,6 +3342,12 @@ class Motomancontrol():
                     # Is_success = self.writeRPvarINTvar(firstAddress, RPpacket, Velpacket)
                     if self.Line is True:
                         RPstatus = self.Udp.multipleWriteRPVar(firstAddress, 9, RPpacket)
+                        if RPstatus==[]:
+                            status = 0
+                            self.SentSuccessRecords( 2, status, sysTime)
+                        else:
+                            status = 1
+                            self.SentSuccessRecords( 2, status, sysTime)
 
                     # 通訊紀錄
                     self.communicationRecords(RPdata, Veldata, alreadySentDataBatch, batch)
@@ -3437,8 +3558,12 @@ class Motomancontrol():
                             print(f"經數學模型換算後的理想銲接電流: {self.AC} A ; 填料速度{self.AVP}%")
                             if self.Line:
                                 # 更新銲接電流與填料速度
-                                Istatus = self.Udp.WriteVar("Integer", 21, self.AC)
-                                Istatus = self.Udp.WriteVar("Integer", 22, self.AVP)
+                                firstAddress  = 21
+                                Number = 2
+                                data = [self.AC, self.AVP, 2, 3, 4, 5, 6, 7, 8]
+                                status = self.Udp.multipleWriteVar(firstAddress, Number, data)
+                                # Istatus = self.Udp.WriteVar("Integer", 21, self.AC)
+                                # Istatus = self.Udp.WriteVar("Integer", 22, self.AVP)
                                 
                                 # 紀錄更新的銲接電流
                                 self.recordArcCurrent()
@@ -3508,7 +3633,9 @@ class Motomancontrol():
                             elif self.GoalSpeed > 1.7 and self.GoalSpeed <= 2.2:
                                 self.AVP = 95
 
+                            # 將填料速度調變至該銲接速度對應之數值
                             Istatus = self.Udp.WriteVar("Integer", 22, self.AVP)
+
                             print(f"經數學模型換算後的理想銲接速度: {estimatedGoalSpeed} mm/s")
 
                             # 紀錄新寫入的銲道寬度與經模型估測後的銲接製成參數(電流、速度)
@@ -3568,11 +3695,14 @@ class Motomancontrol():
                     Remix_PoseMat, Remix_Speed = Motomancontrol.deleteFirstTrajectoryData(self.trjData, self.velData)
                     NewRemixBatch = self.calculateDataGroupBatch(self.trjData)
                     NewRemixRPdata, NewRemixSpeeddata = self.dataSegmentation(self.trjData, self.velData, NewRemixBatch, alreadySentDataBatch*9+1)
-                    if self.Line:
-                        # 更新速度
-                        Istatus = self.Udp.WriteVar("Integer", 3, NewRemixSpeeddata[0])
+                   
+                    # 更新速度
+                    # Istatus = self.Udp.WriteVar("Integer", 3, NewRemixSpeeddata[0])
+                    Istatus = self.updataTrjSpeed(NewRemixSpeeddata[0])
+                    if Istatus==[]:
+                        print(f"------------------速度旗標更新至: {self.variableSpeedFlag}; 速度{NewRemixSpeeddata[0]*0.1}ms ------------------")
                     else:
-                        print(f"速度已更新: {NewRemixSpeeddata[0]*0.1} mm/s")
+                        print(f"------------------新速度旗標更新失敗!!!------------------")
                     # 使用合併後的軌跡檔案(已分割與封裝)，覆蓋原始的軌跡資料
                     RPdata = NewRemixRPdata
                     Veldata = NewRemixSpeeddata

@@ -152,6 +152,10 @@ class database_time(Database_interface):
         dataTypeConverter.ndarrayTOdataframe(weldBeadWidthRecords, ['weldBeadWidth', 'Speed', 'ArcCurrent', 'FeedSpeed', 'SystemTime'], filePath, mode)
 
     @ staticmethod
+    def Save_packetSent_isSuccessRecord(packetSent_isSuccessRecord, filePath, mode:str):
+        dataTypeConverter.ndarrayTOdataframe(packetSent_isSuccessRecord, ['intervalNO.', 'status', 'SystemTime'], filePath, mode)
+
+    @ staticmethod
     def Load(filePath):
         df = validator.Is_existence(filePath)
         Time_ndarry = dataTypeConverter.TimedataframeToNdarray(df)

@@ -308,10 +308,14 @@ def Experimental_data_analysis(PoseMat_file, Time_file, Time_error_file):
     if nan_index[0] == True:
         PtoPavgSpeed[0] = 0
 
-    print(f"實際速度: {np.mean(PtoPavgSpeed[np.isfinite(PtoPavgSpeed)])}")
+    # 手臂實際跑出來的速度
+    realAvgSpeed = np.mean(PtoPavgSpeed[np.isfinite(PtoPavgSpeed)])
+    print(f"實際速度: {realAvgSpeed}")
     
     # 设置全局字体大小
     plt.rcParams.update({'font.size': 20})
+    # # 绘制平均值水平线
+    # plt.axhline(realAvgSpeed, color='red', linestyle='--', label='Average speed estimate')
 
     
     plt.plot(Time, TotalEuclidean_distance, color='blue', label='Euclidean distance', marker='o')
@@ -366,7 +370,18 @@ def Analysis_ExperimentalAndExpect(Experimental_EucDis, Experimental_Speed, Expe
     """
     歐式距離與速度分張
     """
+    # 手臂實際跑出來的速度(去除無窮大後)
+    Experimental_Speed_filter = Experimental_Speed[np.isfinite(Experimental_Speed)]
+    # 計算整段軌跡平均速度
+    # RealAvgSpeed = np.mean(Experimental_Speed_filter)
 
+    # 切分兩半
+    halfIndex = len(Experimental_Speed_filter)//2
+    before_RealAvgSpeed = np.mean(Experimental_Speed_filter[:halfIndex-100])
+    after_RealAvgSpeed = np.mean(Experimental_Speed_filter[halfIndex+100:])
+    print(f"前段軌跡實際速度: {before_RealAvgSpeed}")
+    print(f"後段軌跡實際速度: {after_RealAvgSpeed}")
+    
 
     # 期望歐式距離曲線 
     plt.plot(Expect_Time, Expect_EucDis, color='red', label='Expected')
@@ -381,7 +396,7 @@ def Analysis_ExperimentalAndExpect(Experimental_EucDis, Experimental_Speed, Expe
     plt.legend()
     plt.xlabel("time(ms)")
     plt.ylabel("Euclidean distance(mm)")
-    plt.title("Euclidean distance of robot arm TCP movement")
+    plt.title("Euclidean distance of robot arm End-Effector movement")
 
     # 显示图形
     plt.show()
@@ -391,7 +406,10 @@ def Analysis_ExperimentalAndExpect(Experimental_EucDis, Experimental_Speed, Expe
     plt.plot(Expect_Time, Expect_Speed, color='red', label='Expected')
     # 實驗得到的速度曲線
     plt.plot(Experimental_Time, Experimental_Speed,  color='green', label='Estimate')
-
+    # 绘制平均值水平线
+    # plt.axhline(realAvgSpeed, color='Blue', linestyle='--', label='Average estimate')
+    plt.axhline(before_RealAvgSpeed, color='orange', linestyle='--', label='Average speed estimate for first segment')
+    plt.axhline(after_RealAvgSpeed, color='Blue', linestyle='--', label='Average speed estimate for second segment')
 
     # 開啟圖表背景格線
     plt.grid(True)
@@ -400,7 +418,7 @@ def Analysis_ExperimentalAndExpect(Experimental_EucDis, Experimental_Speed, Expe
     plt.legend()
     plt.xlabel("time(ms)")
     plt.ylabel("speed(mm/s)")
-    plt.title("Robot arm TCP movement speed")
+    plt.title("Robot arm End-Effector movement speed")
 
     # 显示图形
     plt.show()
@@ -420,7 +438,9 @@ def Expect_distance_speed(PoseMat_file, Speed_file, sampleTime):
 
     # 有時要-0.04 有時不用， 請多加注意
     Time = np.arange(0, (PoseMat6x1.shape[0]*sampleTime), sampleTime)
+    # Time = Time[:-1]
     # Time = np.arange(0, (PoseMat6x1.shape[0]*sampleTime-0.04), sampleTime)
+    
 
     # 計算軌跡點間的歐式距離
     PtoPEuclidean_distance = np.zeros((PoseMat6x1.shape[0]-1))

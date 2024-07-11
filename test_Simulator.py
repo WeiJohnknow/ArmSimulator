@@ -107,8 +107,7 @@ def create_floor_grid(rows, cols, size, height=0):
     vertices = []
     normals = []
     colors = []
-    
-    
+     
     for row in range(-rows,rows):
         for col in range(-cols,cols):
             vertices.append([col * size,  row * size, height])
@@ -308,8 +307,20 @@ def calculate_angle(vector1, vector2):
     cosθ = dot(vector1,vector2)/(norm(vector1)*norm(vector2))
     angle = r2d(acos(cosθ))
     
-
     return angle
+
+
+def cosineTheorem(a, b, c):
+    """餘弦定理 給三邊長求最長邊角度
+    """
+    if a+b>c and a+c>b and b+c>a:
+        cosC = (a**2 + b**2 - c**2) / (2 * a * b)
+        cAngle = np.degrees(np.arccos(cosC))
+    else:
+        print("不是三角形")
+
+    return cAngle
+
 
 
 def main():
@@ -386,6 +397,9 @@ def main():
 
         glPushMatrix()
 
+        # 畫地板
+        draw_object(floor_vao,floor_lens,np.eye(4).T,view,projection)
+
         # color
         red = [1.0, 0.0, 0.0]
         orange = [1.0, 0.6, 0.0]
@@ -455,7 +469,9 @@ def main():
         # blue = [0.0, 0.0, 1.0]
         # Purple = [0.62, 0.125, 0.941]
 
-
+        """
+        向量與向量投影
+        """
         # # Vector test
         # k = [0.0, 0.0, 1.0]
         # v = [0, 0.707, 0.707]
@@ -473,7 +489,6 @@ def main():
         # w = cross(Raxis, v)
         # Vrot_vertical = cos(d2r(160))*v_vertical + sin(d2r(160))*w
         # Vrot = v_parallel + Vrot_vertical
-
         # draw_vector(v, 10, red)
         # draw_vector(Raxis, 5, blue)
         # draw_vector(v_parallel, 10, green)
@@ -484,27 +499,30 @@ def main():
 
         
 
+        """
+        Rodrigues' rotation formula
+        """
+        # k = np.array(([0.0, 0.0, 1.0]))
+        # v = np.array(([0.0, 0.707, 0.707]))
+        # v_parallel = (dot(v,k)/norm(k))*(k/norm(k))
+        # v_vertical = v - v_parallel
+        # θ = d2r(60)
+        # vrot_ = cos(θ)*v_vertical + sin(θ)*cross(k,v_vertical)
+        # vrot = cos(θ)*v + (1-cos(θ))*(dot(k,v))*k + sin(θ)*cross(k,v)
+        # vrot_parallel = (dot(vrot,k)/norm(k))*(k/norm(k))
+        # vrot_vertical = vrot - vrot_parallel
+        # draw_vector(k, 2, blue)
+        # draw_vector(v, 2, green)
+        # draw_vector(v_parallel, 5, red)
+        # draw_vector(v_vertical, 5, red)
+        # draw_vector(vrot, 2, orange)
+        # draw_vector(vrot_parallel, 5, Purple)
+        # draw_vector(vrot_vertical, 5, Purple)
+        # print(calculate_angle(v_vertical, vrot_vertical))
 
-        # # Rodrigues' rotation formula
-        k = np.array(([0.0, 0.0, 1.0]))
-        v = np.array(([0.0, 0.707, 0.707]))
-        v_parallel = (dot(v,k)/norm(k))*(k/norm(k))
-        v_vertical = v - v_parallel
-        θ = d2r(60)
-        vrot_ = cos(θ)*v_vertical + sin(θ)*cross(k,v_vertical)
-        vrot = cos(θ)*v + (1-cos(θ))*(dot(k,v))*k + sin(θ)*cross(k,v)
-        vrot_parallel = (dot(vrot,k)/norm(k))*(k/norm(k))
-        vrot_vertical = vrot - vrot_parallel
-        draw_vector(k, 2, blue)
-        draw_vector(v, 2, green)
-        draw_vector(v_parallel, 5, red)
-        draw_vector(v_vertical, 5, red)
-        draw_vector(vrot, 2, orange)
-        draw_vector(vrot_parallel, 5, Purple)
-        draw_vector(vrot_vertical, 5, Purple)
-        print(calculate_angle(v_vertical, vrot_vertical))
-
-        # # 測試叉積
+        """
+        叉積測試
+        """
         # a = [3.0, 0.0, 0.0]
         # b = [0.0, 2.0, 0.0]
         # c = cross(a,b)
@@ -516,7 +534,9 @@ def main():
         # print("|c| = ", c_)
         # print("|w| = ",c_norm)
 
-        # Quatrtnion
+        """
+        Quatrtnion
+        """
         # x = np.array(([1,0,0]))
         # y = np.array(([0,1,0]))
         # z = np.array(([0,0,1]))
@@ -531,7 +551,9 @@ def main():
         # draw_vector(q[1], 5, orange)
         # draw_vector(q_[1], 5, yellow)
 
-        # # 單位向量
+        """
+        單位向量
+        """
         # u = np.array(([1,4,5]))
         # u_norm = norm(u)
         # unit_v = u/u_norm
@@ -541,9 +563,44 @@ def main():
         # print("x2", x2)
         # print(ans)
 
+        """
+        mh12 IK 幾何向量解
+        """
+        worldCoordinate = np.eye(4)
+        θ = d2r(np.zeros((6,1)))
+        θ[0, 0] =  d2r(0)
+        θ[1, 0] =  d2r(0)
+        θ[2, 0] =  d2r(0)
+        θ[3, 0] =  d2r(0)
+        θ[4, 0] =  d2r(0)
+        θ[5, 0] =  d2r(0)
+        Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = Kin.Mh12_FK\
+                        (worldCoordinate,
+                        θ[0],
+                        θ[1],
+                        θ[2],
+                        θ[3],
+                        θ[4],
+                        θ[5],
+                        1)
+        GoalEnd6x1 = np.array([485.271, -1.229, 234.314, 179.9856, 20.224, 1.6763])
+        GoalEnd4x4 = np.eye(4)
+        GoalEnd4x4 = GoalEnd4x4 @ Mat.TransXYZ(GoalEnd6x1[0], GoalEnd6x1[1], GoalEnd6x1[2]) @ Mat.RotaXYZ(d2r(GoalEnd6x1[3]), d2r(GoalEnd6x1[4]), d2r(GoalEnd6x1[5]))
+        # 基座到末端的向量大小
+        BtoTvector = Taxis[:3,3]-Saxis[:3,3]
+        # S軸法向量與BtoTvector叉積
+        roll = np.cross(BtoTvector, Saxis[:3, 2])
+        # 利用餘弦定理求出roll的角度
+        a = np.sqrt(614**2+155**2)
+        b = np.sqrt(200**2+640**2)
+        rollDeg = cosineTheorem(a,b,np.linalg.norm(BtoTvector))
 
-
-        draw_object(floor_vao,floor_lens,np.eye(4).T,view,projection)
+        draw_vector(BtoTvector, 5, red)
+        draw_vector(Base[:3, 2], 5, blue)
+        draw_vector(roll, 5, green)
+        
+        # print(EndEffector-Base)
+        
         
         glPopMatrix()
         pygame.display.flip()

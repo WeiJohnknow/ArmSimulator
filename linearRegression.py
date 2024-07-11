@@ -467,70 +467,18 @@ y = 0.09750000000000003 * Current + -1.9600000000000004 * Speed + 2.733333333333
 角接 有填料 變電流 模型
 銲道寬度 = 0.10750000000000001 * 銲接電流 + -0.5833333333333339
 """
-# # 數據輸入
-# data = {
-#     '銲接電流': [40, 40, 40, 50, 50, 50, 60, 60, 60],
-#     '填料速度': [90, 90, 90, 85, 85, 85, 90, 90, 90],
-#     '銲接速度': [1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5],
-#     '銲道寬度': [3.69, 3.8, 3.745, 4.71, 4.76, 4.735, 5.8, 5.99, 5.895]
-# }
-
-# df = pd.DataFrame(data)
-
-# # 提取自變數和應變數
-# X = df[['銲接電流']].values
-# y = df['銲道寬度'].values
-
-# # 創建線性回歸模型
-# model = LinearRegression()
-
-# # 訓練模型
-# model.fit(X, y)
-
-# # 預測
-# y_pred = model.predict(X)
-
-# # 評估模型
-# mse = mean_squared_error(y, y_pred)
-# r2 = r2_score(y, y_pred)
-# coef = model.coef_[0]
-# intercept = model.intercept_
-
-# # 繪製回歸線
-# plt.scatter(X, y, color='blue', label='Data Points')
-# plt.plot(X, y_pred, color='red', label='Regression Line')
-# plt.xlabel('Welding Current(A)')
-# plt.ylabel('Weld Bead Width(mm)')
-# plt.title('Linear Regression: Welding Current vs Weld Bead Width')
-# plt.legend()
-# plt.show()
-
-# # 顯示結果
-# print(f"Mean Squared Error: {mse}")
-# print(f"R^2 Score: {r2}")
-# print(f"Coefficient: {coef}")
-# print(f"Intercept: {intercept}")
-
-# # 顯示回歸方程式
-# print(f"回歸方程式: 銲道寬度 = {coef} * 銲接電流 + {intercept}")
-
-
-"""
-角接 有填料 變速度 模型
-銲道寬度 = -1.6950000000000007 * 銲接速度 + 7.445833333333335
-"""
 # 數據輸入
 data = {
-    '銲接電流': [50, 50, 50, 50, 50, 50, 50, 50, 50],
-    '填料速度': [83, 83, 83, 85, 85, 85, 87, 87, 87],
-    '銲接速度': [1, 1, 1, 1.5, 1.5, 1.5, 2, 2, 2],
-    '銲道寬度': [5.75, 5.92, 5.835, 4.71, 4.76, 4.735, 4.09, 4.19, 4.14]
+    '銲接電流': [40, 40, 40, 50, 50, 50, 60, 60, 60],
+    '填料速度': [90, 90, 90, 85, 85, 85, 80, 80, 80],
+    '銲接速度': [1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5],
+    '銲道寬度': [3.69, 3.8, 3.745, 4.71, 4.76, 4.735, 6.14, 6.38, 6.26]
 }
 
 df = pd.DataFrame(data)
 
 # 提取自變數和應變數
-X = df[['銲接速度']].values
+X = df[['銲接電流']].values
 y = df['銲道寬度'].values
 
 # 創建線性回歸模型
@@ -551,9 +499,9 @@ intercept = model.intercept_
 # 繪製回歸線
 plt.scatter(X, y, color='blue', label='Data Points')
 plt.plot(X, y_pred, color='red', label='Regression Line')
-plt.xlabel('Welding Speed')
+plt.xlabel('Welding Current(A)')
 plt.ylabel('Weld Bead Width(mm)')
-plt.title('Linear Regression: Welding Speed vs Weld Bead Width')
+plt.title('Linear Regression: Welding Current vs Weld Bead Width')
 plt.legend()
 plt.show()
 
@@ -564,5 +512,57 @@ print(f"Coefficient: {coef}")
 print(f"Intercept: {intercept}")
 
 # 顯示回歸方程式
-print(f"回歸方程式: 銲道寬度 = {coef} * 銲接速度 + {intercept}")
+print(f"回歸方程式: 銲道寬度 = {coef} * 銲接電流 + {intercept}")
+
+
+"""
+角接 有填料 變速度 模型
+銲道寬度 = 0.12575 * 銲接電流 + -1.3741666666666665
+"""
+# # 數據輸入
+# data = {
+#     '銲接電流': [50, 50, 50, 50, 50, 50, 50, 50, 50],
+#     '填料速度': [83, 83, 83, 85, 85, 85, 87, 87, 87],
+#     '銲接速度': [1, 1, 1, 1.5, 1.5, 1.5, 2, 2, 2],
+#     '銲道寬度': [5.75, 5.92, 5.835, 4.71, 4.76, 4.735, 4.09, 4.19, 4.14]
+# }
+
+# df = pd.DataFrame(data)
+
+# # 提取自變數和應變數
+# X = df[['銲接速度']].values
+# y = df['銲道寬度'].values
+
+# # 創建線性回歸模型
+# model = LinearRegression()
+
+# # 訓練模型
+# model.fit(X, y)
+
+# # 預測
+# y_pred = model.predict(X)
+
+# # 評估模型
+# mse = mean_squared_error(y, y_pred)
+# r2 = r2_score(y, y_pred)
+# coef = model.coef_[0]
+# intercept = model.intercept_
+
+# # 繪製回歸線
+# plt.scatter(X, y, color='blue', label='Data Points')
+# plt.plot(X, y_pred, color='red', label='Regression Line')
+# plt.xlabel('Welding Speed(mm/s)')
+# plt.ylabel('Weld Bead Width(mm)')
+# plt.title('Linear Regression: Welding Speed vs Weld Bead Width')
+# plt.legend()
+# plt.show()
+
+# # 顯示結果
+# print(f"Mean Squared Error: {mse}")
+# print(f"R^2 Score: {r2}")
+# print(f"Coefficient: {coef}")
+# print(f"Intercept: {intercept}")
+
+# # 顯示回歸方程式
+# print(f"回歸方程式: 銲道寬度 = {coef} * 銲接速度 + {intercept}")
 

@@ -1510,9 +1510,9 @@ if __name__ == "__main__":
     # 最大值: 24.0
     # 最小值: 11.0
     # 平均值: 15.61
-    # result, coordinate = udp.getcoordinateMH(101)
-    # print(result)
-    # print(coordinate)
+    result, coordinate = udp.getcoordinateMH(101)
+    print(result)
+    print(coordinate)
     """
     矩形軌跡:
     Org = [485.126, -1.295, 234.296, 179.9772, 20.2428, 1.6694]

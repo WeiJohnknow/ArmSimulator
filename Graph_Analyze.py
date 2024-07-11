@@ -373,21 +373,24 @@ def Analysis_ExperimentalAndExpect(Experimental_EucDis, Experimental_Speed, Expe
     # 手臂實際跑出來的速度(去除無窮大後)
     Experimental_Speed_filter = Experimental_Speed[np.isfinite(Experimental_Speed)]
     # 計算整段軌跡平均速度
-    # RealAvgSpeed = np.mean(Experimental_Speed_filter)
+    RealAvgSpeed = np.mean(Experimental_Speed_filter)
 
     # 切分兩半
-    halfIndex = len(Experimental_Speed_filter)//2
-    before_RealAvgSpeed = np.mean(Experimental_Speed_filter[:halfIndex-100])
-    after_RealAvgSpeed = np.mean(Experimental_Speed_filter[halfIndex+100:])
-    print(f"前段軌跡實際速度: {before_RealAvgSpeed}")
-    print(f"後段軌跡實際速度: {after_RealAvgSpeed}")
-    
+    # halfIndex = len(Experimental_Speed_filter)//2
+    # before_RealAvgSpeed = np.mean(Experimental_Speed_filter[:halfIndex-100])
+    # after_RealAvgSpeed = np.mean(Experimental_Speed_filter[halfIndex+100:])
+    # print(f"前段軌跡實際速度: {before_RealAvgSpeed}")
+    # print(f"後段軌跡實際速度: {after_RealAvgSpeed}")
+
+    # 設置Y軸範圍
+    plt.ylim() 
 
     # 期望歐式距離曲線 
     plt.plot(Expect_Time, Expect_EucDis, color='red', label='Expected')
     # 實驗得到的歐式距離曲線
     plt.plot(Experimental_Time, Experimental_EucDis, color='green', label='Estimate')
 
+    
 
     # 開啟圖表背景格線
     plt.grid(True)
@@ -407,9 +410,12 @@ def Analysis_ExperimentalAndExpect(Experimental_EucDis, Experimental_Speed, Expe
     # 實驗得到的速度曲線
     plt.plot(Experimental_Time, Experimental_Speed,  color='green', label='Estimate')
     # 绘制平均值水平线
-    # plt.axhline(realAvgSpeed, color='Blue', linestyle='--', label='Average estimate')
-    plt.axhline(before_RealAvgSpeed, color='orange', linestyle='--', label='Average speed estimate for first segment')
-    plt.axhline(after_RealAvgSpeed, color='Blue', linestyle='--', label='Average speed estimate for second segment')
+    # plt.axhline(RealAvgSpeed, color='Blue', linestyle='--', label='Average estimate')
+    # plt.axhline(before_RealAvgSpeed, color='orange', linestyle='--', label='Average speed estimate for first segment')
+    # plt.axhline(after_RealAvgSpeed, color='Blue', linestyle='--', label='Average speed estimate for second segment')
+
+    # 設置Y軸範圍
+    plt.ylim(bottom=0)
 
     # 開啟圖表背景格線
     plt.grid(True)

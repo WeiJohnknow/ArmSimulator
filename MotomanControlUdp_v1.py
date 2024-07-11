@@ -2446,7 +2446,7 @@ class Motomancontrol():
         關閉 >> False
         """
         # 速度補償值(要X10，需要補償0.3mm/s，要輸入0.3X10 = 3)
-        self.compensationSpeed = 3
+        self.compensationSpeed = 0
         # 動態速度補償功能
         self.compensationSpeedFUN = False
      
@@ -2476,8 +2476,8 @@ class Motomancontrol():
         self.I28 = 0
 
         # 變電流參數
-        self.AC = 60
-        self.AVP = 100
+        self.AC = 50
+        self.AVP = 83
 
         # 預設銲接速度
         self.GoalSpeed = 1
@@ -2485,7 +2485,7 @@ class Motomancontrol():
         self.variableSpeedFlag = 0
 
         # 預設銲道寬度
-        self.weldBeadWidth = 6.7
+        self.weldBeadWidth = 5.8
 
 
         if self.Line is True:
@@ -2688,6 +2688,14 @@ class Motomancontrol():
         # 防止竄改到來源
         velocity = np.copy(velocityData)
         # 最後一項是速度補償值
+        # 依期望速度判斷 補償值
+        if velocity[SpeedIndex]*10 <=13:
+            self.compensationSpeed = 2
+        elif velocity[SpeedIndex]*10 >13 and velocity[SpeedIndex]*10 <=22:
+            self.compensationSpeed = 3
+        else:
+            self.compensationSpeed = 0
+            print("速度補償值未確定，先歸0")
         Veldata =  velocity[SpeedIndex]*10+self.compensationSpeed
         Veldata = Veldata.astype(int)
     
@@ -3545,22 +3553,22 @@ class Motomancontrol():
                             指定銲道寬度 調變銲接電流
                             """
                             # 銲接速度與銲接電流之轉換關係
-                            estimatedWeldingCurrent = Feed_buttWeld.weldCurrentTOweldBeadWidth(self.weldBeadWidth)
+                            estimatedWeldingCurrent =  Feed_filletWeld.weldCurrentTOweldBeadWidth(self.weldBeadWidth)
                             
                             self.AC = int(round(estimatedWeldingCurrent, 0))
                             
-                            if self.AC <= 45 or self.AC >= 55:
+                            if self.AC > 35 and self.AC <= 45:
                                 self.AVP = 90
-                            elif self.AC >55 or self.AC <= 65:
-                                self.AVP = 95
-                            elif self.AC > 65 or self.AC <= 75:
-                                self.AVP = 90
+                            elif self.AC >45 and self.AC <= 55:
+                                self.AVP = 85
+                            elif self.AC > 55 and self.AC <= 65:
+                                self.AVP = 80
                             print(f"經數學模型換算後的理想銲接電流: {self.AC} A ; 填料速度{self.AVP}%")
                             if self.Line:
                                 # 更新銲接電流與填料速度
                                 firstAddress  = 21
                                 Number = 2
-                                data = [self.AC, self.AVP, 2, 3, 4, 5, 6, 7, 8]
+                                data = [self.AC, self.AVP]
                                 status = self.Udp.multipleWriteVar(firstAddress, Number, data)
                                 # Istatus = self.Udp.WriteVar("Integer", 21, self.AC)
                                 # Istatus = self.Udp.WriteVar("Integer", 22, self.AVP)
@@ -3572,12 +3580,12 @@ class Motomancontrol():
                                 self.recordWeldBeadWidth(sysTime)
                                 
                             else:
-                                if self.AC >= 45 and self.AC <= 55:
+                                if self.AC >= 35 and self.AC <= 45:
                                     self.AVP = 90
+                                elif self.AC > 45 and self.AC <= 55:
+                                    self.AVP = 85
                                 elif self.AC > 55 and self.AC <= 65:
-                                    self.AVP = 95
-                                elif self.AC > 65 and self.AC <= 75:
-                                    self.AVP = 90
+                                    self.AVP = 80
                                 print(f"已將銲接電流更改至 {self.AC}A ; 填料速度更改至{self.AVP}%")
                                 # 紀錄更新的銲接電流
                                 self.recordArcCurrent()
@@ -3621,17 +3629,17 @@ class Motomancontrol():
                             """
                             模型更改區
                             """
-                            estimatedGoalSpeed = Feed_buttWeld.weldingSpeedTOweldBeadWidth(self.weldBeadWidth)
+                            estimatedGoalSpeed = Feed_filletWeld.weldingSpeedTOweldBeadWidth(self.weldBeadWidth)
                             
                             estimatedGoalSpeed = int(estimatedGoalSpeed*10)*0.1
                             self.GoalSpeed = estimatedGoalSpeed
 
                             if self.GoalSpeed >= 0.8 and self.GoalSpeed <= 1.2:
-                                self.AVP = 100
+                                self.AVP = 83
                             elif self.GoalSpeed > 1.2 and self.GoalSpeed <= 1.7:
-                                self.AVP = 95
+                                self.AVP = 85
                             elif self.GoalSpeed > 1.7 and self.GoalSpeed <= 2.2:
-                                self.AVP = 95
+                                self.AVP = 87
 
                             # 將填料速度調變至該銲接速度對應之數值
                             Istatus = self.Udp.WriteVar("Integer", 22, self.AVP)

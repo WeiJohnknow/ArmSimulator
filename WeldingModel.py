@@ -79,13 +79,16 @@ class Feed_buttWeld:
         pass
 
 class Feed_filletWeld:
+    """
+    角接 有填料 變速度、電流模型
+    """
     @ staticmethod
     def weldingSpeedTOweldBeadWidth(WeldBeadWidth):
-        """
+        """變速度
         WeldBeadWidth = -1.6950000000000007 * Speed + 7.445833333333335
         WeldBeadWidth = -1.695 * Speed + 7.446
-        Current∈[40, 60]
-
+        
+        Speed∈[1, 2]
         arg: WeldBeadWidth(mm)
 
         return: Weldiing Speed(mm/s)
@@ -96,19 +99,24 @@ class Feed_filletWeld:
 
     @ staticmethod
     def weldCurrentTOweldBeadWidth(WeldBeadWidth):
-        """
-        WeldBeadWidth = 0.10750000000000001 * Current + -0.5833333333333339
-        WeldBeadWidth = 0.108 * Current + -0.583
-        Speed∈[1, 2]
+        """變電流
+        WeldBeadWidth = 0.12575 * Current -1.3741666666666665
+        WeldBeadWidth = 0.126 * Current -1.374
+        Current∈[40, 60]
 
         arg: WeldBeadWidth(mm)
 
         return: Weldiing Current(A)
         """
-        Current = (WeldBeadWidth+0.583)/0.108
+        Current = (WeldBeadWidth+1.374)/0.126
 
         return Current
 
     @ staticmethod
     def weldSpeedCurrentTOweldBeadWidth(WeldBeadWidth):
         pass
+
+if __name__ == "__main__":
+    WeldBeadWidth = 4.1
+    speed = Feed_filletWeld.weldingSpeedTOweldBeadWidth(WeldBeadWidth)
+    print(speed)

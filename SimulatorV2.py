@@ -682,7 +682,7 @@ class Simulator:
 
             Mainloopiter += 1
             pygame.display.flip()
-            pygame.time.wait(10)
+            pygame.time.wait(1)
 
             """
             Loop delay time 

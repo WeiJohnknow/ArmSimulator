@@ -428,7 +428,74 @@ def Analysis_ExperimentalAndExpect(Experimental_EucDis, Experimental_Speed, Expe
 
     # 显示图形
     plt.show()
-    
+
+def PltJointAngle(Expect_file:str, Feedback_file:str):
+    """繪製期望軌跡、反饋軌跡的關節角度
+    """
+    JointAngleExcept = database_JointAngle.Load(Expect_file)
+    JointAngleExcept = np.rad2deg(JointAngleExcept)
+
+    JointAngleFeedback = database_JointAngle.Load(Feedback_file)
+
+    # 繪製圖表
+    plt.figure()
+    # 期望關節角度
+    plt.plot(JointAngleExcept[:, 0], color='red', label='S-axis Expected')
+    plt.plot(JointAngleExcept[:, 1], color='orange', label='L-axis Expected')
+    plt.plot(JointAngleExcept[:, 2], color='green', label='U-axis Expected')
+    plt.plot(JointAngleExcept[:, 3], color='blue', label='A-axis Expected')
+    plt.plot(JointAngleExcept[:, 4], color='purple', label='B-axis Expected')
+    plt.plot(JointAngleExcept[:, 5], color='black', label='T-axis Expected')
+    # Feedback關節角度
+    plt.plot(JointAngleFeedback[:, 0], color='red', linestyle='--', label='S-axis Feedback')
+    plt.plot(JointAngleFeedback[:, 1], color='orange', linestyle='--', label='L-axis Feedback')
+    plt.plot(JointAngleFeedback[:, 2], color='green', linestyle='--', label='U-axis Feedback')
+    plt.plot(JointAngleFeedback[:, 3], color='blue', linestyle='--', label='R-axis Feedback')
+    plt.plot(JointAngleFeedback[:, 4], color='purple', linestyle='--', label='B-axis Feedback')
+    plt.plot(JointAngleFeedback[:, 5], color='black', linestyle='--', label='T-axis Feedback')
+
+    # 設置軸標籤字體大小
+    plt.xlabel('Data Index', fontsize=20)
+    plt.ylabel('Joint Angle(deg)', fontsize=20)
+    # 设置全局字体大小
+    plt.rcParams.update({'font.size': 20})
+
+    plt.title('Angle of each joint of the robot arm')
+    plt.xlabel('Data Index')
+    plt.ylabel('Joint Angle(deg)')
+    plt.grid(True)
+    plt.legend()
+    # 縮小線條標註字體
+    plt.legend(fontsize=10)
+    # 顯示圖表
+    plt.show()
+
+    # 各軸馬達角度
+    for i in range(6):
+        axisName = "" 
+        if i == 0:
+            axisName = "S"
+        elif i == 1:
+            axisName = "L"
+        elif i == 2:
+            axisName = "U"
+        elif i == 3:
+            axisName = "R"
+        elif i == 4:
+            axisName = "B"
+        elif i == 5:
+            axisName = "T"
+        plt.plot(JointAngleExcept[:, i], color='red', label="Expected")
+        plt.plot(JointAngleFeedback[:, i], color='green', linestyle='--', label="Feedback")
+        # 设置全局字体大小
+        plt.rcParams.update({'font.size': 20})
+        plt.legend()
+        plt.title(axisName+'-axis joint angle')
+        plt.xlabel('Data Index')
+        plt.ylabel('Joint Angle(deg)')
+        plt.grid(True)
+        plt.show()
+   
 def Expect_distance_speed(PoseMat_file, Speed_file, sampleTime):
     """計算軌跡之歐式距離與平均速度
     - Unit:
@@ -1291,28 +1358,35 @@ if __name__ == "__main__" :
     # JointAngle = database_JointAngle.Load("dataBase/dynamicllyPlanTEST/JointAngle_0.csv")
     # JointAngle = np.rad2deg(JointAngle)
     # print(JointAngle)
+
+    
     """
     製作通訊時序表
     """
     # I000_SysTime_chart()
 
     # headname = "dataBase/Experimental_data/20240702/VariableSpeed/d/"
-    headname = "dataBase/dynamicllyPlanTEST/"
-    Time_path =    headname+"feedbackRecords_sysTime.csv"
-    TimeErr_path = headname+"feedbackRecords_sysTime_err.csv"
+    headname = "dataBase/BoxWelding/"
+    number = 0
+    Time_path =    headname+"feedbackRecords_sysTime_"+f"{number}"+".csv"
+    TimeErr_path = headname+"feedbackRecords_sysTime_err_"+f"{number}"+".csv"
+
+    # 畫軌跡關節角度曲線圖
+    # PltJointAngle(headname+"JointAngle_"+f"{number}"+".csv", headname+"feedbackRecords_JointAngle_"+f"{number}"+".csv")
+
     # 製作時間差的csv檔
     make_TimeErrorFile(Time_path, TimeErr_path)
 
     # 預期資料
-    Expect_PoseMat_file = headname+"mergeTrj.csv"
-    Expect_Time_file =    headname+"mergeSpeed.csv"
+    Expect_PoseMat_file = headname+"mergeTrj_"+f"{number}"+".csv"
+    Expect_Time_file =    headname+"mergeSpeed._"+f"{number}"+".csv"
     # Expect_PoseMat_file = headname+"PoseMat_0.csv"
     # Expect_Time_file =    headname+"mergeSpeed.csv"
 
     # 實驗結果資料
-    Experimental_PoseMat_file =    headname+"feedbackRecords_Trj.csv"
-    Experimental_Time_file =       headname+"feedbackRecords_sysTime.csv"
-    Experimental_Time_error_file = headname+"feedbackRecords_sysTime_err.csv"
+    Experimental_PoseMat_file =    headname+"feedbackRecords_Trj_"+f"{number}"+".csv"
+    Experimental_Time_file =       headname+"feedbackRecords_sysTime_"+f"{number}"+".csv"
+    Experimental_Time_error_file = headname+"feedbackRecords_sysTime_err_"+f"{number}"+".csv"
 
 
     # 計算理想軌跡之歐式距離與速度
@@ -1321,6 +1395,7 @@ if __name__ == "__main__" :
     Experimental_TotalEucDis, Experimental_PtoPEucDis, Experimental_PtoPavgSpeed, Experimental_Time = Experimental_data_analysis(Experimental_PoseMat_file, Experimental_Time_file, Experimental_Time_error_file)
     Analysis_ExperimentalAndExpect(Experimental_TotalEucDis, Experimental_PtoPavgSpeed, Experimental_Time, Expect_TotalEucDis, Expect_PtoPavgSpeed, Expect_Time)
     
+
     # Analyze_Position(PoseMat_file, Time_file)
     # Analyze_Velocity(0.04, PoseMat_file, Time_file)
     # Analyze_Acceleration(0.04, PoseMat_file, Time_file)

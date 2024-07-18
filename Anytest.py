@@ -3426,15 +3426,93 @@ RANSAC 回歸模型
 # print(sampled_array)
 
 """
-缺失值測試
+缺失值測試(無限大)
 """
-a = np.array([np.inf, 0, -np.inf])
-b = np.array([1, 0])
-result = np.isinf(a)
-if result.any():
-    print("有問題")
-else:
-    print("沒問題")
+# a = np.array([np.inf, 0, -np.inf])
+# b = np.array([1, 0])
+# result = np.isinf(a)
+# if result.any():
+#     print("有問題")
+# else:
+#     print("沒問題")
 
-c = np.inf
-print(np.isinf(c))
+# c = np.inf
+# print(np.isinf(c))
+"""
+關節角度圖
+"""
+import pygame
+from dataBase_v1 import *
+import matplotlib.pyplot as plt
+import numpy as np
+
+JointAngleExcept = database_JointAngle.Load("dataBase/BoxWelding/JointAngle_1.csv")
+JointAngleExcept = np.rad2deg(JointAngleExcept)
+
+
+# JointAngleFeedback = database_JointAngle.Load("dataBase/dynamicllyPlanTEST/feedbackRecords_JointAngle.csv")
+
+
+
+
+# 繪製圖表
+plt.figure()
+# 期望關節角度
+plt.plot(JointAngleExcept[:, 0], color='red', label='S-axis Expected')
+plt.plot(JointAngleExcept[:, 1], color='orange', label='L-axis Expected')
+plt.plot(JointAngleExcept[:, 2], color='green', label='U-axis Expected')
+plt.plot(JointAngleExcept[:, 3], color='blue', label='R-axis Expected')
+plt.plot(JointAngleExcept[:, 4], color='purple', label='B-axis Expected')
+plt.plot(JointAngleExcept[:, 5], color='black', label='T-axis Expected')
+# # Feedback關節角度
+# plt.plot(JointAngleFeedback[:, 0], color='red', linestyle='--', label='S-axis Feedback')
+# plt.plot(JointAngleFeedback[:, 1], color='orange', linestyle='--', label='L-axis Feedback')
+# plt.plot(JointAngleFeedback[:, 2], color='green', linestyle='--', label='U-axis Feedback')
+# plt.plot(JointAngleFeedback[:, 3], color='blue', linestyle='--', label='R-axis Feedback')
+# plt.plot(JointAngleFeedback[:, 4], color='purple', linestyle='--', label='B-axis Feedback')
+# plt.plot(JointAngleFeedback[:, 5], color='black', linestyle='--', label='T-axis Feedback')
+
+# 設置軸標籤字體大小
+plt.xlabel('Data Index', fontsize=20)
+plt.ylabel('Joint Angle(deg)', fontsize=20)
+# 设置全局字体大小
+plt.rcParams.update({'font.size': 20})
+
+plt.title('Angle of each joint of the robot arm')
+plt.xlabel('Data Index')
+plt.ylabel('Joint Angle(deg)')
+plt.grid(True)
+plt.legend()
+# 縮小線條標註字體
+plt.legend(fontsize=10)
+# 顯示圖表
+plt.show()
+
+# # 各軸馬達角度
+# for i in range(6):
+#    axisName = "" 
+#    if i == 0:
+#       axisName = "S"
+#    elif i == 1:
+#       axisName = "L"
+#    elif i == 2:
+#       axisName = "U"
+#    elif i == 3:
+#       axisName = "R"
+#    elif i == 4:
+#       axisName = "B"
+#    elif i == 5:
+#       axisName = "T"
+#    plt.plot(JointAngleExcept[:, i], color='red', label="Expected")
+#    plt.plot(JointAngleFeedback[:, i], color='green', linestyle='--', label="Feedback")
+#    # 设置全局字体大小
+#    plt.rcParams.update({'font.size': 20})
+#    plt.legend()
+#    plt.title(axisName+'-axis joint angle')
+#    plt.xlabel('Data Index')
+#    plt.ylabel('Joint Angle(deg)')
+#    plt.grid(True)
+#    plt.show()
+
+
+

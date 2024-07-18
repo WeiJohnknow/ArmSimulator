@@ -2436,7 +2436,7 @@ class Motomancontrol():
         # ----------------------------------------------------------------狀態與初始參數設定區----------------------------------------------------------------
         # --------------------狀態預設區--------------------
         """
-        Online(含通訊之測試) >> True  要記得解開self.Udp的相關註解
+        Online(含通訊之測試) >> True  
         Offline(純邏輯測試) >> False
         """
         self.Line = True
@@ -2449,7 +2449,41 @@ class Motomancontrol():
         self.compensationSpeed = 0
         # 動態速度補償功能
         self.compensationSpeedFUN = False
-     
+        """
+        軌跡資料傳送Bypass
+        Online 且 傳送軌跡資料 >> True
+        Online 但不 傳送軌跡資料 >> False
+        """
+        self.sentTrjData = True
+
+        """
+        資料儲存路徑
+        """
+        # 資料夾名稱
+        # self.FolderPath = "dataBase/dynamicllyPlanTEST/"
+        self.FolderPath = "dataBase/BoxWelding/"
+        # 第幾個軌跡檔案
+        self.dataNumber = int(TrjdatafilePath[-5])
+
+        """
+        多段銲接任務 軌跡過渡起點
+        """
+        if self.dataNumber == 0:
+            # 第一段軌跡 過渡至 第二段軌跡起點
+            self.transitionTrjStart = [1014.272, 38.214, -136.852, 157.2389, -24.6554, -151.3141]
+            # 第二段軌跡起點
+            self.transitionTrjEnd = [1014.027, 50.039, -136.669, 156.9287, -25.4687, -63.1568]
+        
+        else:
+            # 第三段軌跡 過渡至 第四段軌跡起點
+            self.transitionTrjStart = [866.659, -87.19, -136.731, 156.8257, -25.077, 32.9626]
+            # 第四段軌跡起點
+            self.transitionTrjEnd = [868.693, -102.201, -136.271, 160.7851, 7.8526, 105.5353]
+        # 是否已停止送絲一次:  從未停只過>>False;有停過一次>>True
+        self.stopSentWire = False
+        
+
+            
         """
         軌跡資料單位:
         9筆=1批, 2批=1組
@@ -2477,15 +2511,15 @@ class Motomancontrol():
 
         # 變電流參數
         self.AC = 50
-        self.AVP = 83
+        self.AVP = 85
 
         # 預設銲接速度
-        self.GoalSpeed = 1
+        self.GoalSpeed = 1.5
         # 軌跡速度切換旗標
         self.variableSpeedFlag = 0
 
         # 預設銲道寬度
-        self.weldBeadWidth = 5.8
+        self.weldBeadWidth = 4.7
 
 
         if self.Line is True:
@@ -2522,13 +2556,16 @@ class Motomancontrol():
         self.communicationRecords_Speed = np.zeros((50000, 9))
         self.communicationRecords_Counter = 0
 
-        # DX200 feedback的手臂資料紀錄
+        # DX200 feedback的手臂資料紀錄-位姿矩陣
         self.feedbackRecords_Trj = np.zeros((50000, 1, 6)) 
         self.feedbackRecords_sysTime = np.zeros((50000, 1))
+        # DX200 feedback的手臂資料紀錄-關節角度
+        self.feedbackRecords_MotorPulse = np.zeros((50000, 1, 6)) 
+        self.feedbackRecords_JointAngle = np.zeros((50000, 1, 6)) 
         self.feedbackRecords_Counter = 0
 
         # 紀錄軌跡終點、feedback最後一筆位姿做為程式結束條件
-        self.EndEffector = np.zeros(6)
+        self.NowEndEffector = np.zeros(6)
         self.Goal = np.array([self.trjData[-1, 0, 0], self.trjData[-1, 0, 1], self.trjData[-1, 0, 2]])
 
         # 規劃新軌跡 各工作階段所花費的時間
@@ -2707,6 +2744,8 @@ class Motomancontrol():
         - Args: RPdata、Veldata、datacount
             - datacount: 已送出多少批資料的計數器值
         """
+
+
         RPpacket = {'0':[17, 4, 5, 0, RPdata[dataCount][0][0], RPdata[dataCount][0][1], RPdata[dataCount][0][2], RPdata[dataCount][0][3], RPdata[dataCount][0][4], RPdata[dataCount][0][5]],
                     '1':[17, 4, 5, 0, RPdata[dataCount][1][0], RPdata[dataCount][1][1], RPdata[dataCount][1][2], RPdata[dataCount][1][3], RPdata[dataCount][1][4], RPdata[dataCount][1][5]],
                     '2':[17, 4, 5, 0, RPdata[dataCount][2][0], RPdata[dataCount][2][1], RPdata[dataCount][2][2], RPdata[dataCount][2][3], RPdata[dataCount][2][4], RPdata[dataCount][2][5]],
@@ -2862,14 +2901,17 @@ class Motomancontrol():
         print("關節角度計算所消耗的總時間: ", err["millisecond"], "ms")
 
         return JointAngleData
+    
+    
         
     def feedbackRecords(self, sysTime):
         """由機器手臂反饋回PC的數據紀錄
         """
-        b = self.Time.ReadNowTime()
-        # 讀取實際手臂位置
+        
+        # 讀取實際手臂位姿
         pos_result, coordinate = self.Udp.getcoordinateMH(101)
-        # 儲存實際軌跡資料
+        # 讀取實際手臂關節角度
+        result, JointAngle, pulse = self.Udp.getcoordinateMH(1)
         
         # 軌跡速度補償
         if self.compensationSpeedFUN:
@@ -2923,14 +2965,38 @@ class Motomancontrol():
             self.speedBuffer[self.SpeedDatacounter] = Speed
             self.SpeedDatacounter+=1
             
-            
-        self.EndEffector = np.array([coordinate])
+        # 儲存實際軌跡位姿
+        self.NowEndEffector = np.array([coordinate])
         self.feedbackRecords_Trj[self.feedbackRecords_Counter] = np.array([coordinate])
+        # 儲存實際軌跡關節角度
+        self.feedbackRecords_JointAngle[self.feedbackRecords_Counter] = np.array([JointAngle])
+        self.feedbackRecords_MotorPulse[self.feedbackRecords_Counter] = np.array([pulse])
+        # 儲存對應的系統時間
         self.feedbackRecords_sysTime[self.feedbackRecords_Counter] = sysTime
+        # 資料計數器更新
         self.feedbackRecords_Counter += 1
-        a = self.Time.ReadNowTime()
-        err = self.Time.TimeError(b, a)
-        # print("回饋、計算速度、補償速度花費: ", {err["millisecond"]}, "ms")
+
+        # 多段軌跡過渡區間需要停止送銲絲
+        if np.linalg.norm(self.NowEndEffector[0][0:3]-self.transitionTrjStart[0:3]) < 2 and self.stopSentWire is False:
+            # AVP = 50
+            Istatus = self.Udp.WriteVar("Integer", 22, 50)
+
+            if Istatus == []:
+                print(f"已停止送銲絲，AVP: 50 %, sysTime:{sysTime}ms")
+                self.stopSentWire = True
+            else:
+                print("填料速度更改失敗!!!")
+        
+        elif np.linalg.norm(self.NowEndEffector[0][0:3]-self.transitionTrjEnd[0:3]) < 1 and self.stopSentWire is True:
+            # AVP = 50
+            Istatus = self.Udp.WriteVar("Integer", 22, self.AVP)
+
+            if Istatus == []:
+                print(f"已開始送銲絲，AVP: {self.AVP}%, sysTime:{sysTime}ms")
+                self.stopSentWire = False
+            else:
+                print("填料速度更改失敗!!!")
+        
 
     def SentSuccessRecords(self, interval, status, sysTime):
         """紀錄軌跡封包發送狀況
@@ -3060,7 +3126,7 @@ class Motomancontrol():
 
         return filtered_data_with_previous
     
-    def finalSaveData(self, FolderPath:str):
+    def finalSaveData(self):
         """
         主迴圈結束時，儲存所有資料，包含以下:
         - 回饋資料: feedbackRecords_Trj、feedbackRecords_sysTime
@@ -3076,14 +3142,18 @@ class Motomancontrol():
 
         if self.Line:
             self.feedbackRecords_Trj = self.removeUnnecessaryData(self.feedbackRecords_Trj)
+            self.feedbackRecords_JointAngle = self.removeUnnecessaryData(self.feedbackRecords_JointAngle)
+            self.feedbackRecords_MotorPulse = self.removeUnnecessaryData(self.feedbackRecords_MotorPulse)
             self.feedbackRecords_sysTime = self.removeUnnecessaryData(self.feedbackRecords_sysTime)
             self.EventRecord = self.removeUnnecessaryData(self.EventRecord)
             self.packetSent_isSuccessRecord = self.removeUnnecessaryData(self.packetSent_isSuccessRecord)
 
-            database_PoseMat.Save(self.feedbackRecords_Trj, FolderPath+"feedbackRecords_Trj.csv", mode)
-            database_time.Save(self.feedbackRecords_sysTime, FolderPath+"feedbackRecords_sysTime.csv", mode)
-            database_time.Save_EventRecords(self.EventRecord, FolderPath+"EventRecords.csv", mode)
-            database_time.Save_packetSent_isSuccessRecord(self.packetSent_isSuccessRecord, FolderPath+"packetSent_isSuccessRecord.csv", mode)
+            database_PoseMat.Save(self.feedbackRecords_Trj, self.FolderPath+"feedbackRecords_Trj"+f"_{self.dataNumber}"+".csv", mode)
+            database_JointAngle.Save(self.feedbackRecords_JointAngle, self.FolderPath+"feedbackRecords_JointAngle"+f"_{self.dataNumber}"+".csv", mode)
+            database_JointAngle.Save(self.feedbackRecords_JointAngle, self.FolderPath+"feedbackRecords_MotorPulse"+f"_{self.dataNumber}"+".csv", mode)
+            database_time.Save(self.feedbackRecords_sysTime, self.FolderPath+"feedbackRecords_sysTime"+f"_{self.dataNumber}"+".csv", mode)
+            database_time.Save_EventRecords(self.EventRecord, self.FolderPath+"EventRecords"+f"_{self.dataNumber}"+".csv", mode)
+            database_time.Save_packetSent_isSuccessRecord(self.packetSent_isSuccessRecord, self.FolderPath+"packetSent_isSuccessRecord"+f"_{self.dataNumber}"+".csv", mode)
             
         # 更改數據形狀以便儲存
         self.communicationRecords_Trj = self.communicationRecords_Trj.reshape(-1, 1, 6)
@@ -3096,13 +3166,13 @@ class Motomancontrol():
         self.weldBeadWidthRecards = self.removeUnnecessaryData(self.weldBeadWidthRecards)
         
         # 存入CSV
-        database_PoseMat.Save(self.communicationRecords_Trj, FolderPath+"communicationRecords_Trj.csv", mode)
-        database_Velocity.Save(self.communicationRecords_Speed, FolderPath+"communicationRecords_Speed.csv", mode)
-        database_time.Save_costTime(self.costTime, FolderPath+"costTime.csv", mode)
-        database_PoseMat.Save(self.trjData, FolderPath+"mergeTrj.csv", mode)
-        database_Velocity.Save(self.velData, FolderPath+"mergeSpeed.csv", mode)
-        database_time.Save_arcCurrent(self.arcCurrentRecards, FolderPath+"ArcCurrentRecords.csv", mode)
-        database_time.Save_weldBeadWidth(self.weldBeadWidthRecards, FolderPath+"weldBeadWidthRecords.csv", mode)
+        database_PoseMat.Save(self.communicationRecords_Trj, self.FolderPath+"communicationRecords_Trj"+f"_{self.dataNumber}"+".csv", mode)
+        database_Velocity.Save(self.communicationRecords_Speed, self.FolderPath+"communicationRecords_Speed"+f"_{self.dataNumber}"+".csv", mode)
+        database_time.Save_costTime(self.costTime, self.FolderPath+"costTime"+f"_{self.dataNumber}"+".csv", mode)
+        database_PoseMat.Save(self.trjData, self.FolderPath+"mergeTrj"+f"_{self.dataNumber}"+".csv", mode)
+        database_Velocity.Save(self.velData, self.FolderPath+"mergeSpeed"+f"_{self.dataNumber}"+".csv", mode)
+        database_time.Save_arcCurrent(self.arcCurrentRecards, self.FolderPath+"ArcCurrentRecords"+f"_{self.dataNumber}"+".csv", mode)
+        database_time.Save_weldBeadWidth(self.weldBeadWidthRecards, self.FolderPath+"weldBeadWidthRecords"+f"_{self.dataNumber}"+".csv", mode)
         
 
     def main(self):
@@ -3293,7 +3363,7 @@ class Motomancontrol():
                 2. I11 - I19
                 """
                 
-                if I2Lock is True:
+                if I2Lock is True and self.sentTrjData is True:
                     self.EventRecord[self.EventRecordCounter, 5] = sysTime
                     
                     I2_b = self.Time.ReadNowTime()
@@ -3312,15 +3382,23 @@ class Motomancontrol():
                         else:
                             status = 1
                             self.SentSuccessRecords( 11, status, sysTime)
+                    else:
+                        if np.linalg.norm(RPdata[alreadySentDataBatch,-1][0:3]-self.transitionTrjStart[0:3]) < 2 and self.stopSentWire is False:
+ 
+                            print(f"已停止送銲絲，AVP: 50 %, sysTime:{sysTime}ms")
+                            self.stopSentWire = True
+
+                        elif np.linalg.norm(RPdata[alreadySentDataBatch,-1][0:3]-self.transitionTrjEnd[0:3]) < 1 and self.stopSentWire is True:
+
+                            print(f"已開始送銲絲，AVP: {self.AVP}%, sysTime:{sysTime}ms")
+                            self.stopSentWire = False
+                        # 模擬軌跡時間
+                        self.Time.time_sleep(0.36)
                     
                     # 通訊紀錄
                     self.communicationRecords(RPdata, Veldata, alreadySentDataBatch, batch)
                     # 資料(批次)計數器更新
                     alreadySentDataBatch += 1
-
-                    if self.Line is False:
-                        # 模擬軌跡時間
-                        self.Time.time_sleep(0.36)
 
                     I2_a = self.Time.ReadNowTime()
                     I2err = self.Time.TimeError(I2_b, I2_a)
@@ -3338,7 +3416,7 @@ class Motomancontrol():
                     I11count+=1
                     I2Lock = False
                     
-                elif I11Lock is True:
+                elif I11Lock is True and self.sentTrjData is True:
                     self.EventRecord[self.EventRecordCounter, 5] = sysTime
                     I11_b = self.Time.ReadNowTime()
 
@@ -3356,16 +3434,25 @@ class Motomancontrol():
                         else:
                             status = 1
                             self.SentSuccessRecords( 2, status, sysTime)
+                    else:   
+                        if np.linalg.norm(RPdata[alreadySentDataBatch,-1][0:3]-self.transitionTrjStart[0:3]) < 2 and self.stopSentWire is False:
+ 
+                            print(f"已停止送銲絲，AVP: 50 %, sysTime:{sysTime}ms")
+                            self.stopSentWire = True
 
+                        elif np.linalg.norm(RPdata[alreadySentDataBatch,-1][0:3]-self.transitionTrjEnd[0:3]) < 1 and self.stopSentWire is True:
+
+                            print(f"已開始送銲絲，AVP: {self.AVP}%, sysTime:{sysTime}ms")
+                            self.stopSentWire = False
+                            
+
+                        # 模擬軌跡時間
+                        self.Time.time_sleep(0.36)
                     # 通訊紀錄
                     self.communicationRecords(RPdata, Veldata, alreadySentDataBatch, batch)
                     # 資料(批次)計數器更新
                     alreadySentDataBatch += 1
 
-                    if self.Line is False:
-                        # 模擬軌跡時間
-                        self.Time.time_sleep(0.36)
-                        
                     I11_a = self.Time.ReadNowTime()
                     I11_err = self.Time.TimeError(I11_b, I11_a)
                     I11_err_ms = I11_err["millisecond"]
@@ -3393,8 +3480,13 @@ class Motomancontrol():
                         # 紀錄feedback數據
                         self.feedbackRecords(sysTime)
                         feedback_count+=1
+
+                        
+                    
+
                 
-                # if alreadySentDataBatch == batch or np.linalg.norm(self.EndEffector[0][0:3]-self.Goal)< 0.1:
+                # if alreadySentDataBatch == batch or np.linalg.norm(self.NowEndEffector[0][0:3]-self.Goal)< 0.1:
+                # if np.linalg.norm(self.NowEndEffector[0][0:3]-self.Goal)< 0.1
                 if alreadySentDataBatch == batch :
                     """結束條件
                     外迴圈數 = 批次數 or 手臂末段點到終點
@@ -3436,10 +3528,10 @@ class Motomancontrol():
                                 #讓機器人程式的迴圈結束
                                 Istatus = self.Udp.WriteVar("Integer", 29, batch+100)
 
-                                self.finalSaveData("dataBase/dynamicllyPlanTEST/")
+                                self.finalSaveData()
                                 break
                     else:
-                        self.finalSaveData("dataBase/dynamicllyPlanTEST/")
+                        self.finalSaveData()
                     
                     print(f"I2批次有{I3count}批，I11批次有{I11count}批")
                     print(f"軌跡實驗結束，共花費 {sysTime} ms")
@@ -3756,6 +3848,8 @@ class Motomancontrol():
 if __name__ == "__main__":
 
 
-    trjdataPath = "dataBase/dynamicllyPlanTEST/PoseMat_0.csv"
-    speeddataPath = "dataBase/dynamicllyPlanTEST/Speed_0.csv"
+    # trjdataPath = "dataBase/dynamicllyPlanTEST/PoseMat_0.csv"
+    # speeddataPath = "dataBase/dynamicllyPlanTEST/Speed_0.csv"
+    trjdataPath = "dataBase/BoxWelding/PoseMat_0.csv"
+    speeddataPath = "dataBase/BoxWelding/Speed_0.csv"
     Motomancontrol(trjdataPath, speeddataPath).main()

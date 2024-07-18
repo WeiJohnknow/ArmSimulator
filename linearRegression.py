@@ -106,6 +106,7 @@ from mpl_toolkits.mplot3d import Axes3D
 # print(equation)
 
 """
+角接 無填料
 二元一次線性回歸
 """
 
@@ -465,54 +466,54 @@ y = 0.09750000000000003 * Current + -1.9600000000000004 * Speed + 2.733333333333
 
 """
 角接 有填料 變電流 模型
-銲道寬度 = 0.10750000000000001 * 銲接電流 + -0.5833333333333339
+銲道寬度 = 0.10750000000000001 * 銲接電流  -0.5833333333333339
 """
-# 數據輸入
-data = {
-    '銲接電流': [40, 40, 40, 50, 50, 50, 60, 60, 60],
-    '填料速度': [90, 90, 90, 85, 85, 85, 80, 80, 80],
-    '銲接速度': [1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5],
-    '銲道寬度': [3.69, 3.8, 3.745, 4.71, 4.76, 4.735, 6.14, 6.38, 6.26]
-}
+# # 數據輸入
+# data = {
+#     '銲接電流': [40, 40, 40, 50, 50, 50, 60, 60, 60],
+#     '填料速度': [90, 90, 90, 85, 85, 85, 80, 80, 80],
+#     '銲接速度': [1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5],
+#     '銲道寬度': [3.69, 3.8, 3.745, 4.71, 4.76, 4.735, 6.14, 6.38, 6.26]
+# }
 
-df = pd.DataFrame(data)
+# df = pd.DataFrame(data)
 
-# 提取自變數和應變數
-X = df[['銲接電流']].values
-y = df['銲道寬度'].values
+# # 提取自變數和應變數
+# X = df[['銲接電流']].values
+# y = df['銲道寬度'].values
 
-# 創建線性回歸模型
-model = LinearRegression()
+# # 創建線性回歸模型
+# model = LinearRegression()
 
-# 訓練模型
-model.fit(X, y)
+# # 訓練模型
+# model.fit(X, y)
 
-# 預測
-y_pred = model.predict(X)
+# # 預測
+# y_pred = model.predict(X)
 
-# 評估模型
-mse = mean_squared_error(y, y_pred)
-r2 = r2_score(y, y_pred)
-coef = model.coef_[0]
-intercept = model.intercept_
+# # 評估模型
+# mse = mean_squared_error(y, y_pred)
+# r2 = r2_score(y, y_pred)
+# coef = model.coef_[0]
+# intercept = model.intercept_
 
-# 繪製回歸線
-plt.scatter(X, y, color='blue', label='Data Points')
-plt.plot(X, y_pred, color='red', label='Regression Line')
-plt.xlabel('Welding Current(A)')
-plt.ylabel('Weld Bead Width(mm)')
-plt.title('Linear Regression: Welding Current vs Weld Bead Width')
-plt.legend()
-plt.show()
+# # 繪製回歸線
+# plt.scatter(X, y, color='blue', label='Data Points')
+# plt.plot(X, y_pred, color='red', label='Regression Line')
+# plt.xlabel('Welding Current(A)')
+# plt.ylabel('Weld Bead Width(mm)')
+# plt.title('Linear Regression: Welding Current vs Weld Bead Width')
+# plt.legend()
+# plt.show()
 
-# 顯示結果
-print(f"Mean Squared Error: {mse}")
-print(f"R^2 Score: {r2}")
-print(f"Coefficient: {coef}")
-print(f"Intercept: {intercept}")
+# # 顯示結果
+# print(f"Mean Squared Error: {mse}")
+# print(f"R^2 Score: {r2}")
+# print(f"Coefficient: {coef}")
+# print(f"Intercept: {intercept}")
 
-# 顯示回歸方程式
-print(f"回歸方程式: 銲道寬度 = {coef} * 銲接電流 + {intercept}")
+# # 顯示回歸方程式
+# print(f"回歸方程式: 銲道寬度 = {coef} * 銲接電流 + {intercept}")
 
 
 """
@@ -566,3 +567,199 @@ print(f"回歸方程式: 銲道寬度 = {coef} * 銲接電流 + {intercept}")
 # # 顯示回歸方程式
 # print(f"回歸方程式: 銲道寬度 = {coef} * 銲接速度 + {intercept}")
 
+"""
+角接 有填料
+銲接電流、速度 對 填料速度 數學模型
+"""
+# import pandas as pd
+# import numpy as np
+# from sklearn.linear_model import LinearRegression
+# import matplotlib.pyplot as plt
+
+# # 準備數據
+# data = {
+#     '銲接電流': [60, 50, 40, 50, 50, 50],
+#     '填料速度': [80, 85, 90, 83, 85, 87],
+#     '銲接速度': [1.5, 1.5, 1.5, 1, 1.5, 2]
+# }
+
+# df = pd.DataFrame(data)
+
+# # 建立回歸模型
+# X = df[['銲接電流', '銲接速度']]
+# y = df['填料速度']
+
+# reg = LinearRegression().fit(X, y)
+
+# # 獲取回歸係數和截距
+# coef = reg.coef_
+# intercept = reg.intercept_
+
+# print("回歸係數:", coef)
+# print("截距:", intercept)
+
+# # 預測填料速度
+# y_pred = reg.predict(X)
+
+# # 繪製散點圖和回歸線
+# plt.figure(figsize=(10, 6))
+# plt.scatter(df['銲接電流'], df['填料速度'], color='blue', label='Actual Data')
+# plt.scatter(df['銲接電流'], y_pred, color='red', label='Predicted Data')
+# plt.xlabel('銲接電流')
+# plt.ylabel('填料速度')
+# plt.title('Regression Analysis of 銲接電流 and 銲接速度 vs 填料速度')
+# plt.legend()
+# plt.grid(True)
+
+# # 顯示圖表
+# plt.show()
+
+"""
+角接 有填料
+銲接速度、焊接電流與銲道寬度之關係 二元一次數學模型
+銲道寬度 = 0.1258 * 銲接電流 + -1.6950 * 銲接速度 + 1.1633
+"""
+# # 準備數據
+# data = {
+#     '銲接電流': [40, 40, 40, 50, 50, 50, 60, 60, 60, 50, 50, 50, 50, 50, 50, 50, 50, 50],
+#     '銲接速度': [1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1, 1, 1, 1.5, 1.5, 1.5, 2, 2, 2],
+#     '銲道寬度': [3.69, 3.8, 3.745, 4.71, 4.76, 4.735, 6.14, 6.38, 6.26, 5.75, 5.92, 5.835, 4.71, 4.76, 4.735, 4.09, 4.19, 4.14]
+# }
+
+# df = pd.DataFrame(data)
+
+# # 建立回歸模型
+# X = df[['銲接電流', '銲接速度']]
+# y = df['銲道寬度']
+
+# reg = LinearRegression().fit(X, y)
+
+# # 獲取回歸係數和截距
+# coef = reg.coef_
+# intercept = reg.intercept_
+
+
+# # 打印回歸方程式
+# print(f'回歸方程式: 銲道寬度 = {coef[0]:.4f} * 銲接電流 + {coef[1]:.4f} * 銲接速度 + {intercept:.4f}')
+
+
+# # 生成網格數據
+# x_range = np.linspace(df['銲接電流'].min(), df['銲接電流'].max(), 100)
+# y_range = np.linspace(df['銲接速度'].min(), df['銲接速度'].max(), 100)
+# x_grid, y_grid = np.meshgrid(x_range, y_range)
+# z_grid = reg.predict(np.c_[x_grid.ravel(), y_grid.ravel()]).reshape(x_grid.shape)
+
+# # 繪製三維曲面圖
+# fig = plt.figure(figsize=(12, 8))
+# ax = fig.add_subplot(111, projection='3d')
+# ax.plot_surface(x_grid, y_grid, z_grid, alpha=0.5, cmap='viridis')
+# ax.scatter(df['銲接電流'], df['銲接速度'], df['銲道寬度'], color='r', label='Actual Data')
+
+# ax.set_xlabel('Welding Current(A)')
+# ax.set_ylabel('Welding Speed(mm/s)')
+# ax.set_zlabel('Weld Bead Width')
+# ax.set_title('3D Surface Plot of Welding Current and Welding Speed vs Weld Bead Width')
+
+# plt.legend()
+# plt.show()
+
+"""
+
+"""
+# import numpy as np
+# import matplotlib.pyplot as plt
+# from mpl_toolkits.mplot3d import Axes3D
+# from scipy.interpolate import griddata
+
+# # 定義回歸方程
+# def equation1(current):
+#     return 0.12575 * current - 1.3741666666666665
+
+# def equation2(Speed):
+#     return -1.695 * Speed  + 7.446
+
+# # 生成網格數據
+# current_range = np.linspace(40, 60, 100)
+# speed_range = np.linspace(1, 2, 100)
+# current_grid, speed_grid = np.meshgrid(current_range, speed_range)
+
+# # 計算兩個方程的預測值
+# z1 = equation1(current_grid)
+# z2 = equation2(speed_grid)
+
+# # 將兩個方程的結果組合起來
+# current_combined = np.concatenate([current_grid.ravel(), current_grid.ravel()])
+# speed_combined = np.concatenate([speed_grid.ravel(), speed_grid.ravel()])
+# z_combined = np.concatenate([z1.ravel(), z2.ravel()])
+
+
+# # 使用三次樣條插值生成曲面
+# grid_x, grid_y = np.mgrid[40:60:100j, 1:2:100j]
+# grid_z = griddata((current_combined, speed_combined), z_combined, (grid_x, grid_y), method='cubic')
+
+# # 繪製三維曲面圖
+# fig = plt.figure(figsize=(12, 8))
+# ax = fig.add_subplot(111, projection='3d')
+# ax.plot_surface(grid_x, grid_y, grid_z, cmap='viridis', alpha=0.7)
+
+# # 繪製原始的兩個方程的平面
+# # ax.scatter(current_grid, speed_grid, z1, color='r', label='Equation 1 Data')
+# # ax.scatter(current_grid, speed_grid, z2, color='b', label='Equation 2 Data')
+
+# # 設置標籤和標題
+# ax.set_xlabel('銲接電流')
+# ax.set_ylabel('銲接速度')
+# ax.set_zlabel('銲道寬度')
+# ax.set_title('3D Fitted Surface Plot of 銲接電流 and 銲接速度 vs 銲道寬度')
+
+# plt.legend()
+# plt.show()
+
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from sklearn.linear_model import LinearRegression
+from scipy.interpolate import griddata
+
+# 定義回歸方程
+def equation1(current):
+    return 0.12575 * current - 1.3741666666666665
+
+def equation2(speed):
+    return -1.695 * speed + 7.446
+
+# 生成網格數據
+current_range = np.linspace(40, 60, 100)
+speed_range = np.linspace(1, 2, 100)
+current_grid, speed_grid = np.meshgrid(current_range, speed_range)
+
+# 計算兩個方程的預測值
+z1 = equation1(current_grid)
+z2 = equation2(speed_grid)
+
+# 將兩個方程的結果組合起來
+current_combined = np.concatenate([current_grid.ravel(), current_grid.ravel()])
+speed_combined = np.concatenate([speed_grid.ravel(), speed_grid.ravel()])
+z_combined = np.concatenate([z1.ravel(), z2.ravel()])
+
+# 使用 griddata 進行插值
+grid_x, grid_y = np.mgrid[40:60:100j, 1:2:100j]
+grid_z = griddata((current_combined, speed_combined), z_combined, (grid_x, grid_y), method='cubic')
+
+# 繪製三維曲面圖
+fig = plt.figure(figsize=(12, 8))
+ax = fig.add_subplot(111, projection='3d')
+ax.plot_surface(grid_x, grid_y, grid_z, cmap='viridis', alpha=0.7)
+
+# 繪製原始的兩個方程的平面
+ax.scatter(current_grid, speed_grid, z1, color='r', label='Equation 1 Data')
+ax.scatter(current_grid, speed_grid, z2, color='b', label='Equation 2 Data')
+
+# 設置標籤和標題
+ax.set_xlabel('銲接電流')
+ax.set_ylabel('銲接速度')
+ax.set_zlabel('銲道寬度')
+ax.set_title('3D Interpolated Surface Plot of 銲接電流 and 銲接速度 vs 銲道寬度')
+
+plt.legend()
+plt.show()

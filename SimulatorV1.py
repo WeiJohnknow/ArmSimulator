@@ -155,8 +155,8 @@ class Simulator:
         self.draw_axis(Joint2, length)
         self.draw_axis(Joint3, length)
         self.draw_axis(Joint4, length)
-        self.draw_axis(Joint5, length)
-        self.draw_axis(Joint6, length)
+        # self.draw_axis(Joint5, length)
+        # self.draw_axis(Joint6, length)
         self.draw_axis(EndEffector, length)
 
         self.draw_Link(BasePoint, Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, EndEffector)
@@ -832,12 +832,26 @@ class Simulator:
                     [485.2709805384255, -1.2291403892741235, 234.3139997507609, 179.98560003  20.22399995   1.67628347]
 
                 """
-                GoalEnd6x1 = np.array([485.271, -1.229, 234.314, 179.9856, 20.224, 1.6763])
+                # GoalEnd6x1 = np.array([485.271, -1.229, 234.314, 179.9856, 20.224, 1.6763])
+                # GoalEnd6x1 = np.array([1028.838, -100.512, -60.384, 153.7943, -12.9858, -137.0558])
+                
+                # GoalEnd6x1 = np.array([1014.266, -97.183, -137.331, 156.9213, -25.4574, -153.5024])
+                # 第三段起點
+                GoalEnd6x1 = np.array([866.736, 48.286, -136.628, 160.5551, -23.8653, 29.5968])
+                # 第二段到第三段 過渡起點
+                # GoalEnd6x1 = np.array([876.832, 50.348, -137.807, 156.9315, -25.4789, -63.1439])
                 GoalEnd4x4 = np.eye(4)
                 GoalEnd4x4 = GoalEnd4x4 @ Mat.TransXYZ(GoalEnd6x1[0], GoalEnd6x1[1], GoalEnd6x1[2]) @ Mat.RotaXYZ(d2r(GoalEnd6x1[3]), d2r(GoalEnd6x1[4]), d2r(GoalEnd6x1[5]))
                 θ = self.Kin.IK_4x4(GoalEnd4x4, θ_Buffer)
                 print(f"機械手臂各關節馬達角度: ")
                 print(np.rad2deg(θ))
+
+                # [[  -3.3418342 ]
+                #     [  68.55247446]
+                #     [  38.65632633]
+                #     [   7.21014426]
+                #     [-120.9246026 ]
+                #     [-149.44907726]]
                 Base, Saxis, Laxis, Uaxis, Raxis, Baxis, Taxis, EndEffector = self.Kin.Mh12_FK\
                         (World_coordinate,
                         θ[0],

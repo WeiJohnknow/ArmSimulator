@@ -478,11 +478,13 @@ class Kinematics:
         # 迭代次數
         iter = 35
         # 學習率
-        test = 0.6
+        test = 0.8
         
         # 誤差分析
         errorRcords = []
-
+        # 角度分析
+        angleRcords = np.zeros([iter, 6, 1])
+        
         while iter > 0:
             iter -= 1
 
@@ -508,12 +510,13 @@ class Kinematics:
 
             # 利用Jacboian Inverse計算各軸角度，計算需要將V 4*4矩陣維度調整，並將計算後的答案矩陣調整為6*1的維度
             w = np.reshape(J_1 @ V_4x4[:3,:].T.reshape(-1),(6,1))
-
+        
             # 更新角度
             θ_Buffer += w * test
-            # θ_Buffer = Normdeg(θ_Buffer)
-            # print(θ_Buffer)
-
+            
+            angleRcords[iter] = θ_Buffer
+                
+        
         """
         奇異點判定:
         1. rank小於matrix本身之row或column
@@ -526,20 +529,12 @@ class Kinematics:
         # 計算行列式
         determinant = np.prod(s)
 
-        # if determinant == 0:
-        #     print("SVD =  0, 是奇異點")
-
         rankJ = np.linalg.matrix_rank(Jbuffer)
         
         if rankJ < 6 or determinant == 0:
             print("SVD =  0, 是奇異點")
-           
 
-
-        # print("iter :", 10-iter)
         normθ = self.Normdeg(θ_Buffer)
-        # print(normθ)
-        # print("error " , error)
 
         if error > 0.001:
             sys.exit("IK迭代誤差過大")

@@ -1367,7 +1367,7 @@ if __name__ == "__main__" :
 
     # headname = "dataBase/Experimental_data/20240702/VariableSpeed/d/"
     headname = "dataBase/BoxWelding/"
-    number = 0
+    number = 1
     Time_path =    headname+"feedbackRecords_sysTime_"+f"{number}"+".csv"
     TimeErr_path = headname+"feedbackRecords_sysTime_err_"+f"{number}"+".csv"
 
@@ -1379,7 +1379,7 @@ if __name__ == "__main__" :
 
     # 預期資料
     Expect_PoseMat_file = headname+"mergeTrj_"+f"{number}"+".csv"
-    Expect_Time_file =    headname+"mergeSpeed._"+f"{number}"+".csv"
+    Expect_Time_file =    headname+"mergeSpeed_"+f"{number}"+".csv"
     # Expect_PoseMat_file = headname+"PoseMat_0.csv"
     # Expect_Time_file =    headname+"mergeSpeed.csv"
 

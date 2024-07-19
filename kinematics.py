@@ -474,11 +474,14 @@ class Kinematics:
         iter = 35
         學習率
         test = 0.9
+
+        盒子有填料姿態
         """
         # 迭代次數
-        iter = 35
+        iter = 45
         # 學習率
-        test = 0.8
+        test = 0.6
+
         
         # 誤差分析
         errorRcords = []

@@ -2462,7 +2462,7 @@ class Motomancontrol():
         # 資料夾名稱
         # self.FolderPath = "dataBase/dynamicllyPlanTEST/"
         self.FolderPath = "dataBase/BoxWelding/"
-        # 第幾個軌跡檔案
+        # 第幾個軌跡檔案(取軌跡檔名的編號)
         self.dataNumber = int(TrjdatafilePath[-5])
 
         """
@@ -2470,17 +2470,18 @@ class Motomancontrol():
         """
         if self.dataNumber == 0:
             # 第一段軌跡 過渡至 第二段軌跡起點
-            self.transitionTrjStart = [1014.272, 38.214, -136.852, 157.2389, -24.6554, -151.3141]
+            self.transitionTrjStart = [1014.632, 38.764, -136.986, 151.068, -25.1213, -138.0066]
             # 第二段軌跡起點
-            self.transitionTrjEnd = [1014.027, 50.039, -136.669, 156.9287, -25.4687, -63.1568]
+            self.transitionTrjEnd = [1013.994, 49.756, -136.167, 151.5514, -25.0542, -63.4091]
         
         else:
             # 第三段軌跡 過渡至 第四段軌跡起點
-            self.transitionTrjStart = [866.659, -87.19, -136.731, 156.8257, -25.077, 32.9626]
+            self.transitionTrjStart = [866.791, -90.01, -137.035, 151.5799, -25.2112, 30.1944]
             # 第四段軌跡起點
-            self.transitionTrjEnd = [868.693, -102.201, -136.271, 160.7851, 7.8526, 105.5353]
+            self.transitionTrjEnd = [868.589, -102.76, -136.791, 162.5575, 7.1226, 105.8818]
         # 是否已停止送絲一次:  從未停只過>>False;有停過一次>>True
         self.stopSentWire = False
+        self.allTrjEnd = False
         
 
             
@@ -2511,7 +2512,7 @@ class Motomancontrol():
 
         # 變電流參數
         self.AC = 50
-        self.AVP = 85
+        self.AVP = 50
 
         # 預設銲接速度
         self.GoalSpeed = 1.5
@@ -2745,16 +2746,15 @@ class Motomancontrol():
             - datacount: 已送出多少批資料的計數器值
         """
 
-
-        RPpacket = {'0':[17, 4, 5, 0, RPdata[dataCount][0][0], RPdata[dataCount][0][1], RPdata[dataCount][0][2], RPdata[dataCount][0][3], RPdata[dataCount][0][4], RPdata[dataCount][0][5]],
-                    '1':[17, 4, 5, 0, RPdata[dataCount][1][0], RPdata[dataCount][1][1], RPdata[dataCount][1][2], RPdata[dataCount][1][3], RPdata[dataCount][1][4], RPdata[dataCount][1][5]],
-                    '2':[17, 4, 5, 0, RPdata[dataCount][2][0], RPdata[dataCount][2][1], RPdata[dataCount][2][2], RPdata[dataCount][2][3], RPdata[dataCount][2][4], RPdata[dataCount][2][5]],
-                    '3':[17, 4, 5, 0, RPdata[dataCount][3][0], RPdata[dataCount][3][1], RPdata[dataCount][3][2], RPdata[dataCount][3][3], RPdata[dataCount][3][4], RPdata[dataCount][3][5]],
-                    '4':[17, 4, 5, 0, RPdata[dataCount][4][0], RPdata[dataCount][4][1], RPdata[dataCount][4][2], RPdata[dataCount][4][3], RPdata[dataCount][4][4], RPdata[dataCount][4][5]],
-                    '5':[17, 4, 5, 0, RPdata[dataCount][5][0], RPdata[dataCount][5][1], RPdata[dataCount][5][2], RPdata[dataCount][5][3], RPdata[dataCount][5][4], RPdata[dataCount][5][5]],
-                    '6':[17, 4, 5, 0, RPdata[dataCount][6][0], RPdata[dataCount][6][1], RPdata[dataCount][6][2], RPdata[dataCount][6][3], RPdata[dataCount][6][4], RPdata[dataCount][6][5]],
-                    '7':[17, 4, 5, 0, RPdata[dataCount][7][0], RPdata[dataCount][7][1], RPdata[dataCount][7][2], RPdata[dataCount][7][3], RPdata[dataCount][7][4], RPdata[dataCount][7][5]],
-                    '8':[17, 4, 5, 0, RPdata[dataCount][8][0], RPdata[dataCount][8][1], RPdata[dataCount][8][2], RPdata[dataCount][8][3], RPdata[dataCount][8][4], RPdata[dataCount][8][5]]}
+        RPpacket = {'0':[17, 0, 5, 0, RPdata[dataCount][0][0], RPdata[dataCount][0][1], RPdata[dataCount][0][2], RPdata[dataCount][0][3], RPdata[dataCount][0][4], RPdata[dataCount][0][5]],
+                    '1':[17, 0, 5, 0, RPdata[dataCount][1][0], RPdata[dataCount][1][1], RPdata[dataCount][1][2], RPdata[dataCount][1][3], RPdata[dataCount][1][4], RPdata[dataCount][1][5]],
+                    '2':[17, 0, 5, 0, RPdata[dataCount][2][0], RPdata[dataCount][2][1], RPdata[dataCount][2][2], RPdata[dataCount][2][3], RPdata[dataCount][2][4], RPdata[dataCount][2][5]],
+                    '3':[17, 0, 5, 0, RPdata[dataCount][3][0], RPdata[dataCount][3][1], RPdata[dataCount][3][2], RPdata[dataCount][3][3], RPdata[dataCount][3][4], RPdata[dataCount][3][5]],
+                    '4':[17, 0, 5, 0, RPdata[dataCount][4][0], RPdata[dataCount][4][1], RPdata[dataCount][4][2], RPdata[dataCount][4][3], RPdata[dataCount][4][4], RPdata[dataCount][4][5]],
+                    '5':[17, 0, 5, 0, RPdata[dataCount][5][0], RPdata[dataCount][5][1], RPdata[dataCount][5][2], RPdata[dataCount][5][3], RPdata[dataCount][5][4], RPdata[dataCount][5][5]],
+                    '6':[17, 0, 5, 0, RPdata[dataCount][6][0], RPdata[dataCount][6][1], RPdata[dataCount][6][2], RPdata[dataCount][6][3], RPdata[dataCount][6][4], RPdata[dataCount][6][5]],
+                    '7':[17, 0, 5, 0, RPdata[dataCount][7][0], RPdata[dataCount][7][1], RPdata[dataCount][7][2], RPdata[dataCount][7][3], RPdata[dataCount][7][4], RPdata[dataCount][7][5]],
+                    '8':[17, 0, 5, 0, RPdata[dataCount][8][0], RPdata[dataCount][8][1], RPdata[dataCount][8][2], RPdata[dataCount][8][3], RPdata[dataCount][8][4], RPdata[dataCount][8][5]]}
         
         # Velpacket =[Veldata[dataCount, 0], 
         #             Veldata[dataCount, 1], 
@@ -2977,26 +2977,69 @@ class Motomancontrol():
         self.feedbackRecords_Counter += 1
 
         # 多段軌跡過渡區間需要停止送銲絲
-        if np.linalg.norm(self.NowEndEffector[0][0:3]-self.transitionTrjStart[0:3]) < 2 and self.stopSentWire is False:
+        if np.linalg.norm(self.NowEndEffector[0][0:3]-self.transitionTrjStart[0:3]) < 6 and self.stopSentWire is False:
             # AVP = 50
-            Istatus = self.Udp.WriteVar("Integer", 22, 50)
-
+            firstAddress  = 21
+            Number = 2
+            self.AC = self.AC-10
+            self.AVP = 50
+            data = [self.AC, self.AVP]
+            Istatus = self.Udp.multipleWriteVar(firstAddress, Number, data)
+            
+            
             if Istatus == []:
-                print(f"已停止送銲絲，AVP: 50 %, sysTime:{sysTime}ms")
+                print(f"已停止銲絲，AC下降至:{self.AC} A,AVP: {self.AVP}%, sysTime:{sysTime}ms")
+                # 紀錄更新的銲接電流
+                self.recordArcCurrent()
+                # 紀錄新寫入的銲道寬度與經模型估測後的銲接製成參數(電流、速度)
+                self.recordWeldBeadWidth(sysTime)
                 self.stopSentWire = True
             else:
                 print("填料速度更改失敗!!!")
+                Istatus = self.Udp.WriteVar("Integer", 22, 50)
+                
+                print("已補發送封包")
         
         elif np.linalg.norm(self.NowEndEffector[0][0:3]-self.transitionTrjEnd[0:3]) < 1 and self.stopSentWire is True:
-            # AVP = 50
-            Istatus = self.Udp.WriteVar("Integer", 22, self.AVP)
-
+            # 第二段軌跡 開始更新銲接電流與填料速度
+            firstAddress  = 21
+            Number = 2
+            self.AC = 50
+            self.AVP = 50
+            data = [self.AC, self.AVP]
+            Istatus = self.Udp.multipleWriteVar(firstAddress, Number, data)
+           
             if Istatus == []:
-                print(f"已開始送銲絲，AVP: {self.AVP}%, sysTime:{sysTime}ms")
+                print(f"已開始送銲絲，AC:{self.AC} A,AVP: {self.AVP}%, sysTime:{sysTime}ms")
+                # 紀錄更新的銲接電流
+                self.recordArcCurrent()
+                # 紀錄新寫入的銲道寬度與經模型估測後的銲接製成參數(電流、速度)
+                self.recordWeldBeadWidth(sysTime)
                 self.stopSentWire = False
             else:
                 print("填料速度更改失敗!!!")
-        
+                Istatus = self.Udp.WriteVar("Integer", 22, self.AVP)
+                print("已補發送封包")
+
+        elif np.linalg.norm(self.NowEndEffector[0][0:3]-self.trjData[-1][0][0:3]) <= 3 and self.allTrjEnd is False:
+            # 快到終點時提前停止送料
+            # 更新銲接電流與填料速度
+            self.AVP = 50
+            Istatus = self.Udp.WriteVar("Integer", 22, self.AVP)
+
+            if Istatus == []:
+                # print(f"已停止送銲絲，AVP: 50 %, sysTime:{sysTime}ms, 軌跡速度增加至: {UpdataSpeed} mm/s")
+                print(f"軌跡快結束，已停止送銲絲，AVP: 50 %, sysTime:{sysTime}ms")
+                # 紀錄更新的銲接電流
+                self.recordArcCurrent()
+                # 紀錄新寫入的銲道寬度與經模型估測後的銲接製成參數(電流、速度)
+                self.recordWeldBeadWidth(sysTime)
+                self.allTrjEnd = True
+            else:
+                print("填料速度更改失敗!!!")
+                Istatus = self.Udp.WriteVar("Integer", 22, 50)
+                
+                print("已補發送封包")
 
     def SentSuccessRecords(self, interval, status, sysTime):
         """紀錄軌跡封包發送狀況
@@ -3328,6 +3371,7 @@ class Motomancontrol():
                     # 將I0、PrvUpdataTime、SysTimer記錄下來
                     self.EventRecord[self.EventRecordCounter, 0] = I0[0]
                     self.EventRecord[self.EventRecordCounter, 1] = Prv_I0[0]
+                    # 距離上次更新軌跡數據經過多久ms
                     self.EventRecord[self.EventRecordCounter, 3] = timeLeft_ms
                     self.EventRecord[self.EventRecordCounter, 4] = sysTime
                     
@@ -3335,11 +3379,14 @@ class Motomancontrol():
                     """
                     防止重複
                     """
-                    if Prv_I0[0] != I0[0] and I0[0] == 2:
+                    # TODO 此判斷機制會使得I0讀取時機若剛好錯過2或11時，少更新一次軌跡資料，造成軌跡回朔，需設計新的方法判斷!!!!!
+                    # if Prv_I0[0] != I0[0] and I0[0] == 2:
+                    if Prv_I0[0] != I0[0] and (I0[0] >=2 and I0[0] <=4) and timeLeft_ms > 180:
                         I2Lock = True
                         self.EventRecord[self.EventRecordCounter, 2] = 1
                         # print(f"I0: {I0}，允許寫入I11-I19")
-                    elif Prv_I0[0] != I0[0] and I0[0] == 11:
+                    # elif Prv_I0[0] != I0[0] and I0[0] == 11:
+                    if Prv_I0[0] != I0[0] and (I0[0] >=11 and I0[0] <=13) and timeLeft_ms > 180:
                         I11Lock = True
                         self.EventRecord[self.EventRecordCounter, 2] = 1
                         # print(f"I0: {I0}，允許寫入I02-I10")
@@ -3379,9 +3426,13 @@ class Motomancontrol():
                         if RPstatus==[]:
                             status = 0
                             self.SentSuccessRecords( 11, status, sysTime)
+                            
                         else:
+                            # 封包有漏
                             status = 1
                             self.SentSuccessRecords( 11, status, sysTime)
+                            # 補發送軌跡資料
+                            RPstatus = self.Udp.multipleWriteRPVar(firstAddress, 9, RPpacket)
                     else:
                         if np.linalg.norm(RPdata[alreadySentDataBatch,-1][0:3]-self.transitionTrjStart[0:3]) < 2 and self.stopSentWire is False:
  
@@ -3432,8 +3483,11 @@ class Motomancontrol():
                             status = 0
                             self.SentSuccessRecords( 2, status, sysTime)
                         else:
+                            # 封包有漏
                             status = 1
                             self.SentSuccessRecords( 2, status, sysTime)
+                            # 補發送軌跡資料
+                            RPstatus = self.Udp.multipleWriteRPVar(firstAddress, 9, RPpacket)
                     else:   
                         if np.linalg.norm(RPdata[alreadySentDataBatch,-1][0:3]-self.transitionTrjStart[0:3]) < 2 and self.stopSentWire is False:
  
@@ -3850,6 +3904,6 @@ if __name__ == "__main__":
 
     # trjdataPath = "dataBase/dynamicllyPlanTEST/PoseMat_0.csv"
     # speeddataPath = "dataBase/dynamicllyPlanTEST/Speed_0.csv"
-    trjdataPath = "dataBase/BoxWelding/PoseMat_0.csv"
-    speeddataPath = "dataBase/BoxWelding/Speed_0.csv"
+    trjdataPath = "dataBase/BoxWelding/PoseMat_1.csv"
+    speeddataPath = "dataBase/BoxWelding/Speed_1.csv"
     Motomancontrol(trjdataPath, speeddataPath).main()

@@ -3452,9 +3452,6 @@ JointAngleExcept = np.rad2deg(JointAngleExcept)
 
 # JointAngleFeedback = database_JointAngle.Load("dataBase/dynamicllyPlanTEST/feedbackRecords_JointAngle.csv")
 
-
-
-
 # 繪製圖表
 plt.figure()
 # 期望關節角度
@@ -3512,7 +3509,8 @@ plt.show()
 #    plt.xlabel('Data Index')
 #    plt.ylabel('Joint Angle(deg)')
 #    plt.grid(True)
-#    plt.show()
-
+   # plt.show()
+"""
+"""
 
 
